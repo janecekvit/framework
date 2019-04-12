@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="Socket\BaseSocket.cpp">
+      <Filter>Socket</Filter>
+    </ClCompile>
+    <ClCompile Include="Socket\ClientSocket.cpp">
+      <Filter>Socket</Filter>
+    </ClCompile>
+    <ClCompile Include="Socket\ServerSocket.cpp">
+      <Filter>Socket</Filter>
+    </ClCompile>
+    <ClCompile Include="Socket\SocketTools.cpp">
+      <Filter>Socket</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Utility.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Crypto\CryptoUtils.cpp">
+      <Filter>Crypto</Filter>
+    </ClCompile>
+    <ClCompile Include="Thread\ThreadPoolDynamic.cpp">
+      <Filter>Thread</Filter>
+    </ClCompile>
+    <ClCompile Include="Thread\WorkerDynamic.cpp">
+      <Filter>Thread</Filter>
+    </ClCompile>
+    <ClCompile Include="Thread\ThreadPool.cpp">
+      <Filter>Thread</Filter>
+    </ClCompile>
+    <ClCompile Include="Thread\Worker.cpp">
+      <Filter>Thread</Filter>
+    </ClCompile>
+    <ClCompile Include="Common\Definitions.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Socket\BaseSocket.h">
+      <Filter>Socket</Filter>
+    </ClInclude>
+    <ClInclude Include="Socket\ClientSocket.h">
+      <Filter>Socket</Filter>
+    </ClInclude>
+    <ClInclude Include="Socket\ServerSocket.h">
+      <Filter>Socket</Filter>
+    </ClInclude>
+    <ClInclude Include="Socket\SocketTools.h">
+      <Filter>Socket</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Finally.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Utility.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\WinInclude.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\CryptoUtils.h">
+      <Filter>Crypto</Filter>
+    </ClInclude>
+    <ClInclude Include="Thread\ThreadPoolDynamic.h">
+      <Filter>Thread</Filter>
+    </ClInclude>
+    <ClInclude Include="Thread\WorkerDynamic.h">
+      <Filter>Thread</Filter>
+    </ClInclude>
+    <ClInclude Include="Thread\ThreadPool.h">
+      <Filter>Thread</Filter>
+    </ClInclude>
+    <ClInclude Include="Thread\Worker.h">
+      <Filter>Thread</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\BaseException.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\Definitions.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Templates\Concurrent.h">
+      <Filter>Templates</Filter>
+    </ClInclude>
+    <ClInclude Include="Templates\Extensions.h">
+      <Filter>Templates</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Socket">
+      <UniqueIdentifier>{e3edec66-ed8d-44f3-95b7-94229e1ca630}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{521e21fd-da11-460f-a567-9b9fbdbcc82b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Thread">
+      <UniqueIdentifier>{923f8c59-8e66-4d38-bfb1-2a88a7762837}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Crypto">
+      <UniqueIdentifier>{a86cd86d-e4dc-4751-ad87-f0bfe3400450}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Templates">
+      <UniqueIdentifier>{c2ed9f81-6a79-461b-b16a-75713f8e6275}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
