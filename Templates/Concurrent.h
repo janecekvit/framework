@@ -28,7 +28,7 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
-@version 1.01 17/03/2019
+@version 1.02 17/03/2019
 */
 
 #pragma once
@@ -73,11 +73,11 @@ namespace Concurrent
 
 		const std::shared_ptr<TObject> operator->() const 
 		{ 
-			return m_pKeeper->GetObject();
+			return m_pKeeper->GetResource();
 		}
 		TObject& Get() const
 		{
-			return *m_pKeeper->GetObject();
+			return *m_pKeeper->GetResource();
 		}
 		void Set(TObject && oObject) const 
 		{
@@ -85,7 +85,7 @@ namespace Concurrent
 		}
 		const TObject& operator()() const
 		{
-			return *m_pKeeper->GetObject();
+			return *m_pKeeper->GetResource();
 		}
 
 	private:
@@ -112,15 +112,15 @@ namespace Concurrent
 
 		const std::shared_ptr<const TObject> operator->() const
 		{
-			return m_pKeeper->GetObject();
+			return m_pKeeper->GetResource();
 		}
 		const TObject& Get() const
 		{
-			return *m_pKeeper->GetObject();
+			return *m_pKeeper->GetResource();
 		}
 		const TObject& operator()() const
 		{
-			return *m_pKeeper->GetObject();
+			return *m_pKeeper->GetResource();
 		}
 
 	private:
@@ -142,7 +142,7 @@ namespace Concurrent
 		{
 		}
 		ResourceKeeper(TObject&& oObject)
-			: m_pObject(std::make_shared<TObject>(std::forward<TObject>(oObject)))
+			: m_pResource(std::make_shared<TObject>(std::forward<TObject>(oObject)))
 		{
 		}
 
@@ -150,15 +150,15 @@ namespace Concurrent
 		{
 		}
 
-		void SetObject(TObject &&oObject) { m_pObject = std::make_shared<TObject>(std::forward<TObject>(oObject)); }
+		void SetObject(TObject &&oObject) { m_pResource = std::make_shared<TObject>(std::forward<TObject>(oObject)); }
 
 		const std::shared_ptr<std::shared_mutex> GetMutex() const { return m_pMutex; }
-		const std::shared_ptr<TObject> GetObject() { return m_pObject; }
-		const std::shared_ptr<const TObject> GetObject() const { return m_pObject; }
+		const std::shared_ptr<TObject> GetResource() { return m_pResource; }
+		const std::shared_ptr<const TObject> GetResource() const { return m_pResource; }
 
 
 	private:
-		std::shared_ptr<TObject> m_pObject = std::make_shared<TObject>();
+		std::shared_ptr<TObject> m_pResource = std::make_shared<TObject>();
 		const std::shared_ptr<std::shared_mutex> m_pMutex = std::make_shared<std::shared_mutex>();
 	};
 
