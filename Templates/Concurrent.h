@@ -81,7 +81,7 @@ namespace Concurrent
 		}
 		void Set(TObject && oObject) const 
 		{
-			m_pKeeper->SetObject(std::forward<TObject>(oObject));
+			m_pKeeper->SetResource(std::forward<TObject>(oObject));
 		}
 		const TObject& operator()() const
 		{
@@ -150,7 +150,7 @@ namespace Concurrent
 		{
 		}
 
-		void SetObject(TObject &&oObject) { m_pResource = std::make_shared<TObject>(std::forward<TObject>(oObject)); }
+		void SetResource(TObject &&oObject) { m_pResource = std::make_shared<TObject>(std::forward<TObject>(oObject)); }
 
 		const std::shared_ptr<std::shared_mutex> GetMutex() const { return m_pMutex; }
 		const std::shared_ptr<TObject> GetResource() { return m_pResource; }
