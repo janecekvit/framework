@@ -73,15 +73,15 @@ namespace Concurrent
 
 		const std::shared_ptr<TObject> operator->() const 
 		{ 
-			return m_pKeeper->GetContainer();
+			return m_pKeeper->GetObject();
 		}
 		TObject& Get() const
 		{
-			return *m_pKeeper->GetContainer();
+			return *m_pKeeper->GetObject();
 		}
 		const TObject& operator()() const
 		{
-			return *m_pKeeper->GetContainer();
+			return *m_pKeeper->GetObject();
 		}
 
 	private:
@@ -108,15 +108,15 @@ namespace Concurrent
 
 		const std::shared_ptr<const TObject> operator->() const
 		{
-			return m_pKeeper->GetContainer();
+			return m_pKeeper->GetObject();
 		}
 		const TObject& Get() const
 		{
-			return *m_pKeeper->GetContainer();
+			return *m_pKeeper->GetObject();
 		}
 		const TObject& operator()() const
 		{
-			return *m_pKeeper->GetContainer();
+			return *m_pKeeper->GetObject();
 		}
 
 	private:
@@ -147,8 +147,8 @@ namespace Concurrent
 		}
 
 		const std::shared_ptr<std::shared_mutex> GetMutex() const { return m_pMutex; }
-		const std::shared_ptr<TObject> GetContainer() { return m_pContainer; }
-		const std::shared_ptr<const TObject> GetContainer() const { return m_pContainer; }
+		const std::shared_ptr<TObject> GetObject() { return m_pContainer; }
+		const std::shared_ptr<const TObject> GetObject() const { return m_pContainer; }
 
 
 	private:
