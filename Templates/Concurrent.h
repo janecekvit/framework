@@ -79,6 +79,10 @@ namespace Concurrent
 		{
 			return *m_pKeeper->GetObject();
 		}
+		void Set(TObject && oObject) const 
+		{
+			m_pKeeper->SetObject(std::forward<TObject>(oObject));
+		}
 		const TObject& operator()() const
 		{
 			return *m_pKeeper->GetObject();
@@ -137,8 +141,8 @@ namespace Concurrent
 		ResourceKeeper()
 		{
 		}
-		ResourceKeeper(TObject&& oContainer)
-			: m_pContainer(std::make_shared<TObject>(std::forward<TObject>(oContainer)))
+		ResourceKeeper(TObject&& oObject)
+			: m_pObject(std::make_shared<TObject>(std::forward<TObject>(oObject)))
 		{
 		}
 
@@ -146,13 +150,15 @@ namespace Concurrent
 		{
 		}
 
+		void SetObject(TObject &&oObject) { m_pObject = std::make_shared<TObject>(std::forward<TObject>(oObject)); }
+
 		const std::shared_ptr<std::shared_mutex> GetMutex() const { return m_pMutex; }
-		const std::shared_ptr<TObject> GetObject() { return m_pContainer; }
-		const std::shared_ptr<const TObject> GetObject() const { return m_pContainer; }
+		const std::shared_ptr<TObject> GetObject() { return m_pObject; }
+		const std::shared_ptr<const TObject> GetObject() const { return m_pObject; }
 
 
 	private:
-		const std::shared_ptr<TObject> m_pContainer = std::make_shared<TObject>();
+		std::shared_ptr<TObject> m_pObject = std::make_shared<TObject>();
 		const std::shared_ptr<std::shared_mutex> m_pMutex = std::make_shared<std::shared_mutex>();
 	};
 
