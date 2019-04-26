@@ -67,6 +67,13 @@ namespace Concurrent
 			, m_oExclusiveLock(std::unique_lock<std::shared_mutex>(*pKeeper->GetMutex()))
 		{
 		}
+	
+		ExclusiveResourceHolder(_In_ const ExclusiveResourceHolder&& oOther)
+			: m_pKeeper(std::move(oOther.m_pKeeper))
+			, m_oExclusiveLock(std::move(oOther.m_oExclusiveLock))
+		{
+		}
+
 		virtual ~ExclusiveResourceHolder()
 		{
 		}
@@ -106,6 +113,13 @@ namespace Concurrent
 			, m_oConcurrentLock(std::shared_lock<std::shared_mutex>(*pKeeper->GetMutex()))
 		{
 		}
+		
+		ConcurrentResourceHolder(_In_ const ConcurrentResourceHolder&& oOther)
+			: m_pKeeper(std::move(oOther.m_pKeeper))
+			, m_oConcurrentLock(std::move(oOther.m_oConcurrentLock))
+		{
+		}
+
 		virtual ~ConcurrentResourceHolder()
 		{
 		}
