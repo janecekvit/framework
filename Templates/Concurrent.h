@@ -68,7 +68,7 @@ namespace Concurrent
 		{
 		}
 	
-		ExclusiveResourceHolder(_In_ const ExclusiveResourceHolder&& oOther)
+		ExclusiveResourceHolder(_In_ ExclusiveResourceHolder&& oOther)
 			: m_pKeeper(std::move(oOther.m_pKeeper))
 			, m_oExclusiveLock(std::move(oOther.m_oExclusiveLock))
 		{
@@ -114,7 +114,7 @@ namespace Concurrent
 		{
 		}
 		
-		ConcurrentResourceHolder(_In_ const ConcurrentResourceHolder&& oOther)
+		ConcurrentResourceHolder(_In_ ConcurrentResourceHolder&& oOther)
 			: m_pKeeper(std::move(oOther.m_pKeeper))
 			, m_oConcurrentLock(std::move(oOther.m_oConcurrentLock))
 		{
