@@ -68,5 +68,5 @@ public:
 	/// Implementation of RAII clone pattern mechanism.
 	/// </summary>
 	/// <returns>returns RAW pointer to this instance of object</returns>
-	virtual ICloneable* CloneImpl() const = 0;
+	virtual TDerived* CloneImpl() const = 0;
 };
