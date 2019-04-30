@@ -51,11 +51,22 @@ template <class TDerived>
 class ICloneable
 {
 public:
+	/// <summary>
+	/// Finalizes an instance of the <see cref="IClonePattern"/> class.
+	/// </summary>
 	virtual ~IClonePattern() = default;
+
+	/// <summary>
+	/// Method clone current instance of object and wraps it to the RAII memory wrapper
+	/// </summary>
+	/// <returns>returns memory-safe free pointer to this instance of object</returns>
 	std::unique_ptr<TDerived> Clone() const
 	{
 		return std::make_unique<TDerived>(CloneImpl());
 	}
-
+	/// <summary>
+	/// Implementation of RAII clone pattern mechanism.
+	/// </summary>
+	/// <returns>returns RAW pointer to this instance of object</returns>
 	virtual ICloneable* CloneImpl() const = 0;
 };
