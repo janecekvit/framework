@@ -62,7 +62,7 @@ public:
 	/// <returns>returns memory-safe free pointer to this instance of object</returns>
 	std::unique_ptr<TDerived> Clone() const
 	{
-		return std::make_unique<TDerived>(CloneImpl());
+		return std::unique_ptr<TDerived>(CloneImpl());
 	}
 	/// <summary>
 	/// Implementation of RAII clone pattern mechanism.
