@@ -136,4 +136,41 @@ namespace Extensions
 		return AnyOf(const_cast<Container<Args...>&> (oContainer), oCallback);
 	}
 
+	/// <summary>
+	/// Method implements RAII memory wrapper recasting from TBase to TDervied
+	/// Method convert current instance of RAII memory wrapper to the new one
+	/// Method is atomically, if recast cannot be done, input pointer is still valid
+	/// </summary>
+	/// <returns>On success, returns recasted memory-safe pointer, else do not nothing</returns>
+	template <class TBase, class TDerived>
+	std::unique_ptr<TDerived> Recast(
+		_In_ std::unique_ptr<TBase>& pItem)
+	{
+		auto* pTemp = dynamic_cast<TDerived*>(pItem.get());
+		if (pTemp)
+			return nullptr;
+
+		pItem.release();
+		return std::unique_ptr<TDerived>(pTemp);
+	}
+
+
+	/// <summary>
+	/// Method implements RAII memory wrapper recasting from TDervied to TBase
+	/// Method convert current instance of RAII memory wrapper to the new one
+	/// Method is atomically, if recast cannot be done, input pointer is still valid
+	/// </summary>
+	/// <returns>On success, returns recasted memory-safe pointer, else do not nothing</returns>
+	template <class TBase, class TDerived>
+	std::unique_ptr<TBase> Recast(
+		_In_ std::unique_ptr<TDerived>& pItem)
+	{
+		auto* pTemp = dynamic_cast<TBase*>(pItem.get());
+		if (pTemp)
+			return nullptr;
+
+		pItem.release();
+		return std::unique_ptr<TBase>(pTemp);
+	}
+
 } //namespace Extensions
