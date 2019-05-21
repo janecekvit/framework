@@ -29,6 +29,7 @@ Purpose:	header file contains set of extended methods implemented over stl conta
 */
 
 #pragma once
+#include <list>
 #include <memory>
 #include <functional>
 #include <type_traits>
@@ -172,5 +173,78 @@ namespace Extensions
 		pItem.release();
 		return std::unique_ptr<TBase>(pTemp);
 	}
+
+
+	/// <summary>
+	/// Parameter pack class can forward input variadic argument list to the any object for future processing
+	/// Parameter pack implement lazy evaluation idiom to enable processing input arguments as late as possible
+	/// </summary>
+	class ParameterPack
+	{
+	public:
+		virtual ~ParameterPack() = default;
+
+		template <class ... Args>
+		ParameterPack(
+			_In_ const Args& ... oArgs)
+		{
+			_SerializeParameters(oArgs...);
+		}
+
+
+	public:
+		template <class ... Args>
+		void GetPack(
+			_Inout_ Args& ... oArgs)
+		{
+
+			if (m_listArgs.size() != sizeof...(Args))
+				return;
+
+			auto listArgs = m_listArgs;
+			_DeserializeParameters(std::move(listArgs), oArgs...);
+		}
+
+	protected:
+		template <class T>
+		void _SerializeParameters(
+			_In_ const T & oFirst)
+		{
+			m_listArgs.emplace_back((void*)oFirst);
+		}
+
+		template <class T, class... Args>
+		void _SerializeParameters(
+			_In_ const T & oFirst,
+			_In_ const Args & ... oRest)
+		{
+			m_listArgs.emplace_back((void*)oFirst);
+			_SerializeParameters(oRest...);
+		}
+
+		template <class T>
+		void _DeserializeParameters(
+			_In_ std::list<void*>&& listArgs,
+			_Inout_ T& oFirst)
+		{
+			oFirst = (T) listArgs.front();
+			listArgs.pop_front();
+		}
+
+		template <class T, class... Args>
+		void _DeserializeParameters(
+			_In_ std::list<void*>&& listArgs,
+			_Inout_ T& oFirst,
+			_Inout_ Args & ... oRest)
+		{
+			oFirst = (T) listArgs.front();
+			listArgs.pop_front();
+			_DeserializeParameters(std::move(listArgs), oRest...);
+		}
+
+	protected:
+		std::list<void*> m_listArgs;
+	};
+
 
 } //namespace Extensions
