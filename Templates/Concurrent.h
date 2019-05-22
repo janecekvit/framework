@@ -21,10 +21,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Concurrent.h
-Purpose:	header file contains set of thread-safe concurrent containers,  
-			also methods that implemented over basic stl containers and 
+Purpose:	header file contains set of thread-safe concurrent containers,
+			also methods that implemented over basic stl containers and
 			thread-safe methods for every possiblle concurrent object
-			
+
 
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
@@ -62,12 +62,12 @@ namespace Concurrent
 	class ExclusiveResourceHolder
 	{
 	public:
-		ExclusiveResourceHolder(_In_ const std::shared_ptr<ResourceKeeper<TObject>> &pKeeper)
+		ExclusiveResourceHolder(_In_ const std::shared_ptr<ResourceKeeper<TObject>>& pKeeper)
 			: m_pKeeper(pKeeper)
 			, m_oExclusiveLock(std::unique_lock<std::shared_mutex>(*pKeeper->GetMutex()))
 		{
 		}
-	
+
 		ExclusiveResourceHolder(_In_ ExclusiveResourceHolder&& oOther)
 			: m_pKeeper(std::move(oOther.m_pKeeper))
 			, m_oExclusiveLock(std::move(oOther.m_oExclusiveLock))
@@ -78,15 +78,15 @@ namespace Concurrent
 		{
 		}
 
-		const std::shared_ptr<TObject> operator->() const 
-		{ 
+		const std::shared_ptr<TObject> operator->() const
+		{
 			return m_pKeeper->GetResource();
 		}
 		TObject& Get() const
 		{
 			return *m_pKeeper->GetResource();
 		}
-		void Set(TObject && oObject) const 
+		void Set(_In_ TObject&& oObject) const
 		{
 			m_pKeeper->SetResource(std::forward<TObject>(oObject));
 		}
@@ -108,12 +108,12 @@ namespace Concurrent
 	class ConcurrentResourceHolder
 	{
 	public:
-		ConcurrentResourceHolder(_In_ const std::shared_ptr <const ResourceKeeper<TObject>> &pKeeper)
+		ConcurrentResourceHolder(_In_ const std::shared_ptr<const ResourceKeeper<TObject>>& pKeeper)
 			: m_pKeeper(pKeeper)
 			, m_oConcurrentLock(std::shared_lock<std::shared_mutex>(*pKeeper->GetMutex()))
 		{
 		}
-		
+
 		ConcurrentResourceHolder(_In_ ConcurrentResourceHolder&& oOther)
 			: m_pKeeper(std::move(oOther.m_pKeeper))
 			, m_oConcurrentLock(std::move(oOther.m_oConcurrentLock))
@@ -155,7 +155,7 @@ namespace Concurrent
 		ResourceKeeper()
 		{
 		}
-		ResourceKeeper(TObject&& oObject)
+		ResourceKeeper(_In_ TObject&& oObject)
 			: m_pResource(std::make_shared<TObject>(std::forward<TObject>(oObject)))
 		{
 		}
@@ -164,11 +164,23 @@ namespace Concurrent
 		{
 		}
 
-		void SetResource(TObject &&oObject) { m_pResource = std::make_shared<TObject>(std::forward<TObject>(oObject)); }
+		void SetResource(_In_ TObject&& oObject)
+		{
+			m_pResource = std::make_shared<TObject>(std::forward<TObject>(oObject));
+		}
 
-		const std::shared_ptr<std::shared_mutex> GetMutex() const { return m_pMutex; }
-		const std::shared_ptr<TObject> GetResource() { return m_pResource; }
-		const std::shared_ptr<const TObject> GetResource() const { return m_pResource; }
+		const std::shared_ptr<std::shared_mutex> GetMutex() const
+		{
+			return m_pMutex;
+		}
+		const std::shared_ptr<TObject> GetResource()
+		{
+			return m_pResource;
+		}
+		const std::shared_ptr<const TObject> GetResource() const
+		{
+			return m_pResource;
+		}
 
 
 	private:
@@ -208,7 +220,7 @@ namespace Concurrent
 		ResourceOwner()
 		{
 		}
-		ResourceOwner(TObject&& oContainer)
+		ResourceOwner(_In_ TObject&& oContainer)
 			: m_pKeeper(std::make_shared<ResourceKeeper<TObject>>(std::forward<TObject>(oContainer)))
 		{
 		}

@@ -60,9 +60,9 @@ namespace Extensions
 	/// </example>
 	template <template <class ...> class Container, class Key, class ... Args, class Functor>
 	auto ContainerFind(
-		_In_ Container<Args...> &oContainer,
-		_In_ const Key &oKey,
-		_In_ Functor &&oCallback)
+		_In_ Container<Args...>& oContainer,
+		_In_ const Key& oKey,
+		_In_ Functor&& oCallback)
 		-> decltype(std::begin(oContainer), std::end(oContainer), oContainer.find(oKey), oCallback(oContainer.find(oKey)->second))
 	{
 		if constexpr (std::is_same_v<decltype(oCallback(oContainer.find(oKey)->second)), void>)
@@ -83,9 +83,9 @@ namespace Extensions
 
 	template <template <class ...> class Container, class Key, class ... Args, class Functor>
 	auto ContainerFind(
-		_In_ const Container<Args...> &oContainer,
-		_In_ const Key &oKey,
-		_In_ Functor &&oCallback)
+		_In_ const Container<Args...>& oContainer,
+		_In_ const Key& oKey,
+		_In_ Functor&& oCallback)
 		-> decltype(std::begin(oContainer), std::end(oContainer), oContainer.find(oKey), oCallback(oContainer.find(oKey)->second)) const
 	{
 		return ContainerFind(const_cast<Container<Args...>&> (oContainer), oKey, oCallback);
@@ -99,16 +99,16 @@ namespace Extensions
 	/// <returns>void()</returns>
 	template <template <class ...> class Container, class ... Args, class Functor>
 	auto ForEach(
-		_In_ Container<Args...> &oContainer,
-		_In_ Functor &&oCallback)
+		_In_ Container<Args...>& oContainer,
+		_In_ Functor&& oCallback)
 		-> decltype(std::begin(oContainer), std::end(oContainer), void())
 	{
 		std::for_each(oContainer.begin(), oContainer.end(), oCallback);
 	}
 	template <template <class ...> class Container, class ... Args, class Functor>
 	auto ForEach(
-		_In_ const Container<Args...> &oContainer,
-		_In_ Functor &&oCallback)
+		_In_ const Container<Args...>& oContainer,
+		_In_ Functor&& oCallback)
 		-> decltype(std::begin(oContainer), std::end(oContainer), void()) const
 	{
 		return ForEach(const_cast<Container<Args...>&> (oContainer), oCallback);
@@ -122,16 +122,16 @@ namespace Extensions
 	/// </summary>
 	template <template <class ...> class Container, class ... Args, class Functor>
 	auto AnyOf(
-		_In_ Container<Args...> &oContainer,
-		_In_ Functor &&oCallback)
+		_In_ Container<Args...>& oContainer,
+		_In_ Functor&& oCallback)
 		-> decltype(std::begin(oContainer), std::end(oContainer), oCallback(*std::begin(oContainer)), bool())
 	{
 		return std::any_of(oContainer.begin(), oContainer.end(), oCallback);
 	}
 	template <template <class ...> class Container, class ... Args, class Functor>
 	auto AnyOf(
-		_In_ const Container<Args...> &oContainer,
-		_In_ Functor &&oCallback)
+		_In_ const Container<Args...> & oContainer,
+		_In_ Functor && oCallback)
 		-> decltype(std::begin(oContainer), std::end(oContainer), oCallback(*std::begin(oContainer)), bool()) const
 	{
 		return AnyOf(const_cast<Container<Args...>&> (oContainer), oCallback);
@@ -208,17 +208,17 @@ namespace Extensions
 	protected:
 		template <class T>
 		void _SerializeParameters(
-			_In_ const T & oFirst)
+			_In_ const T& oFirst)
 		{
-			m_listArgs.emplace_back((void*)oFirst);
+			m_listArgs.emplace_back((void*) oFirst);
 		}
 
 		template <class T, class... Args>
 		void _SerializeParameters(
-			_In_ const T & oFirst,
-			_In_ const Args & ... oRest)
+			_In_ const T& oFirst,
+			_In_ const Args& ... oRest)
 		{
-			m_listArgs.emplace_back((void*)oFirst);
+			m_listArgs.emplace_back((void*) oFirst);
 			_SerializeParameters(oRest...);
 		}
 
@@ -235,7 +235,7 @@ namespace Extensions
 		void _DeserializeParameters(
 			_In_ std::list<void*>&& listArgs,
 			_Inout_ T& oFirst,
-			_Inout_ Args & ... oRest)
+			_Inout_ Args& ... oRest)
 		{
 			oFirst = (T) listArgs.front();
 			listArgs.pop_front();
