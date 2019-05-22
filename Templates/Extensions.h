@@ -186,7 +186,7 @@ namespace Extensions
 
 		template <class ... Args>
 		ParameterPack(
-			const Args& ... oArgs)
+			_In_ const Args& ... oArgs)
 		{
 			_SerializeParameters(oArgs...);
 		}
@@ -218,7 +218,7 @@ namespace Extensions
 			_In_ const T& oFirst,
 			_In_ const Args& ... oRest)
 		{
-			m_listArgs.emplace_back((void*) oFirst);
+			_SerializeParameters(oFirst);
 			_SerializeParameters(oRest...);
 		}
 
@@ -237,8 +237,7 @@ namespace Extensions
 			_Inout_ T& oFirst,
 			_Inout_ Args& ... oRest)
 		{
-			oFirst = (T) listArgs.front();
-			listArgs.pop_front();
+			_DeserializeParameters(std::move(listArgs), oFirst);
 			_DeserializeParameters(std::move(listArgs), oRest...);
 		}
 
