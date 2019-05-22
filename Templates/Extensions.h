@@ -186,7 +186,7 @@ namespace Extensions
 
 		template <class ... Args>
 		ParameterPack(
-			_In_ const Args& ... oArgs)
+			const Args& ... oArgs)
 		{
 			_SerializeParameters(oArgs...);
 		}
