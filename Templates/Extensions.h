@@ -188,6 +188,42 @@ namespace Extensions
 		return std::unique_ptr<TBase>(pTemp);
 	}
 
+	// Helper base class used as wrapper to hold any type described by derived Parameter<T> class
+	class ParameterBase
+	{
+	public:
+		virtual ~ParameterBase() = default;
+		template <class T>
+		const T& Get() const; // Method is implemented after Parameter derived class, to gain ability to operate with it
+	};
+
+	// Helper derived class used as container of any input type. 
+	template <class T>
+	class Parameter : public virtual ParameterBase
+	{
+	public:
+		virtual ~Parameter() = default;
+		Parameter(_In_ const T& oValue)
+			: m_oValue(oValue)
+		{
+		}
+
+		const T& Get() const
+		{
+			return m_oValue;
+		}
+
+	protected:
+		T m_oValue = {};
+	};
+
+	// Core method: create dynamic_cast instead of virtual cast to get type what allocated in derived class
+	template<class T>
+	const T& ParameterBase::Get() const
+	{
+		return dynamic_cast<const Parameter<T>&>(*this).Get();
+	}
+
 
 	/// <summary>
 	/// Parameter pack class can forward input variadic argument list to the any object for future processing
@@ -196,6 +232,9 @@ namespace Extensions
 	class ParameterPack
 	{
 	public:
+		
+	public:
+		using Parameters = std::list<std::shared_ptr<ParameterBase>>;
 		virtual ~ParameterPack() = default;
 
 		template <class ... Args>
@@ -204,7 +243,6 @@ namespace Extensions
 		{
 			_SerializeParameters(oArgs...);
 		}
-
 
 	public:
 		template <class ... Args>
@@ -226,10 +264,8 @@ namespace Extensions
 		{
 			if constexpr (is_unique_ptr<T>::value)
 				static_assert(!is_unique_ptr<T>::value, "Cannot save unique_ptr<T>, because resource ownership might be broken!");
-			//else if constexpr (is_shared_ptr<T>::value)
-				//m_listArgs.emplace_back(static_cast<void*>(oFirst.get()));
 			else 
-				m_listArgs.emplace_back(reinterpret_cast<void*>(oFirst));
+				m_listArgs.emplace_back(std::make_shared<Parameter<T>>(oFirst));
 		}
 
 		template <class T, class... Args>
@@ -243,22 +279,20 @@ namespace Extensions
 
 		template <class T>
 		void _DeserializeParameters(
-			_In_ std::list<void*>&& listArgs,
+			_In_ Parameters&& listArgs,
 			_Inout_ T& oFirst)
 		{
 			if constexpr (is_unique_ptr<T>::value)
 				static_assert(!is_unique_ptr<T>::value, "Cannot load unique_ptr<T>, because resource ownership might be broken!");
-			//else if constexpr (is_shared_ptr<T>::value)
-				//oFirst = T(static_cast<decltype(std::declval<T>().get())>(listArgs.front())); 
-			else
-				oFirst = reinterpret_cast<T>(listArgs.front());
+			else 
+				oFirst = listArgs.front()->Get<T>();
 
 			listArgs.pop_front();
 		}
 
 		template <class T, class... Args>
 		void _DeserializeParameters(
-			_In_ std::list<void*>&& listArgs,
+			_In_ Parameters&& listArgs,
 			_Inout_ T& oFirst,
 			_Inout_ Args& ... oRest)
 		{
@@ -267,8 +301,10 @@ namespace Extensions
 		}
 
 	protected:
-		std::list<void*> m_listArgs;
+		Parameters m_listArgs;
 	};
 
+
+	
 
 } //namespace Extensions
