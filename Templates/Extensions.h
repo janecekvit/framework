@@ -40,29 +40,16 @@ namespace Extensions
 	/// <summary>
 	/// Helper structures to determine if template type <T> is shared_ptr
 	/// </summary>
-	template<class T> struct is_shared_ptr_helper : std::false_type
-	{
-	};
-	template<class T> struct is_shared_ptr_helper<std::shared_ptr<T>> : std::true_type
-	{
-	};
-	template<class T> struct is_shared_ptr : is_shared_ptr_helper<typename std::remove_cv<T>::type>
-	{
-	};
+	template<class T> struct is_shared_ptr_helper : std::false_type {};
+	template<class T> struct is_shared_ptr_helper<std::shared_ptr<T>> : std::true_type {};
+	template<class T> struct is_shared_ptr : is_shared_ptr_helper<typename std::remove_cv<T>::type> {};
 
 	/// <summary>
 	/// Helper structures to determine if template type <T> is unique_ptr
 	/// </summary>
-	template<class T> struct is_unique_ptr_helper : std::false_type
-	{
-	};
-	template<class T> struct is_unique_ptr_helper<std::unique_ptr<T>> : std::true_type
-	{
-	};
-	template<class T> struct is_unique_ptr : is_unique_ptr_helper<typename std::remove_cv<T>::type>
-	{
-	};
-
+	template<class T> struct is_unique_ptr_helper : std::false_type {};
+	template<class T> struct is_unique_ptr_helper<std::unique_ptr<T>> : std::true_type {};
+	template<class T> struct is_unique_ptr : is_unique_ptr_helper<typename std::remove_cv<T>::type> {};
 
 	/// <summary>
 	/// ContainerFindCallback() 
@@ -239,8 +226,8 @@ namespace Extensions
 		{
 			if constexpr (is_unique_ptr<T>::value)
 				static_assert(!is_unique_ptr<T>::value, "Cannot save unique_ptr<T>, because resource ownership might be broken!");
-			/*else if constexpr (is_shared_ptr<T>::value)
-				m_listArgs.emplace_back(reinterpret_cast<void*>(*oFirst));*/
+			//else if constexpr (is_shared_ptr<T>::value)
+				//m_listArgs.emplace_back(static_cast<void*>(oFirst.get()));
 			else 
 				m_listArgs.emplace_back(reinterpret_cast<void*>(oFirst));
 		}
@@ -261,8 +248,8 @@ namespace Extensions
 		{
 			if constexpr (is_unique_ptr<T>::value)
 				static_assert(!is_unique_ptr<T>::value, "Cannot load unique_ptr<T>, because resource ownership might be broken!");
-			/*else if constexpr (is_shared_ptr<T>::value)
-				oFirst = reinterpret_cast<T>(listArgs.front());*/
+			//else if constexpr (is_shared_ptr<T>::value)
+				//oFirst = T(static_cast<decltype(std::declval<T>().get())>(listArgs.front())); 
 			else
 				oFirst = reinterpret_cast<T>(listArgs.front());
 
