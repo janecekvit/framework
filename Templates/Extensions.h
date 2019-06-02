@@ -30,6 +30,7 @@ Purpose:	header file contains set of extended methods implemented over stl conta
 
 #pragma once
 #include <list>
+#include <tuple>
 #include <memory>
 #include <functional>
 #include <type_traits>
@@ -221,6 +222,13 @@ namespace Extensions
 	template<class T>
 	const T& ParameterBase::Get() const
 	{
+
+		using TRetrivedType = decltype(std::declval<Parameter<T>>().Get());
+		using TBaseType = typename std::remove_cv<typename std::remove_reference<TRetrivedType>::type>::type;
+
+		if constexpr (!std::is_same<T, TBaseType>::value)
+			static_assert(std::is_same<T, TBaseType>::value, "Cannot cast Input <T> type to the Parameter.<T>Get() type!");
+
 		return dynamic_cast<const Parameter<T>&>(*this).Get();
 	}
 
@@ -229,6 +237,8 @@ namespace Extensions
 	/// Parameter pack class can forward input variadic argument list to the any object for future processing
 	/// Parameter pack implement lazy evaluation idiom to enable processing input arguments as late as possible
 	/// </summary>
+	/// 
+	/// oFirst = T(static_cast<decltype(std::declval<T>().get())>(listArgs.front())); 
 	class ParameterPack
 	{
 	public:
@@ -247,7 +257,7 @@ namespace Extensions
 	public:
 		template <class ... Args>
 		void GetPack(
-			_Inout_ Args& ... oArgs)
+			_Inout_ Args& ... oArgs) const
 		{
 
 			if (m_listArgs.size() != sizeof...(Args))
@@ -256,6 +266,18 @@ namespace Extensions
 			auto listArgs = m_listArgs;
 			_DeserializeParameters(std::move(listArgs), oArgs...);
 		}
+
+		//template <class ... Args>
+		//std::tuple<Args...> GetPackTuple()
+		//{
+		//	std::tuple<Args...> oTuple = {};
+		//	if (m_listArgs.size() != sizeof...(Args))
+		//		return oTuple;
+
+		//	auto listArgs = m_listArgs;
+		//	_DeserializeParametersTuple(std::move(listArgs), oTuple);
+		//	return oTuple;
+		//}
 
 	protected:
 		template <class T>
@@ -280,7 +302,7 @@ namespace Extensions
 		template <class T>
 		void _DeserializeParameters(
 			_In_ Parameters&& listArgs,
-			_Inout_ T& oFirst)
+			_Inout_ T& oFirst) const
 		{
 			if constexpr (is_unique_ptr<T>::value)
 				static_assert(!is_unique_ptr<T>::value, "Cannot load unique_ptr<T>, because resource ownership might be broken!");
@@ -294,11 +316,34 @@ namespace Extensions
 		void _DeserializeParameters(
 			_In_ Parameters&& listArgs,
 			_Inout_ T& oFirst,
-			_Inout_ Args& ... oRest)
+			_Inout_ Args& ... oRest) const
 		{
 			_DeserializeParameters(std::move(listArgs), oFirst);
 			_DeserializeParameters(std::move(listArgs), oRest...);
 		}
+
+
+		//template<std::size_t I = 0, typename... Tp>
+		//inline typename std::enable_if<I == sizeof...(Tp), void>::type
+		//	_DeserializeParametersTuple(
+		//		_In_ Parameters& listArgs,
+		//		_Inout_ std::tuple<Tp...>& oTuple)
+		//{
+		//	int i = 0;
+		//}
+
+		//template<std::size_t I = 0, typename... Tp>
+		//inline typename std::enable_if < I < sizeof...(Tp), void>::type
+		//	_DeserializeParametersTuple(
+		//		_In_ Parameters& listArgs,
+		//		_Inout_ std::tuple<Tp...>& oTuple)
+		//{
+		//	using ActType = std::remove_cv<std::tuple_element<I, std::tuple<Tp...>>>;
+		//	//auto oType = listArgs.front()->Get<ActType>();
+		//	//std::get<I>(oTuple) = oType;
+		//	listArgs.pop_front();
+		//	_DeserializeParametersTuple<I + 1, Tp...>(listArgs, oTuple);
+		//}
 
 	protected:
 		Parameters m_listArgs;
