@@ -222,27 +222,18 @@ namespace Extensions
 	template<class T>
 	const T& ParameterBase::Get() const
 	{
-
-		using TRetrivedType = decltype(std::declval<Parameter<T>>().Get());
-		using TBaseType = typename std::remove_cv<typename std::remove_reference<TRetrivedType>::type>::type;
-
-		if constexpr (!std::is_same<T, TBaseType>::value)
-			static_assert(std::is_same<T, TBaseType>::value, "Cannot cast Input <T> type to the Parameter.<T>Get() type!");
+		using TDerivedType = typename std::remove_cv<typename std::remove_reference<decltype(std::declval<Parameter<T>>().Get())>::type>::type;
+		static_assert(std::is_same<T, TDerivedType>::value, "Cannot cast templated return type <T> to the derived class \"Parameter.<T>Get()\" type!");
 
 		return dynamic_cast<const Parameter<T>&>(*this).Get();
 	}
-
 
 	/// <summary>
 	/// Parameter pack class can forward input variadic argument list to the any object for future processing
 	/// Parameter pack implement lazy evaluation idiom to enable processing input arguments as late as possible
 	/// </summary>
-	/// 
-	/// oFirst = T(static_cast<decltype(std::declval<T>().get())>(listArgs.front())); 
 	class ParameterPack
 	{
-	public:
-		
 	public:
 		using Parameters = std::list<std::shared_ptr<ParameterBase>>;
 		virtual ~ParameterPack() = default;
