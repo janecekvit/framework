@@ -25,7 +25,7 @@ Purpose:	header file contains set of extended methods implemented over stl conta
 
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
-@version 1.01 17/03/2019
+@version 1.07 17/03/2019
 */
 
 #pragma once
@@ -222,16 +222,75 @@ namespace Extensions
 	template<class T>
 	const T& ParameterBase::Get() const
 	{
-		using TDerivedType = typename std::remove_cv<typename std::remove_reference<decltype(std::declval<Parameter<T>>().Get())>::type>::type;
-		static_assert(std::is_same<T, TDerivedType>::value, "Cannot cast templated return type <T> to the derived class \"Parameter.<T>Get()\" type!");
+		using TRetrievedType = typename std::remove_cv<typename std::remove_reference<decltype(std::declval<Parameter<T>>().Get())>::type>::type;
+		static_assert(std::is_same<T, TRetrievedType>::value, "Cannot cast templated return type <T> to the derived class \"Parameter.<T>Get()\" type!");
 
 		return dynamic_cast<const Parameter<T>&>(*this).Get();
 	}
 
 	/// <summary>
-	/// Parameter pack class can forward input variadic argument list to the any object for future processing
+	/// Parameter pack class can forward input variadic argument's list to the any object for future processing
 	/// Parameter pack implement lazy evaluation idiom to enable processing input arguments as late as possible
+	/// Packed parameters can be retrieved from pack by out parameters or by return value through std::tuple 
 	/// </summary>
+	/// <example>
+	/// <code>
+	/// 
+	/// struct IInterface
+	/// {
+	/// 	virtual ~IInterface() = default;
+	/// 	virtual int Do() = 0;
+	/// };
+	/// 
+	/// struct CInterface : public virtual IInterface
+	/// {
+	/// 	CInterface() = default;
+	/// 	virtual ~CInterface() = default;
+	/// 	virtual int Do() final override { return 1111; }
+	/// };
+	/// 
+	/// 
+	/// struct IParamTest
+	/// {
+	/// 	virtual ~IParamTest() = default;
+	/// 	virtual void Run(_In_ Extensions::ParameterPack&& oPack) = 0;
+	/// };
+	/// struct CParamTest : public virtual IParamTest
+	/// {
+	/// 	CParamTest() = default;
+	/// 	virtual ~CParamTest() = default;
+	/// 	virtual void Run(_In_ Extensions::ParameterPack&& oPack) override
+	/// 	{
+	/// 		int a = 0;
+	/// 		int b = 0;
+	/// 		int *c = nullptr;
+	/// 		std::shared_ptr<int> d = nullptr;
+	/// 		CInterface* pInt = nullptr;
+	/// 
+	///			//Use unpack by output parameters
+	/// 		oPack.GetPack(a, b, c, d, pInt);
+	/// 
+	///			//Use unpack by return tuple
+	/// 		auto [iNumber1, iNumber2, pNumber, pShared, pInterface] = oPack.GetPack<int, int, int*, std::shared_ptr<int>, CInterface*>();
+	/// 
+	///		}
+	/// };
+	/// 
+	/// 
+	/// void SomeFunc()
+	/// {
+	///		CParamTest oTest;
+	///		
+	///		int* pInt = new int(666);
+	///		auto pShared = std::make_shared<int>(777);
+	///		CInterface oInt;
+	///		
+	///		// Initialize parameter pack
+	///		auto oPack = Extensions::ParameterPack(25, 333, pInt, pShared, &oInt);
+	///		oTest.Run(std::move(oPack));
+	/// }
+	/// </code>
+	/// </example>
 	class ParameterPack
 	{
 	public:
@@ -258,17 +317,16 @@ namespace Extensions
 			_DeserializeParameters(std::move(listArgs), oArgs...);
 		}
 
-		//template <class ... Args>
-		//std::tuple<Args...> GetPackTuple()
-		//{
-		//	std::tuple<Args...> oTuple = {};
-		//	if (m_listArgs.size() != sizeof...(Args))
-		//		return oTuple;
+		template <class ... Args>
+		std::tuple<Args...> GetPack()
+		{
+			std::tuple<Args...> oTuple = {};
+			if (m_listArgs.size() != sizeof...(Args))
+				return oTuple;
 
-		//	auto listArgs = m_listArgs;
-		//	_DeserializeParametersTuple(std::move(listArgs), oTuple);
-		//	return oTuple;
-		//}
+			auto listArgs = m_listArgs;
+			return _DeserializeParametersTuple<Args...>(std::move(listArgs));
+		}
 
 	protected:
 		template <class T>
@@ -281,10 +339,10 @@ namespace Extensions
 				m_listArgs.emplace_back(std::make_shared<Parameter<T>>(oFirst));
 		}
 
-		template <class T, class... Args>
+		template <class T, class... Rest>
 		void _SerializeParameters(
 			_In_ const T& oFirst,
-			_In_ const Args& ... oRest)
+			_In_ const Rest& ... oRest)
 		{
 			_SerializeParameters(oFirst);
 			_SerializeParameters(oRest...);
@@ -303,38 +361,29 @@ namespace Extensions
 			listArgs.pop_front();
 		}
 
-		template <class T, class... Args>
+		template <class T, class... Rest>
 		void _DeserializeParameters(
 			_In_ Parameters&& listArgs,
 			_Inout_ T& oFirst,
-			_Inout_ Args& ... oRest) const
+			_Inout_ Rest& ... oRest) const
 		{
 			_DeserializeParameters(std::move(listArgs), oFirst);
 			_DeserializeParameters(std::move(listArgs), oRest...);
 		}
 
+		template <class T, class... Rest>
+		std::tuple<T, Rest...> _DeserializeParametersTuple(
+			_In_ Parameters&& listArgs) const
+		{
 
-		//template<std::size_t I = 0, typename... Tp>
-		//inline typename std::enable_if<I == sizeof...(Tp), void>::type
-		//	_DeserializeParametersTuple(
-		//		_In_ Parameters& listArgs,
-		//		_Inout_ std::tuple<Tp...>& oTuple)
-		//{
-		//	int i = 0;
-		//}
+			auto oTuple = std::make_tuple(listArgs.front()->Get<T>());
+			listArgs.pop_front();
 
-		//template<std::size_t I = 0, typename... Tp>
-		//inline typename std::enable_if < I < sizeof...(Tp), void>::type
-		//	_DeserializeParametersTuple(
-		//		_In_ Parameters& listArgs,
-		//		_Inout_ std::tuple<Tp...>& oTuple)
-		//{
-		//	using ActType = std::remove_cv<std::tuple_element<I, std::tuple<Tp...>>>;
-		//	//auto oType = listArgs.front()->Get<ActType>();
-		//	//std::get<I>(oTuple) = oType;
-		//	listArgs.pop_front();
-		//	_DeserializeParametersTuple<I + 1, Tp...>(listArgs, oTuple);
-		//}
+			std::tuple<Rest...> oRestTuple = {};
+			if constexpr (sizeof...(Rest) > 0)
+				oRestTuple = _DeserializeParametersTuple<Rest...>(std::move(listArgs));
+			return std::tuple_cat(oTuple, oRestTuple);
+		}
 
 	protected:
 		Parameters m_listArgs;
