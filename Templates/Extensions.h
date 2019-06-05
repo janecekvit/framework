@@ -333,10 +333,8 @@ namespace Extensions
 		void _SerializeParameters(
 			_In_ const T& oFirst)
 		{
-			if constexpr (is_unique_ptr<T>::value)
-				static_assert(!is_unique_ptr<T>::value, "Cannot save unique_ptr<T>, because resource ownership might be broken!");
-			else 
-				m_listArgs.emplace_back(std::make_shared<Parameter<T>>(oFirst));
+			static_assert(!is_unique_ptr<T>::value, "Cannot save unique_ptr<T>, because resource ownership might be broken!");
+			m_listArgs.emplace_back(std::make_shared<Parameter<T>>(oFirst));
 		}
 
 		template <class T, class... Rest>
@@ -353,11 +351,8 @@ namespace Extensions
 			_In_ Parameters&& listArgs,
 			_Inout_ T& oFirst) const
 		{
-			if constexpr (is_unique_ptr<T>::value)
-				static_assert(!is_unique_ptr<T>::value, "Cannot load unique_ptr<T>, because resource ownership might be broken!");
-			else 
-				oFirst = listArgs.front()->Get<T>();
-
+			static_assert(!is_unique_ptr<T>::value, "Cannot load unique_ptr<T>, because resource ownership might be broken!");
+			oFirst = listArgs.front()->Get<T>();
 			listArgs.pop_front();
 		}
 
