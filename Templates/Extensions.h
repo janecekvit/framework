@@ -379,10 +379,10 @@ namespace Extensions
 			auto oTuple = std::make_tuple(listArgs.front()->Get<T>());
 			listArgs.pop_front();
 
-			std::tuple<Rest...> oRestTuple = {};
 			if constexpr (sizeof...(Rest) > 0)
-				oRestTuple = _DeserializeParametersTuple<Rest...>(std::move(listArgs));
-			return std::tuple_cat(oTuple, oRestTuple);
+				return std::tuple_cat(oTuple, _DeserializeParametersTuple<Rest...>(std::move(listArgs)));
+			
+			return std::tuple_cat(oTuple, std::tuple<Rest...>());
 		}
 
 	protected:
