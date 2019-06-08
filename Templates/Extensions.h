@@ -189,45 +189,6 @@ namespace Extensions
 		return std::unique_ptr<TBase>(pTemp);
 	}
 
-	// Helper base class used as wrapper to hold any type described by derived Parameter<T> class
-	class ParameterBase
-	{
-	public:
-		virtual ~ParameterBase() = default;
-		template <class T>
-		const T& Get() const; // Method is implemented after Parameter derived class, to gain ability to operate with it
-	};
-
-	// Helper derived class used as container of any input type. 
-	template <class T>
-	class Parameter : public virtual ParameterBase
-	{
-	public:
-		virtual ~Parameter() = default;
-		Parameter(_In_ const T& oValue)
-			: m_oValue(oValue)
-		{
-		}
-
-		const T& Get() const
-		{
-			return m_oValue;
-		}
-
-	protected:
-		T m_oValue = {};
-	};
-
-	// Core method: create dynamic_cast instead of virtual cast to get type what allocated in derived class
-	template<class T>
-	const T& ParameterBase::Get() const
-	{
-		using TRetrievedType = typename std::remove_cv<typename std::remove_reference<decltype(std::declval<Parameter<T>>().Get())>::type>::type;
-		static_assert(std::is_same<T, TRetrievedType>::value, "Cannot cast templated return type <T> to the derived class \"Parameter.<T>Get()\" type!");
-
-		return dynamic_cast<const Parameter<T>&>(*this).Get();
-	}
-
 	/// <summary>
 	/// Parameter pack class can forward input variadic argument's list to the any object for future processing
 	/// Parameter pack implement lazy evaluation idiom to enable processing input arguments as late as possible
@@ -293,6 +254,37 @@ namespace Extensions
 	/// </example>
 	class ParameterPack
 	{
+	private:
+		// Helper base class used as wrapper to hold any type described by derived Parameter<T> class
+		class ParameterBase
+		{
+		public:
+			virtual ~ParameterBase() = default;
+			template <class T>
+			const T& Get() const; // Method is implemented after Parameter derived class, to gain ability to operate with it
+		};
+
+		// Helper derived class used as container of any input type. 
+		template <class T>
+		class Parameter : public virtual ParameterBase
+		{
+		public:
+			virtual ~Parameter() = default;
+			Parameter(_In_ const T& oValue)
+				: m_oValue(oValue)
+			{
+			}
+
+			const T& Get() const
+			{
+				return m_oValue;
+			}
+
+		protected:
+			T m_oValue = {};
+		};
+
+		// Main class
 	public:
 		using Parameters = std::list<std::shared_ptr<ParameterBase>>;
 		virtual ~ParameterPack() = default;
@@ -376,7 +368,7 @@ namespace Extensions
 
 			if constexpr (sizeof...(Rest) > 0)
 				return std::tuple_cat(oTuple, _DeserializeParametersTuple<Rest...>(std::move(listArgs)));
-			
+
 			return std::tuple_cat(oTuple, std::tuple<Rest...>());
 		}
 
@@ -384,7 +376,15 @@ namespace Extensions
 		Parameters m_listArgs;
 	};
 
+	// Core method: create dynamic_cast instead of virtual cast to get type what allocated in derived class
+	template<class T>
+	const T& ParameterPack::ParameterBase::Get() const
+	{
+		using TRetrievedType = typename std::remove_cv<typename std::remove_reference<decltype(std::declval<Parameter<T>>().Get())>::type>::type;
+		static_assert(std::is_same<T, TRetrievedType>::value, "Cannot cast templated return type <T> to the derived class \"Parameter.<T>Get()\" type!");
 
-	
+		return dynamic_cast<const Parameter<T>&>(*this).Get();
+	}
+
 
 } //namespace Extensions
