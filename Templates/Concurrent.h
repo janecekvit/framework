@@ -95,6 +95,16 @@ namespace Concurrent
 			return *m_pKeeper->GetResource();
 		}
 
+		decltype(auto) begin() const
+		{
+			return m_pKeeper->GetResource()->begin();
+		}
+
+		decltype(auto) end() const
+		{
+			return m_pKeeper->GetResource()->end();
+		}
+
 	private:
 		const std::shared_ptr<ResourceKeeper<TObject>> m_pKeeper = nullptr;
 		const std::unique_lock<std::shared_mutex> m_oExclusiveLock;
@@ -135,6 +145,16 @@ namespace Concurrent
 		const TObject& operator()() const
 		{
 			return *m_pKeeper->GetResource();
+		}
+
+		decltype(auto) begin() const
+		{
+			return m_pKeeper->GetResource()->begin();
+		}
+
+		decltype(auto) end() const
+		{
+			return m_pKeeper->GetResource()->end();
 		}
 
 	private:
