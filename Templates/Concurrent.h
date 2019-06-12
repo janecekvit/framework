@@ -105,6 +105,16 @@ public:
 		return m_pKeeper->GetResource()->end();
 	}
 
+	auto& operator[](std::size_t idx)
+	{
+		return Get()[idx];
+	}
+
+	const auto& operator[](std::size_t idx) const
+	{
+		return Get()[idx];
+	}
+
 private:
 	const std::shared_ptr<ResourceKeeper<TObject>> m_pKeeper = nullptr;
 	const std::unique_lock<std::shared_mutex> m_oExclusiveLock;
@@ -155,6 +165,11 @@ public:
 	decltype(auto) end() const
 	{
 		return m_pKeeper->GetResource()->end();
+	}
+
+	const auto& operator[](std::size_t idx) const
+	{
+		return (*m_pKeeper->GetResource())[idx];
 	}
 
 private:
