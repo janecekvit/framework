@@ -39,7 +39,10 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 #include <list>
 #include <queue>
 #include <stack>
+#include <cerrno>
 #include <vector>
+#include <exception>
+#include <system_error>
 #include <unordered_set>
 #include <unordered_map>
 
@@ -62,62 +65,83 @@ template <class TObject>
 class ExclusiveResourceHolder
 {
 public:
-	ExclusiveResourceHolder(_In_ const std::shared_ptr<ResourceKeeper<TObject>>& pKeeper)
+	ExclusiveResourceHolder(_In_ const std::shared_ptr<ResourceKeeper<TObject>>& pKeeper) noexcept
 		: m_pKeeper(pKeeper)
 		, m_oExclusiveLock(std::unique_lock<std::shared_mutex>(*pKeeper->GetMutex()))
 	{
 	}
 
-	ExclusiveResourceHolder(_In_ ExclusiveResourceHolder&& oOther)
+	ExclusiveResourceHolder(_In_ ExclusiveResourceHolder&& oOther) noexcept
 		: m_pKeeper(std::move(oOther.m_pKeeper))
 		, m_oExclusiveLock(std::move(oOther.m_oExclusiveLock))
 	{
 	}
 
-	virtual ~ExclusiveResourceHolder()
-	{
-	}
+	virtual ~ExclusiveResourceHolder() = default;
 
 	const std::shared_ptr<TObject> operator->() const
 	{
+		_CheckOwnership();
 		return m_pKeeper->GetResource();
 	}
 	TObject& Get() const
 	{
+		_CheckOwnership();
 		return *m_pKeeper->GetResource();
 	}
+
 	void Set(_In_ TObject&& oObject) const
 	{
+		_CheckOwnership();
 		m_pKeeper->SetResource(std::forward<TObject>(oObject));
 	}
-	const TObject& operator()() const
+
+	TObject& operator()() const
 	{
+		_CheckOwnership();
 		return *m_pKeeper->GetResource();
 	}
 
 	decltype(auto) begin() const
 	{
+		_CheckOwnership();
 		return m_pKeeper->GetResource()->begin();
 	}
 
 	decltype(auto) end() const
 	{
+		_CheckOwnership();
 		return m_pKeeper->GetResource()->end();
 	}
 
 	auto& operator[](std::size_t idx)
 	{
-		return Get()[idx];
+		_CheckOwnership();
+		return (*m_pKeeper->GetResource())[idx];
 	}
 
 	const auto& operator[](std::size_t idx) const
 	{
-		return Get()[idx];
+		_CheckOwnership();
+		return (*m_pKeeper->GetResource())[idx];
+	}
+
+	void Release() const
+	{
+		_CheckOwnership();
+		m_oExclusiveLock.unlock();
+	}
+
+private:
+	void _CheckOwnership() const
+	{
+		if (!m_oExclusiveLock.owns_lock())
+			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "ExclusiveResourceHolder do not owns the resource!");
 	}
 
 private:
 	const std::shared_ptr<ResourceKeeper<TObject>> m_pKeeper = nullptr;
-	const std::unique_lock<std::shared_mutex> m_oExclusiveLock;
+	mutable std::unique_lock<std::shared_mutex> m_oExclusiveLock;
 };
 
 /// <summary>
@@ -128,53 +152,71 @@ template <class TObject>
 class ConcurrentResourceHolder
 {
 public:
-	ConcurrentResourceHolder(_In_ const std::shared_ptr<const ResourceKeeper<TObject>>& pKeeper)
+	ConcurrentResourceHolder(_In_ const std::shared_ptr<const ResourceKeeper<TObject>>& pKeeper) noexcept
 		: m_pKeeper(pKeeper)
 		, m_oConcurrentLock(std::shared_lock<std::shared_mutex>(*pKeeper->GetMutex()))
 	{
 	}
 
-	ConcurrentResourceHolder(_In_ ConcurrentResourceHolder&& oOther)
+	ConcurrentResourceHolder(_In_ ConcurrentResourceHolder&& oOther) noexcept
 		: m_pKeeper(std::move(oOther.m_pKeeper))
 		, m_oConcurrentLock(std::move(oOther.m_oConcurrentLock))
 	{
 	}
 
-	virtual ~ConcurrentResourceHolder()
-	{
-	}
+	virtual ~ConcurrentResourceHolder() = default;
 
 	const std::shared_ptr<const TObject> operator->() const
 	{
+		_CheckOwnership();
 		return m_pKeeper->GetResource();
 	}
 	const TObject& Get() const
 	{
+		_CheckOwnership();
 		return *m_pKeeper->GetResource();
 	}
 	const TObject& operator()() const
 	{
+		_CheckOwnership();
 		return *m_pKeeper->GetResource();
 	}
 
 	decltype(auto) begin() const
 	{
+		_CheckOwnership();
 		return m_pKeeper->GetResource()->begin();
 	}
 
 	decltype(auto) end() const
 	{
+		_CheckOwnership();
 		return m_pKeeper->GetResource()->end();
 	}
 
 	const auto& operator[](std::size_t idx) const
 	{
+		_CheckOwnership();
 		return (*m_pKeeper->GetResource())[idx];
+	}
+
+	void Release() const
+	{
+		_CheckOwnership();
+		m_oConcurrentLock.unlock();
+	}
+
+
+private:
+	void _CheckOwnership() const
+	{
+		if (!m_oConcurrentLock.owns_lock())
+			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "ConcurrentResourceHolder do not owns the resource!");
 	}
 
 private:
 	const std::shared_ptr<const ResourceKeeper<TObject>> m_pKeeper = nullptr;
-	const std::shared_lock<std::shared_mutex> m_oConcurrentLock;
+	mutable std::shared_lock<std::shared_mutex> m_oConcurrentLock;
 };
 
 
@@ -187,17 +229,13 @@ template <class TObject>
 class ResourceKeeper
 {
 public:
-	ResourceKeeper()
-	{
-	}
-	ResourceKeeper(_In_ TObject&& oObject)
+	virtual ~ResourceKeeper() = default;
+	ResourceKeeper(_In_ TObject&& oObject) noexcept
 		: m_pResource(std::make_shared<TObject>(std::forward<TObject>(oObject)))
 	{
 	}
 
-	virtual ~ResourceKeeper()
-	{
-	}
+	ResourceKeeper() = default;
 
 	void SetResource(_In_ TObject&& oObject)
 	{
@@ -252,10 +290,8 @@ template <class TObject>
 class ResourceOwner
 {
 public:
-	ResourceOwner()
-	{
-	}
-	ResourceOwner(_In_ TObject&& oContainer)
+	ResourceOwner() = default;
+	ResourceOwner(_In_ TObject&& oContainer) noexcept
 		: m_pKeeper(std::make_shared<ResourceKeeper<TObject>>(std::forward<TObject>(oContainer)))
 	{
 	}
