@@ -114,16 +114,18 @@ public:
 		return m_pKeeper->GetResource()->end();
 	}
 
-	auto& operator[](std::size_t idx)
+	template<class TKey>
+	auto& operator[](_In_ const TKey &oKey)
 	{
 		_CheckOwnership();
-		return (*m_pKeeper->GetResource())[idx];
+		return (*m_pKeeper->GetResource())[oKey];
 	}
 
-	const auto& operator[](std::size_t idx) const
+	template<class TKey>
+	const auto& operator[](_In_ const TKey& oKey) const
 	{
 		_CheckOwnership();
-		return (*m_pKeeper->GetResource())[idx];
+		return (*m_pKeeper->GetResource())[oKey];
 	}
 
 	void Release() const
@@ -194,10 +196,11 @@ public:
 		return m_pKeeper->GetResource()->end();
 	}
 
-	const auto& operator[](std::size_t idx) const
+	template<class TKey>
+	const auto& operator[](_In_ const TKey& oKey) const
 	{
 		_CheckOwnership();
-		return (*m_pKeeper->GetResource())[idx];
+		return (*m_pKeeper->GetResource())[oKey];
 	}
 
 	void Release() const
