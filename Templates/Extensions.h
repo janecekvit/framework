@@ -291,7 +291,7 @@ public:
 
 	template <class ... Args>
 	ParameterPack(
-		const Args& ... oArgs)
+		_In_ const Args& ... oArgs)
 	{
 		_SerializeParameters(oArgs...);
 	}
@@ -385,6 +385,29 @@ const T& ParameterPack::ParameterBase::Get() const
 
 	return dynamic_cast<const Parameter<T>&>(*this).Get();
 }
+
+/// <summary>
+/// Hash methods compute unique hash from set of input values and return it
+/// </summary>
+namespace Hash
+{
+
+template <class T>
+size_t Combine(_In_ const T oValue)
+{
+	return std::hash<T>{}(oValue);
+}
+
+template <class T, class ... Args>
+size_t Combine(_In_ const T oValue, _In_ const Args ... oArgs)
+{
+	size_t uSeed = Combine(oArgs...);
+	uSeed ^= std::hash<T>{}(oValue) +0x9e3779b9 + (uSeed << 6) + (uSeed >> 2);
+	return uSeed;
+}
+
+} //namespace Hash
+
 
 
 } //namespace Extensions
