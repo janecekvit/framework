@@ -71,7 +71,7 @@ public:
 	{
 	}
 
-	ExclusiveResourceHolder(_In_ ExclusiveResourceHolder&& oOther) noexcept
+	ExclusiveResourceHolder(_In_ const ExclusiveResourceHolder&& oOther) noexcept
 		: m_pKeeper(std::move(oOther.m_pKeeper))
 		, m_oExclusiveLock(std::move(oOther.m_oExclusiveLock))
 	{
@@ -158,7 +158,7 @@ public:
 	{
 	}
 
-	ConcurrentResourceHolder(_In_ ConcurrentResourceHolder&& oOther) noexcept
+	ConcurrentResourceHolder(_In_ const ConcurrentResourceHolder&& oOther) noexcept
 		: m_pKeeper(std::move(oOther.m_pKeeper))
 		, m_oConcurrentLock(std::move(oOther.m_oConcurrentLock))
 	{
