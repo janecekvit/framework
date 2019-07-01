@@ -387,7 +387,7 @@ const T& ParameterPack::ParameterBase::Get() const
 }
 
 /// <summary>
-/// Hash methods compute unique hash from set of input values and return it
+/// Hash compute mechanism used to provide unique hash from set of input values
 /// </summary>
 namespace Hash
 {
