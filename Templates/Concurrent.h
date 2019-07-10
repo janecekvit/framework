@@ -31,6 +31,9 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 @version 1.02 17/03/2019
 */
 
+//USE IT
+#define LOCK_PARAMS __FILE__, __func__, __LINE__
+
 #pragma once
 #include <shared_mutex>
 
