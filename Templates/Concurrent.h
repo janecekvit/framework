@@ -87,6 +87,7 @@ public:
 		_CheckOwnership();
 		return m_pKeeper->GetResource();
 	}
+
 	TObject& Get() const
 	{
 		_CheckOwnership();
@@ -118,7 +119,7 @@ public:
 	}
 
 	template<class TKey>
-	auto& operator[](_In_ const TKey &oKey)
+	auto& operator[](_In_ const TKey& oKey)
 	{
 		_CheckOwnership();
 		return (*m_pKeeper->GetResource())[oKey];
@@ -176,11 +177,13 @@ public:
 		_CheckOwnership();
 		return m_pKeeper->GetResource();
 	}
+
 	const TObject& Get() const
 	{
 		_CheckOwnership();
 		return *m_pKeeper->GetResource();
 	}
+
 	const TObject& operator()() const
 	{
 		_CheckOwnership();
@@ -252,10 +255,12 @@ public:
 	{
 		return m_pMutex;
 	}
+
 	const std::shared_ptr<TObject> GetResource()
 	{
 		return m_pResource;
 	}
+
 	const std::shared_ptr<const TObject> GetResource() const
 	{
 		return m_pResource;
