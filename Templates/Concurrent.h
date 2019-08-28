@@ -28,11 +28,10 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
-@version 1.02 17/03/2019
+@version 1.05 17/03/2019
 */
 
-//USE IT
-#define LOCK_PARAMS __FILE__, __func__, __LINE__
+//#define LOCK_PARAMS __FILE__, __func__, __LINE__
 
 #pragma once
 #include <shared_mutex>
@@ -315,6 +314,7 @@ public:
 	{
 		return ExclusiveResourceHolder<TObject>(m_pKeeper);
 	}
+
 	const ConcurrentResourceHolder<TObject> Concurrent() const
 	{
 		return ConcurrentResourceHolder<TObject>(m_pKeeper);
