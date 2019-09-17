@@ -39,18 +39,56 @@ Purpose:	header file contains set of extended methods implemented over stl conta
 namespace Extensions
 {
 /// <summary>
-/// Helper structures to determine if template type <T> is shared_ptr
+/// Helper structures to determine if template type <T> is std::shared_ptr
 /// </summary>
-template<class T> struct is_shared_ptr_helper : std::false_type {};
-template<class T> struct is_shared_ptr_helper<std::shared_ptr<T>> : std::true_type {};
-template<class T> struct is_shared_ptr : is_shared_ptr_helper<typename std::remove_cv<T>::type> {};
+template<class T> struct is_shared_ptr_helper : std::false_type
+{
+};
+template<class T> struct is_shared_ptr_helper<std::shared_ptr<T>> : std::true_type
+{
+};
+template<class T> struct is_shared_ptr : is_shared_ptr_helper<typename std::remove_cv<T>::type>
+{
+};
 
 /// <summary>
-/// Helper structures to determine if template type <T> is unique_ptr
+/// Helper structures to determine if template type <T> is std::unique_ptr
 /// </summary>
-template<class T> struct is_unique_ptr_helper : std::false_type {};
-template<class T> struct is_unique_ptr_helper<std::unique_ptr<T>> : std::true_type {};
-template<class T> struct is_unique_ptr : is_unique_ptr_helper<typename std::remove_cv<T>::type> {};
+template<class T> struct is_unique_ptr_helper : std::false_type
+{
+};
+template<class T> struct is_unique_ptr_helper<std::unique_ptr<T>> : std::true_type
+{
+};
+template<class T> struct is_unique_ptr : is_unique_ptr_helper<typename std::remove_cv<T>::type>
+{
+};
+
+/// <summary>
+/// Helper structures to determine if template type <T> is std::pair
+/// </summary>
+template<class ... Args> struct is_pair_helper : std::false_type
+{
+};
+template<class ... Args> struct is_pair_helper<std::pair<Args...>> : std::true_type
+{
+};
+template<class ... Args> struct is_pair : is_pair_helper<typename std::remove_cv<Args...>::type>
+{
+};
+
+/// <summary>
+/// Helper structures to determine if template type <T> thats is container with associative find
+/// </summary>
+template<class T, class F, class = void> struct is_foundable_helper : std::false_type
+{
+};
+template<class T, class F> struct is_foundable_helper<T, F, std::void_t<decltype(std::declval<T>().find(std::declval<F>()))>> : std::true_type
+{
+};
+template<class T, class F> struct is_foundable : is_foundable_helper<typename std::remove_cv<T>::type, typename std::remove_cv<F>::type>
+{
+};
 
 /// <summary>
 /// ContainerFindCallback() 
@@ -74,34 +112,59 @@ template<class T> struct is_unique_ptr : is_unique_ptr_helper<typename std::remo
 /// </code>
 /// </example>
 template <template <class ...> class Container, class Key, class ... Args, class Functor>
-auto ContainerFind(
+decltype(auto) ContainerFind(
 	_In_ Container<Args...>& oContainer,
 	_In_ const Key& oKey,
 	_In_ Functor&& oCallback)
-	-> decltype(std::begin(oContainer), std::end(oContainer), oContainer.find(oKey), oCallback(oContainer.find(oKey)->second))
 {
-	if constexpr (std::is_same_v<decltype(oCallback(oContainer.find(oKey)->second)), void>)
-	{	// void return type
-		auto&& it = oContainer.find(oKey);
-		if (it != oContainer.end())
-			oCallback(it->second);
+	if constexpr (is_foundable<Container<Args...>, Key>::value)
+	{
+		//if constexpr (is_pair<decltype(oContainer.find(oKey))>::value)
+		{
+			auto&& it = oContainer.find(oKey);
+			if (it != oContainer.end())
+				return oCallback(it->second);
+
+			if constexpr (!std::is_void_v<decltype(oCallback(oContainer.find(oKey)->second))>)
+				return decltype(oCallback(oContainer.find(oKey)->second)){};
+		}
+		//else
+		//{
+		//	/*auto&& it = oContainer.find(oKey);
+		//	if (it != oContainer.end())
+		//		return oCallback(*it);
+
+		//	if constexpr (!std::is_void_v<decltype(oCallback(*oContainer.find(oKey)))>)
+		//		return decltype(oCallback(*oContainer.find(oKey))){};*/
+		//}
 	}
-	else
-	{	// return type is non-void
-		decltype(oCallback(oContainer.find(oKey)->second)) oResult = {};
-		auto&& it = oContainer.find(oKey);
-		if (it != oContainer.end())
-			oResult = oCallback(it->second);
-		return oResult;
-	}
+
+	/*if constexpr (std::is_same_v<Container<Args...>, std::unordered_map<Args...>> ||
+		std::is_same_v<Container<Args...>, std::map<Args...>>)*/
+		//else if constexpr (std::is_same_v<Container<Args...>, std::map<Args...>>)
+		//{
+		//	if constexpr (std::is_void_v<decltype(oCallback(oContainer.find(oKey)->second))>)
+		//	{	// void return type
+		//		auto&& it = oContainer.find(oKey);
+		//		if (it != oContainer.end())
+		//			oCallback(it->second);
+		//	}
+		//	else
+		//	{	// return type is non-void
+		//		decltype(oCallback(oContainer.find(oKey)->second)) oResult = {};
+		//		auto&& it = oContainer.find(oKey);
+		//		if (it != oContainer.end())
+		//			oResult = oCallback(it->second);
+		//		return oResult;
+		//	}
+		//}
 }
 
 template <template <class ...> class Container, class Key, class ... Args, class Functor>
-auto ContainerFind(
+decltype(auto) ContainerFind(
 	_In_ const Container<Args...>& oContainer,
 	_In_ const Key& oKey,
 	_In_ Functor&& oCallback)
-	-> decltype(std::begin(oContainer), std::end(oContainer), oContainer.find(oKey), oCallback(oContainer.find(oKey)->second)) const
 {
 	return ContainerFind(const_cast<Container<Args...>&> (oContainer), oKey, oCallback);
 }
@@ -145,8 +208,8 @@ auto AnyOf(
 }
 template <template <class ...> class Container, class ... Args, class Functor>
 auto AnyOf(
-	_In_ const Container<Args...> & oContainer,
-	_In_ Functor && oCallback)
+	_In_ const Container<Args...>& oContainer,
+	_In_ Functor&& oCallback)
 	-> decltype(std::begin(oContainer), std::end(oContainer), oCallback(*std::begin(oContainer)), bool()) const
 {
 	return AnyOf(const_cast<Container<Args...>&> (oContainer), oCallback);
@@ -402,7 +465,7 @@ template <class T, class ... Args>
 size_t Combine(_In_ const T oValue, _In_ const Args ... oArgs)
 {
 	size_t uSeed = Combine(oArgs...);
-	uSeed ^= std::hash<T>{}(oValue) +0x9e3779b9 + (uSeed << 6) + (uSeed >> 2);
+	uSeed ^= std::hash<T>{}( oValue) +0x9e3779b9 + (uSeed << 6) + (uSeed >> 2);
 	return uSeed;
 }
 
