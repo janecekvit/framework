@@ -50,6 +50,7 @@ template<class T> struct is_shared_ptr_helper<std::shared_ptr<T>> : std::true_ty
 template<class T> struct is_shared_ptr : is_shared_ptr_helper<typename std::remove_cv<T>::type>
 {
 };
+template <class T> constexpr bool is_shared_ptr_v = is_shared_ptr<T>::value;
 
 /// <summary>
 /// Helper structures to determine if template type <T> is std::unique_ptr
@@ -63,6 +64,7 @@ template<class T> struct is_unique_ptr_helper<std::unique_ptr<T>> : std::true_ty
 template<class T> struct is_unique_ptr : is_unique_ptr_helper<typename std::remove_cv<T>::type>
 {
 };
+template <class T> constexpr bool is_unique_ptr_v = is_unique_ptr<T>::value;
 
 /// <summary>
 /// Helper structures to determine if template type <T> is std::pair
@@ -76,25 +78,31 @@ template<class ... Args> struct is_pair_helper<std::pair<Args...>> : std::true_t
 template<class ... Args> struct is_pair : is_pair_helper<typename std::remove_cv<Args...>::type>
 {
 };
+template <class T> constexpr bool is_pair_v = is_pair<T>::value;
 
 /// <summary>
 /// Helper structures to determine if template type <T> thats is container with associative find
 /// </summary>
-template<class T, class F, class = void> struct is_foundable_helper : std::false_type
+template<class T, class U, class = void> struct is_foundable_helper : std::false_type
 {
 };
-template<class T, class F> struct is_foundable_helper<T, F, std::void_t<decltype(std::declval<T>().find(std::declval<F>()))>> : std::true_type
+template<class T, class U> struct is_foundable_helper<T, U, std::void_t<decltype(std::declval<T>().find(std::declval<U>()))>> : std::true_type
 {
 };
-template<class T, class F> struct is_foundable : is_foundable_helper<typename std::remove_cv<T>::type, typename std::remove_cv<F>::type>
+template<class T, class U> struct is_foundable : is_foundable_helper<typename std::remove_cv<T>::type, typename std::remove_cv<U>::type>
 {
 };
+template <class T, class U> constexpr bool is_foundable_v = is_foundable<T, U>::value;
 
 /// <summary>
 /// ContainerFindCallback() 
 /// Template method creates wrapper over each container that implements find method()
 /// Method used input key to search value in container and calls callback with value as the parameter.
 /// Template method deduce return type from callback's return type. 
+/// Implementation calls native find methods for this containers:
+///		std::unordered_map, std::unordered_multimap, std::map and std::multimap returns iterator->second value, that CAN be modified by callback
+///		std::set, std::unordered_set returns *iterator value, that CANNOT be modified by callback
+/// Other containers use std::find() method and returns *iterator value
 /// </summary>
 /// <param name="oContainer">The input container defined by begin() and end() iterators.</param>
 /// <param name="oKey">The input key to search value in container.</param>
@@ -112,52 +120,42 @@ template<class T, class F> struct is_foundable : is_foundable_helper<typename st
 /// </code>
 /// </example>
 template <template <class ...> class Container, class Key, class ... Args, class Functor>
-decltype(auto) ContainerFind(
+auto ContainerFind(
 	_In_ Container<Args...>& oContainer,
 	_In_ const Key& oKey,
 	_In_ Functor&& oCallback)
 {
-	if constexpr (is_foundable<Container<Args...>, Key>::value)
+	if constexpr (is_foundable_v<Container<Args...>, Key>)
 	{
-		//if constexpr (is_pair<decltype(oContainer.find(oKey))>::value)
+		if constexpr (is_pair_v<std::iterator_traits<decltype(oContainer.find(oKey))>::value_type>)
 		{
 			auto&& it = oContainer.find(oKey);
 			if (it != oContainer.end())
 				return oCallback(it->second);
 
-			if constexpr (!std::is_void_v<decltype(oCallback(oContainer.find(oKey)->second))>)
-				return decltype(oCallback(oContainer.find(oKey)->second)){};
+			if constexpr (!std::is_void_v<decltype(oCallback(it->second))>)
+				return decltype(oCallback(it->second)){};
 		}
-		//else
-		//{
-		//	/*auto&& it = oContainer.find(oKey);
-		//	if (it != oContainer.end())
-		//		return oCallback(*it);
+		else
+		{
+			auto&& it = oContainer.find(oKey);
+			if (it != oContainer.end())
+				return oCallback(*it);
 
-		//	if constexpr (!std::is_void_v<decltype(oCallback(*oContainer.find(oKey)))>)
-		//		return decltype(oCallback(*oContainer.find(oKey))){};*/
-		//}
+			if constexpr (!std::is_void_v<decltype(oCallback(*it))>)
+				return decltype(oCallback(*it)){};
+		}
+	}
+	else
+	{
+		auto &&it = std::find(oContainer.begin(), oContainer.end(), oKey);
+		if (it != oContainer.end())
+			return oCallback(*it);
+
+		if constexpr (!std::is_void_v<decltype(oCallback(*it))>)
+			return decltype(oCallback(*it)){};
 	}
 
-	/*if constexpr (std::is_same_v<Container<Args...>, std::unordered_map<Args...>> ||
-		std::is_same_v<Container<Args...>, std::map<Args...>>)*/
-		//else if constexpr (std::is_same_v<Container<Args...>, std::map<Args...>>)
-		//{
-		//	if constexpr (std::is_void_v<decltype(oCallback(oContainer.find(oKey)->second))>)
-		//	{	// void return type
-		//		auto&& it = oContainer.find(oKey);
-		//		if (it != oContainer.end())
-		//			oCallback(it->second);
-		//	}
-		//	else
-		//	{	// return type is non-void
-		//		decltype(oCallback(oContainer.find(oKey)->second)) oResult = {};
-		//		auto&& it = oContainer.find(oKey);
-		//		if (it != oContainer.end())
-		//			oResult = oCallback(it->second);
-		//		return oResult;
-		//	}
-		//}
 }
 
 template <template <class ...> class Container, class Key, class ... Args, class Functor>
@@ -388,7 +386,7 @@ protected:
 	void _SerializeParameters(
 		_In_ const T& oFirst)
 	{
-		static_assert(!is_unique_ptr<T>::value, "Cannot save unique_ptr<T>, because resource ownership might be broken!");
+		static_assert(!is_unique_ptr_v<T>, "Cannot save unique_ptr<T>, because resource ownership might be broken!");
 		m_listArgs.emplace_back(std::make_shared<Parameter<T>>(oFirst));
 	}
 
@@ -406,7 +404,7 @@ protected:
 		_In_ Parameters&& listArgs,
 		_Inout_ T& oFirst) const
 	{
-		static_assert(!is_unique_ptr<T>::value, "Cannot load unique_ptr<T>, because resource ownership might be broken!");
+		static_assert(!is_unique_ptr_v<T>, "Cannot load unique_ptr<T>, because resource ownership might be broken!");
 		oFirst = listArgs.front()->Get<T>();
 		listArgs.pop_front();
 	}

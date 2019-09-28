@@ -38,9 +38,9 @@ Purpose:	header file contains clone pattern mechanism
 ///  class Implementation : public virtual ICloneable<Implementation>
 ///  {
 ///  public:
-///		Implementation() {}
-///  	virtual ~Implementation() {}
-///  	virtual Implementation* CloneImpl() const override
+///		Implementation() = default;
+///  	virtual ~Implementation() = default;
+///  	Implementation* CloneImpl() const override
 ///  	{
 ///  		return new Implementation(*this);
 ///  	}
