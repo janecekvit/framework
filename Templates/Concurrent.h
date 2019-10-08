@@ -99,6 +99,18 @@ public:
 		m_pKeeper->SetResource(std::forward<TObject>(oObject));
 	}
 
+	void Swap(_Inout_ TObject& oObject) const
+	{
+		_CheckOwnership();
+		m_pKeeper->SwapResource(oObject);
+	}
+
+	TObject Move() const
+	{
+		_CheckOwnership();
+		return m_pKeeper->MoveResource();
+	}
+
 	TObject& operator()() const
 	{
 		_CheckOwnership();
@@ -248,6 +260,16 @@ public:
 	void SetResource(_In_ TObject&& oObject)
 	{
 		m_pResource = std::make_shared<TObject>(std::forward<TObject>(oObject));
+	}
+
+	void SwapResource(_Inout_ TObject& oObject)
+	{
+		std::swap(oObject, *m_pResource);
+	}
+
+	TObject MoveResource()
+	{
+		return std::move(*m_pResource);
 	}
 
 	const std::shared_ptr<std::shared_mutex> GetMutex() const
