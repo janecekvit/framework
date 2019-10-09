@@ -20,7 +20,10 @@ void CWorker::Work()
 
 		//Check If queue is empty thread wait for next task
 		if (m_pParentPool->m_queueTask.empty() && !m_pParentPool->m_bEndFlag)
+		{
 			m_pParentPool->m_cvPoolEvent.wait(mtxQueueLock);
+			continue;
+		}
 
 		//Check if Queue is empty and End flag is set
 		if (m_pParentPool->m_queueTask.empty() && m_pParentPool->m_bEndFlag)
