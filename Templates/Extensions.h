@@ -252,10 +252,6 @@ std::unique_ptr<TBase> Recast(
 	return std::unique_ptr<TBase>(pTemp);
 }
 
-//decltyp
-//ForwardFromTuple
-
-
 namespace Storage
 {
 
