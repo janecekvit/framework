@@ -251,7 +251,7 @@ std::unique_ptr<TBase> Recast(
 	return std::unique_ptr<TBase>(pTemp);
 }
 
-namespace Parameter
+namespace Storage
 {
 
 /// <summary>
@@ -279,13 +279,13 @@ namespace Parameter
 /// struct IParamTest
 /// {
 /// 	virtual ~IParamTest() = default;
-/// 	virtual void Run(_In_ Extensions::Parameter::Pack&& oPack) = 0;
+/// 	virtual void Run(_In_ Extensions::Storage::ParemeterPackLegacy&& oPack) = 0;
 /// };
 /// struct CParamTest : public virtual IParamTest
 /// {
 /// 	CParamTest() = default;
 /// 	virtual ~CParamTest() = default;
-/// 	virtual void Run(_In_ Extensions::Parameter::Pack&& oPack) override
+/// 	virtual void Run(_In_ Extensions::Storage::ParemeterPackLegacy&& oPack) override
 /// 	{
 /// 		int a = 0;
 /// 		int b = 0;
@@ -318,7 +318,7 @@ namespace Parameter
 /// }
 /// </code>
 /// </example>
-class Pack
+class ParemeterPackLegacy
 {
 private:
 	// Helper base class used as wrapper to hold any type described by derived Parameter<T> class
@@ -353,13 +353,13 @@ private:
 	// Main class
 public:
 	using Parameters = std::list<std::shared_ptr<ParameterBase>>;
-	virtual ~Pack() = default;
+	virtual ~ParemeterPackLegacy() = default;
 
 	template <class ... Args>
-	Pack(
+	ParemeterPackLegacy(
 		_In_ const Args& ... oArgs)
 	{
-		_SerializeParameters(oArgs...);
+		_Serialize(oArgs...);
 	}
 
 public:
@@ -372,7 +372,7 @@ public:
 			throw std::invalid_argument("Bad number of input arguments!");
 
 		auto listArgs = m_listArgs;
-		_DeserializeParameters(std::move(listArgs), oArgs...);
+		_Deserialize(std::move(listArgs), oArgs...);
 	}
 
 	template <class ... Args>
@@ -383,12 +383,12 @@ public:
 			throw std::invalid_argument("Bad number of input arguments!");
 
 		auto listArgs = m_listArgs;
-		return _DeserializeParametersTuple<Args...>(std::move(listArgs));
+		return _DeserializeTuple<Args...>(std::move(listArgs));
 	}
 
 protected:
 	template <class T>
-	void _SerializeParameters(
+	void _Serialize(
 		_In_ const T& oFirst)
 	{
 		static_assert(!is_unique_ptr_v<T>, "Cannot load unique_ptr<T>, because resource isn't CopyConstructible!");
@@ -396,16 +396,16 @@ protected:
 	}
 
 	template <class T, class... Rest>
-	void _SerializeParameters(
+	void _Serialize(
 		_In_ const T& oFirst,
 		_In_ const Rest& ... oRest)
 	{
-		_SerializeParameters(oFirst);
-		_SerializeParameters(oRest...);
+		_Serialize(oFirst);
+		_Serialize(oRest...);
 	}
 
 	template <class T>
-	void _DeserializeParameters(
+	void _Deserialize(
 		_In_ Parameters&& listArgs,
 		_Inout_ T& oFirst) const
 	{
@@ -415,17 +415,17 @@ protected:
 	}
 
 	template <class T, class... Rest>
-	void _DeserializeParameters(
+	void _Deserialize(
 		_In_ Parameters&& listArgs,
 		_Inout_ T& oFirst,
 		_Inout_ Rest& ... oRest) const
 	{
-		_DeserializeParameters(std::move(listArgs), oFirst);
-		_DeserializeParameters(std::move(listArgs), oRest...);
+		_Deserialize(std::move(listArgs), oFirst);
+		_Deserialize(std::move(listArgs), oRest...);
 	}
 
 	template <class T, class... Rest>
-	std::tuple<T, Rest...> _DeserializeParametersTuple(
+	std::tuple<T, Rest...> _DeserializeTuple(
 		_In_ Parameters&& listArgs) const
 	{
 
@@ -433,7 +433,7 @@ protected:
 		listArgs.pop_front();
 
 		if constexpr (sizeof...(Rest) > 0)
-			return std::tuple_cat(oTuple, _DeserializeParametersTuple<Rest...>(std::move(listArgs)));
+			return std::tuple_cat(oTuple, _DeserializeTuple<Rest...>(std::move(listArgs)));
 
 		return std::tuple_cat(oTuple, std::tuple<Rest...>());
 	}
@@ -444,7 +444,7 @@ protected:
 
 // Core method: create dynamic_cast instead of virtual cast to get type what allocated in derived class
 template<class T>
-const T& Parameter::Pack::ParameterBase::Get() const
+const T& Storage::ParemeterPackLegacy::ParameterBase::Get() const
 {
 	using TRetrievedType = typename std::remove_cv<typename std::remove_reference<decltype(std::declval<Parameter<T>>().Get())>::type>::type;
 	static_assert(std::is_same<T, TRetrievedType>::value, "Cannot cast templated return type <T> to the derived class \"Parameter.<T>Get()\" type!");
@@ -478,13 +478,13 @@ const T& Parameter::Pack::ParameterBase::Get() const
 /// struct IParamTest
 /// {
 /// 	virtual ~IParamTest() = default;
-/// 	virtual void Run(_In_ Extensions::Parameter::Pack2&& oPack) = 0;
+/// 	virtual void Run(_In_ Extensions::Storage::ParemeterPack&& oPack) = 0;
 /// };
 /// struct CParamTest : public virtual IParamTest
 /// {
 /// 	CParamTest() = default;
 /// 	virtual ~CParamTest() = default;
-/// 	virtual void Run(_In_ Extensions::Parameter::Pack2&& oPack) override
+/// 	virtual void Run(_In_ Extensions::Storage::ParemeterPack22&& oPack) override
 /// 	{
 /// 		auto [iNumber1, iNumber2, pNumber, pShared, pInterface] = oPack.GetPack<int, int, int*, std::shared_ptr<int>, CInterface*>();
 /// 
@@ -507,18 +507,19 @@ const T& Parameter::Pack::ParameterBase::Get() const
 /// }
 /// </code>
 /// </example>
-class Pack2
+class ParemeterPack
 {
+public:	
 	// Main class
 public:
 	using Parameters = std::list<std::any>;
-	virtual ~Pack2() = default;
+	virtual ~ParemeterPack() = default;
 
 	template <class ... Args>
-	Pack2(
+	ParemeterPack(
 		_In_ const Args& ... oArgs)
 	{
-		_SerializeParameters(oArgs...);
+		_Serialize(oArgs...);
 	}
 
 public:
@@ -530,12 +531,12 @@ public:
 			throw std::invalid_argument("Bad number of input arguments!");
 
 		auto listArgs = m_listArgs;
-		return _DeserializeParameters<Args...>(std::move(listArgs));
+		return _Deserialize<Args...>(std::move(listArgs));
 	}
 
 protected:
 	template <class T, class... Rest>
-	void _SerializeParameters(
+	void _Serialize(
 		_In_ const T& oFirst,
 		_In_ const Rest& ... oRest)
 	{
@@ -543,23 +544,23 @@ protected:
 		m_listArgs.emplace_back(std::make_any<T>(oFirst));
 		
 		if constexpr (sizeof...(Rest) > 0)
-			_SerializeParameters(oRest...);
+			_Serialize(oRest...);
 	}
 
 	template <class T, class... Rest>
-	std::tuple<T, Rest...> _DeserializeParameters(
+	std::tuple<T, Rest...> _Deserialize(
 		_In_ Parameters&& listArgs) const
 	{
 
 		auto oValue = std::any_cast<T>(listArgs.front());
 		using TRetrievedType = typename std::remove_cv<typename std::remove_reference<decltype(oValue)>::type>::type;
-		static_assert(std::is_same<T, TRetrievedType>::value, "Cannot reccast return type <T> to the derived class \"std::any_cast<T>(listArgs.front()\" type!");
+		static_assert(std::is_same<T, TRetrievedType>::value, "Cannot recast return type <T> to the derived class \"std::any_cast<T>(listArgs.front()\" type!");
 
 		auto oTuple = std::make_tuple(oValue);
 		listArgs.pop_front();
 
 		if constexpr (sizeof...(Rest) > 0)
-			return std::tuple_cat(oTuple, _DeserializeParameters<Rest...>(std::move(listArgs)));
+			return std::tuple_cat(oTuple, _Deserialize<Rest...>(std::move(listArgs)));
 
 		return std::tuple_cat(oTuple, std::tuple<Rest...>());
 	}
