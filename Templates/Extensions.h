@@ -25,10 +25,11 @@ Purpose:	header file contains set of extended methods implemented over stl conta
 
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
-@version 1.07 17/03/2019
+@version 1.09 17/03/2019
 */
 
 #pragma once
+#include <any>
 #include <list>
 #include <tuple>
 #include <memory>
@@ -250,6 +251,9 @@ std::unique_ptr<TBase> Recast(
 	return std::unique_ptr<TBase>(pTemp);
 }
 
+namespace Parameter
+{
+
 /// <summary>
 /// Parameter pack class can forward input variadic argument's list to the any object for future processing
 /// Parameter pack implement lazy evaluation idiom to enable processing input arguments as late as possible
@@ -275,13 +279,13 @@ std::unique_ptr<TBase> Recast(
 /// struct IParamTest
 /// {
 /// 	virtual ~IParamTest() = default;
-/// 	virtual void Run(_In_ Extensions::ParameterPack&& oPack) = 0;
+/// 	virtual void Run(_In_ Extensions::Parameter::Pack&& oPack) = 0;
 /// };
 /// struct CParamTest : public virtual IParamTest
 /// {
 /// 	CParamTest() = default;
 /// 	virtual ~CParamTest() = default;
-/// 	virtual void Run(_In_ Extensions::ParameterPack&& oPack) override
+/// 	virtual void Run(_In_ Extensions::Parameter::Pack&& oPack) override
 /// 	{
 /// 		int a = 0;
 /// 		int b = 0;
@@ -295,6 +299,7 @@ std::unique_ptr<TBase> Recast(
 ///			//Use unpack by return tuple
 /// 		auto [iNumber1, iNumber2, pNumber, pShared, pInterface] = oPack.GetPack<int, int, int*, std::shared_ptr<int>, CInterface*>();
 /// 
+///			//TODO: ANY STUFF
 ///		}
 /// };
 /// 
@@ -313,7 +318,7 @@ std::unique_ptr<TBase> Recast(
 /// }
 /// </code>
 /// </example>
-class ParameterPack
+class Pack
 {
 private:
 	// Helper base class used as wrapper to hold any type described by derived Parameter<T> class
@@ -348,10 +353,10 @@ private:
 	// Main class
 public:
 	using Parameters = std::list<std::shared_ptr<ParameterBase>>;
-	virtual ~ParameterPack() = default;
+	virtual ~Pack() = default;
 
 	template <class ... Args>
-	ParameterPack(
+	Pack(
 		_In_ const Args& ... oArgs)
 	{
 		_SerializeParameters(oArgs...);
@@ -364,7 +369,7 @@ public:
 	{
 
 		if (m_listArgs.size() != sizeof...(Args))
-			return;
+			throw std::invalid_argument("Bad number of input arguments!");
 
 		auto listArgs = m_listArgs;
 		_DeserializeParameters(std::move(listArgs), oArgs...);
@@ -375,7 +380,7 @@ public:
 	{
 		std::tuple<Args...> oTuple = {};
 		if (m_listArgs.size() != sizeof...(Args))
-			return oTuple;
+			throw std::invalid_argument("Bad number of input arguments!");
 
 		auto listArgs = m_listArgs;
 		return _DeserializeParametersTuple<Args...>(std::move(listArgs));
@@ -386,7 +391,7 @@ protected:
 	void _SerializeParameters(
 		_In_ const T& oFirst)
 	{
-		static_assert(!is_unique_ptr_v<T>, "Cannot save unique_ptr<T>, because resource ownership might be broken!");
+		static_assert(!is_unique_ptr_v<T>, "Cannot load unique_ptr<T>, because resource isn't CopyConstructible!");
 		m_listArgs.emplace_back(std::make_shared<Parameter<T>>(oFirst));
 	}
 
@@ -404,7 +409,7 @@ protected:
 		_In_ Parameters&& listArgs,
 		_Inout_ T& oFirst) const
 	{
-		static_assert(!is_unique_ptr_v<T>, "Cannot load unique_ptr<T>, because resource ownership might be broken!");
+		static_assert(!is_unique_ptr_v<T>, "Cannot load unique_ptr<T>, because resource isn't CopyConstructible!");
 		oFirst = listArgs.front()->Get<T>();
 		listArgs.pop_front();
 	}
@@ -439,13 +444,128 @@ protected:
 
 // Core method: create dynamic_cast instead of virtual cast to get type what allocated in derived class
 template<class T>
-const T& ParameterPack::ParameterBase::Get() const
+const T& Parameter::Pack::ParameterBase::Get() const
 {
 	using TRetrievedType = typename std::remove_cv<typename std::remove_reference<decltype(std::declval<Parameter<T>>().Get())>::type>::type;
 	static_assert(std::is_same<T, TRetrievedType>::value, "Cannot cast templated return type <T> to the derived class \"Parameter.<T>Get()\" type!");
 
 	return dynamic_cast<const Parameter<T>&>(*this).Get();
 }
+
+/// <summary>
+/// Parameter pack class can forward input variadic argument's list to the any object for future processing
+/// Parameter pack implement lazy evaluation idiom to enable processing input arguments as late as possible
+/// Packed parameters can be retrieved from pack by return value through std::tuple 
+/// Second version of Parameter pack, the Pack2 is recommended for version C++17 and above.
+/// </summary>
+/// <example>
+/// <code>
+/// 
+/// struct IInterface
+/// {
+/// 	virtual ~IInterface() = default;
+/// 	virtual int Do() = 0;
+/// };
+/// 
+/// struct CInterface : public virtual IInterface
+/// {
+/// 	CInterface() = default;
+/// 	virtual ~CInterface() = default;
+/// 	virtual int Do() final override { return 1111; }
+/// };
+/// 
+/// 
+/// struct IParamTest
+/// {
+/// 	virtual ~IParamTest() = default;
+/// 	virtual void Run(_In_ Extensions::Parameter::Pack2&& oPack) = 0;
+/// };
+/// struct CParamTest : public virtual IParamTest
+/// {
+/// 	CParamTest() = default;
+/// 	virtual ~CParamTest() = default;
+/// 	virtual void Run(_In_ Extensions::Parameter::Pack2&& oPack) override
+/// 	{
+/// 		auto [iNumber1, iNumber2, pNumber, pShared, pInterface] = oPack.GetPack<int, int, int*, std::shared_ptr<int>, CInterface*>();
+/// 
+///			//TODO: ANY STUFF
+///		}
+/// };
+/// 
+/// 
+/// void SomeFunc()
+/// {
+///		CParamTest oTest;
+///		
+///		int* pInt = new int(666);
+///		auto pShared = std::make_shared<int>(777);
+///		CInterface oInt;
+///		
+///		// Initialize parameter pack
+///		auto oPack = Extensions::ParameterPack(25, 333, pInt, pShared, &oInt);
+///		oTest.Run(std::move(oPack));
+/// }
+/// </code>
+/// </example>
+class Pack2
+{
+	// Main class
+public:
+	using Parameters = std::list<std::any>;
+	virtual ~Pack2() = default;
+
+	template <class ... Args>
+	Pack2(
+		_In_ const Args& ... oArgs)
+	{
+		_SerializeParameters(oArgs...);
+	}
+
+public:
+	template <class ... Args>
+	std::tuple<Args...> GetPack()
+	{
+		std::tuple<Args...> oTuple = {};
+		if (m_listArgs.size() != sizeof...(Args))
+			throw std::invalid_argument("Bad number of input arguments!");
+
+		auto listArgs = m_listArgs;
+		return _DeserializeParameters<Args...>(std::move(listArgs));
+	}
+
+protected:
+	template <class T, class... Rest>
+	void _SerializeParameters(
+		_In_ const T& oFirst,
+		_In_ const Rest& ... oRest)
+	{
+		static_assert(!is_unique_ptr_v<T>, "Cannot load unique_ptr<T>, because resource isn't CopyConstructible!");
+		m_listArgs.emplace_back(std::make_any<T>(oFirst));
+		
+		if constexpr (sizeof...(Rest) > 0)
+			_SerializeParameters(oRest...);
+	}
+
+	template <class T, class... Rest>
+	std::tuple<T, Rest...> _DeserializeParameters(
+		_In_ Parameters&& listArgs) const
+	{
+
+		auto oTuple = std::make_tuple(std::any_cast<T>(listArgs.front()));
+		listArgs.pop_front();
+
+		if constexpr (sizeof...(Rest) > 0)
+			return std::tuple_cat(oTuple, _DeserializeParameters<Rest...>(std::move(listArgs)));
+
+		return std::tuple_cat(oTuple, std::tuple<Rest...>());
+	}
+
+protected:
+	Parameters m_listArgs;
+};
+
+} //namespace ParameterPack
+
 
 /// <summary>
 /// Hash compute mechanism used to provide unique hash from set of input values
@@ -468,7 +588,5 @@ size_t Combine(_In_ const T oValue, _In_ const Args ... oArgs)
 }
 
 } //namespace Hash
-
-
 
 } //namespace Extensions
