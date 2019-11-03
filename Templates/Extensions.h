@@ -551,7 +551,11 @@ protected:
 		_In_ Parameters&& listArgs) const
 	{
 
-		auto oTuple = std::make_tuple(std::any_cast<T>(listArgs.front()));
+		auto oValue = std::any_cast<T>(listArgs.front());
+		using TRetrievedType = typename std::remove_cv<typename std::remove_reference<decltype(oValue)>::type>::type;
+		static_assert(std::is_same<T, TRetrievedType>::value, "Cannot reccast return type <T> to the derived class \"std::any_cast<T>(listArgs.front()\" type!");
+
+		auto oTuple = std::make_tuple(oValue);
 		listArgs.pop_front();
 
 		if constexpr (sizeof...(Rest) > 0)
