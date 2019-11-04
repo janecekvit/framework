@@ -252,6 +252,42 @@ std::unique_ptr<TBase> Recast(
 	return std::unique_ptr<TBase>(pTemp);
 }
 
+//template <size_t n>
+//struct factorial
+//{
+//	static constexpr size_t value = n * factorial<n - 1>::value;
+//};
+//
+//template <>
+//struct factorial<0>
+//{
+//	static constexpr size_t value = 1;
+//};
+//
+//template <typename F, size_t... Is>
+//auto gen_tuple_impl(F func, std::index_sequence<Is...>)
+//{
+//	return std::make_tuple(func(Is)...);
+//}
+//
+//template <size_t N, typename F>
+//auto gen_tuple(F func)
+//{
+//	return gen_tuple_impl(func, std::make_index_sequence<N>{});
+//}
+//
+//template <class Tuple, std::size_t ...I>
+//constexpr decltype(auto) UnpackTupleImpl(Tuple&& t, std::index_sequence<I...>)
+//{
+//	return std::get<I>(t)...;
+//}
+//
+//template <class Tuple>
+//constexpr decltype(auto) UnpackTuple(Tuple&& t)
+//{
+//	return UnpackTupleImpl(t, std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple>>>{});
+//}
+
 namespace Storage
 {
 
@@ -558,7 +594,6 @@ protected:
 	std::tuple<T, Rest...> _Deserialize(
 		_In_ Parameters&& listArgs) const
 	{
-
 		try
 		{
 			auto oValue = std::any_cast<T>(listArgs.front());
@@ -589,12 +624,9 @@ class HeterogeneousContainer
 public:
 	virtual ~HeterogeneousContainer() = default;
 
-	/*template <class ... Args>
-	HeterogeneousContainer(
-		_In_ std::tuple<Args...>&& oArgs)
+	HeterogeneousContainer() noexcept
 	{
-		HeterogeneousContainer(std::forward<Args...>(oArgs));
-	}*/
+	}
 
 	template <class ... Args>
 	HeterogeneousContainer(
@@ -602,9 +634,14 @@ public:
 	{
 		_Serialize(oArgs...);
 	}
+	
+	template <class ... Args>
+	void Emplace(_In_ const Args& ... oArgs)
+	{
+		_Serialize(oArgs...);
+	}
 
-public:
-	template <class T>//<class ... Args, class = std::common_type_t<Args...>>
+	template <class T>
 	decltype(auto) Get() const
 	{
 		return _Deserialize<T>();
@@ -623,17 +660,23 @@ protected:
 			_Serialize(oRest...);
 	}
 
-	template  <class T>//, class ... Rest> //, class = std::common_type_t<Rest...>
+	template  <class T>
 	decltype(auto) _Deserialize() const
 	{
+		std::list<T> oList = {};
 		const auto&& it = m_umapArgs.find(std::type_index(typeid(T)));
 		if (it == m_umapArgs.end())
-			return std::tuple<>{};
+			return oList;
 
-		std::tuple<T> oTuple = {};
-		for (auto item : it->second)
-			oTuple = std::tuple_cat(oTuple, std::any_cast<T>(item));
-		return oTuple;
+		try
+		{
+			for (auto item : it->second)
+				oList.emplace_back(std::any_cast<T>(item));
+		}
+		catch (const std::bad_any_cast&)
+		{
+		}
+		return oList;
 	}
 
 protected:
