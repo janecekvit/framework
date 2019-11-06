@@ -372,4 +372,7 @@ using UnorderedSet = ResourceOwner<std::unordered_set<Args...>>;
 template <class ... Args>
 using UnorderedMap = ResourceOwner<std::unordered_map<Args...>>;
 
+template <class T>
+using Functor = ResourceOwner<std::function<T>>;
+
 } // namespace Concurrent 
