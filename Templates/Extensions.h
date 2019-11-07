@@ -33,9 +33,10 @@ Purpose:	header file contains set of extended methods implemented over stl conta
 #include <list>
 #include <tuple>
 #include <memory>
+#include <string>
+#include <typeindex>
 #include <functional>
 #include <type_traits>
-#include <typeindex>
 
 ///Namespace owns set of extended methods implemented over stl containers
 namespace Extensions
@@ -296,6 +297,7 @@ namespace Storage
 /// Parameter pack implement lazy evaluation idiom to enable processing input arguments as late as possible
 /// Packed parameters can be retrieved from pack by out parameters or by return value through std::tuple 
 /// </summary>
+/// <exception cref="std::invalid_argument">When bad number of arguments received in Get methods.</exception>
 /// <example>
 /// <code>
 /// 
@@ -426,7 +428,7 @@ protected:
 	void _Serialize(
 		_In_ const T& oFirst)
 	{
-		static_assert(!is_unique_ptr_v<T>, "Cannot load unique_ptr<T>, because resource isn't CopyConstructible!");
+		static_assert(std::is_copy_constructible<T>::value, "Cannot assign <T> type, because isn't CopyConstructible!");
 		m_listArgs.emplace_back(std::make_shared<Parameter<T>>(oFirst));
 	}
 
@@ -444,7 +446,7 @@ protected:
 		_In_ Parameters&& listArgs,
 		_Inout_ T& oFirst) const
 	{
-		static_assert(!is_unique_ptr_v<T>, "Cannot load unique_ptr<T>, because resource isn't CopyConstructible!");
+		static_assert(std::is_copy_constructible<T>::value, "Cannot assign <T> type, because isn't CopyConstructible!");
 		oFirst = listArgs.front()->Get<T>();
 		listArgs.pop_front();
 	}
@@ -493,6 +495,7 @@ const T& Storage::ParameterPackLegacy::ParameterBase::Get() const
 /// Packed parameters can be retrieved from pack by return value through std::tuple 
 /// Second version of Parameter pack, the Pack2 is recommended for version C++17 and above.
 /// </summary>
+/// <exception cref="std::invalid_argument">When bad number of arguments received in Get methods.</exception>
 /// <example>
 /// <code>
 /// 
@@ -554,12 +557,6 @@ public:
 	{
 		_Serialize(oArgs...);
 	}
-	
-	//template <class ... Args>
-	//void Emplace(_In_ const Args& ... oArgs)
-	//{
-	//	_Serialize(oArgs...);
-	//}
 
 	template <class ... Args>
 	std::tuple<Args...> GetPack()
@@ -583,7 +580,7 @@ protected:
 		_In_ const T& oFirst,
 		_In_ const Rest& ... oRest)
 	{
-		static_assert(!is_unique_ptr_v<T>, "Cannot load unique_ptr<T>, because resource isn't CopyConstructible!");
+		static_assert(std::is_copy_constructible<T>::value, "Cannot assign <T> type, because isn't CopyConstructible!");
 		m_listArgs.emplace_back(std::make_any<T>(oFirst));
 		
 		if constexpr (sizeof...(Rest) > 0)
@@ -597,9 +594,6 @@ protected:
 		try
 		{
 			auto oValue = std::any_cast<T>(listArgs.front());
-			using TRetrievedType = typename std::remove_cv<typename std::remove_reference<decltype(oValue)>::type>::type;
-			static_assert(std::is_same<T, TRetrievedType>::value, "Cannot recast return type <T> to the derived class \"std::any_cast<T>(listArgs.front()\" type!");
-
 			auto oTuple = std::make_tuple(oValue);
 			listArgs.pop_front();
 
@@ -618,15 +612,36 @@ protected:
 	Parameters m_listArgs;
 };
 
-
+/// <summary>
+/// Heterogeneous Container store any copy constructible object for the future processing
+///  Heterogeneous Container implement lazy evaluation idiom to enable processing input arguments as late as possible
+/// <exception cref="HeterogeneousContainerException">When cast to the input type failed.</exception>
+/// </summary>
 class HeterogeneousContainer
 {
 public:
-	virtual ~HeterogeneousContainer() = default;
-
-	HeterogeneousContainer() noexcept
+	class HeterogeneousContainerException : public std::exception
 	{
-	}
+	public:
+		HeterogeneousContainerException(_In_ const std::type_info& typeInfo, _In_ const std::bad_any_cast& ex) noexcept
+		{
+			using namespace std::string_literals;
+			m_sData = "HeterogeneousContainer:"s + ex.what() + " to: "s + typeInfo.name();
+		}
+
+		~HeterogeneousContainerException() = default;
+
+		const char* what() const override
+		{
+			return m_sData.c_str();
+		}
+	protected:
+		std::string m_sData;
+	};
+
+public:
+	virtual ~HeterogeneousContainer() = default;
+	HeterogeneousContainer() noexcept = default;
 
 	template <class ... Args>
 	HeterogeneousContainer(
@@ -647,13 +662,49 @@ public:
 		return _Deserialize<T>();
 	}
 
+	template <class T>
+	void Visit(_In_ std::function<void(const T&)>&& fnCallback) const
+	{
+		const auto&& it = m_umapArgs.find(std::type_index(typeid(T)));
+		if (it == m_umapArgs.end())
+			return;
+
+		try
+		{
+			for (auto&& item : it->second)
+				fnCallback(std::any_cast<const T&>(item));
+		}
+		catch (const std::bad_any_cast & ex)
+		{
+			throw HeterogeneousContainerException(typeid(T), ex);
+		}
+	}
+
+	template <class T>
+	void Visit(_In_ std::function<void(T&)>&& fnCallback)
+	{
+		const auto&& it = m_umapArgs.find(std::type_index(typeid(T)));
+		if (it == m_umapArgs.end())
+			return;
+
+		try
+		{
+			for (auto&& item : it->second)
+				fnCallback(std::any_cast<T&>(item));
+		}
+		catch (const std::bad_any_cast& ex)
+		{
+			throw HeterogeneousContainerException(typeid(T), ex);
+		}
+	}
+
 protected:
 	template <class T, class... Rest>
 	void _Serialize(
 		_In_ const T& oFirst,
 		_In_ const Rest& ... oRest)
 	{
-		static_assert(!is_unique_ptr_v<T>, "Cannot load unique_ptr<T>, because resource isn't CopyConstructible!");
+		static_assert(std::is_copy_constructible<T>::value, "Cannot assign <T> type, because isn't CopyConstructible!");
 		m_umapArgs[std::type_index(typeid(T))].emplace_back(std::make_any<T>(oFirst));
 
 		if constexpr (sizeof...(Rest) > 0)
@@ -673,8 +724,9 @@ protected:
 			for (auto item : it->second)
 				oList.emplace_back(std::any_cast<T>(item));
 		}
-		catch (const std::bad_any_cast&)
+		catch (const std::bad_any_cast & ex)
 		{
+			throw HeterogeneousContainerException(typeid(T), ex);
 		}
 		return oList;
 	}
@@ -693,13 +745,13 @@ namespace Hash
 {
 
 template <class T>
-size_t Combine(_In_ const T oValue)
+size_t Combine(_In_ const T& oValue)
 {
 	return std::hash<T>{}(oValue);
 }
 
 template <class T, class ... Args>
-size_t Combine(_In_ const T oValue, _In_ const Args ... oArgs)
+size_t Combine(_In_ const T& oValue, _In_ const Args& ... oArgs)
 {
 	size_t uSeed = Combine(oArgs...);
 	uSeed ^= std::hash<T>{}( oValue) +0x9e3779b9 + (uSeed << 6) + (uSeed >> 2);
