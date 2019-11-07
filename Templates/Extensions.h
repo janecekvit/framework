@@ -25,7 +25,7 @@ Purpose:	header file contains set of extended methods implemented over stl conta
 
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
-@version 1.09 17/03/2019
+@version 1.12 07/11/2019
 */
 
 #pragma once
@@ -635,6 +635,7 @@ public:
 		{
 			return m_sData.c_str();
 		}
+
 	protected:
 		std::string m_sData;
 	};
@@ -665,37 +666,19 @@ public:
 	template <class T>
 	void Visit(_In_ std::function<void(const T&)>&& fnCallback) const
 	{
-		const auto&& it = m_umapArgs.find(std::type_index(typeid(T)));
-		if (it == m_umapArgs.end())
-			return;
-
-		try
+		_Visit<T>([&fnCallback](const T& input)
 		{
-			for (auto&& item : it->second)
-				fnCallback(std::any_cast<const T&>(item));
-		}
-		catch (const std::bad_any_cast & ex)
-		{
-			throw HeterogeneousContainerException(typeid(T), ex);
-		}
+			fnCallback(input);
+		});
 	}
 
 	template <class T>
 	void Visit(_In_ std::function<void(T&)>&& fnCallback)
 	{
-		const auto&& it = m_umapArgs.find(std::type_index(typeid(T)));
-		if (it == m_umapArgs.end())
-			return;
-
-		try
+		_Visit<T>([&fnCallback](T& input)
 		{
-			for (auto&& item : it->second)
-				fnCallback(std::any_cast<T&>(item));
-		}
-		catch (const std::bad_any_cast& ex)
-		{
-			throw HeterogeneousContainerException(typeid(T), ex);
-		}
+			fnCallback(input);
+		});
 	}
 
 protected:
@@ -715,20 +698,28 @@ protected:
 	decltype(auto) _Deserialize() const
 	{
 		std::list<T> oList = {};
-		const auto&& it = m_umapArgs.find(std::type_index(typeid(T)));
-		if (it == m_umapArgs.end())
-			return oList;
-
+		_Visit<T>([&oList](const T& input)
+		{
+			oList.emplace_back(input);
+		});
+		return oList;
+	}
+	
+	template  <class T>
+	void _Visit(_In_ std::function<void(T&)>&& fnCallback) const
+	{
 		try
 		{
-			for (auto item : it->second)
-				oList.emplace_back(std::any_cast<T>(item));
+			ContainerFind(m_umapArgs, std::type_index(typeid(T)), [&fnCallback](std::list<std::any>& listInput)
+			{
+				for (auto&& item : listInput)
+					fnCallback(std::any_cast<T&>(item));
+			});
 		}
 		catch (const std::bad_any_cast & ex)
 		{
 			throw HeterogeneousContainerException(typeid(T), ex);
-		}
-		return oList;
+		};
 	}
 
 protected:
