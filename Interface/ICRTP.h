@@ -67,20 +67,20 @@ Purpose:	header file contains CRTP pattern mechanism
 // };
 /// </code>
 /// </example>
-template <typename T>
+template <typename TDerived>
 class ICRTP
 {
 public:
 	virtual ~ICRTP() = default;
 
-	T& UnderlyingType()
+	TDerived& UnderlyingType()
 	{
-		return static_cast<T&>(*this);
+		return static_cast<TDerived&>(*this);
 	}
 
-	const T& UnderlyingType() const
+	const TDerived& UnderlyingType() const
 	{
-		return static_cast<const T&>(*this);
+		return static_cast<const TDerived&>(*this);
 	}
 };
 
