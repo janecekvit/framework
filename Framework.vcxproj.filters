@@ -87,6 +87,9 @@
     <ClInclude Include="Interface\ICloneable.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\ICRTP.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Socket">

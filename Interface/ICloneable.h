@@ -29,6 +29,7 @@ Purpose:	header file contains clone pattern mechanism
 */
 
 #include <memory>
+#include "ICRTP.h"
 
 /// <summary>
 /// Interface implementing cloneable pattern with unique pointer, where templated type is type of the used class.
@@ -48,13 +49,13 @@ Purpose:	header file contains clone pattern mechanism
 /// </code>
 /// </example>
 template <class TDerived>
-class ICloneable
+class IClone
 {
 public:
 	/// <summary>
-	/// Finalizes an instance of the <see cref="IClonePattern"/> class.
+	/// Finalizes an instance of the <see cref="IClone"/> class.
 	/// </summary>
-	virtual ~IClonePattern() = default;
+	virtual ~IClone() = default;
 
 	/// <summary>
 	/// Method clone current instance of object and wraps it to the RAII memory wrapper
@@ -62,11 +63,45 @@ public:
 	/// <returns>returns memory-safe free pointer to this instance of object</returns>
 	std::unique_ptr<TDerived> Clone() const
 	{
-		return std::unique_ptr<TDerived>(CloneImpl());
+		return std::unique_ptr<TDerived>(_CloneImpl());
 	}
+
+protected:
 	/// <summary>
 	/// Implementation of RAII clone pattern mechanism.
 	/// </summary>
 	/// <returns>returns RAW pointer to this instance of object</returns>
-	virtual TDerived* CloneImpl() const = 0;
+	virtual TDerived* _CloneImpl() const = 0;
+};
+
+
+template <class TDerived>
+class ICloneable: public ICRTP<TDerived>
+{
+public:
+	/// <summary>
+	/// Finalizes an instance of the <see cref="ICloneable"/> class.
+	/// </summary>
+	virtual ~ICloneable() = default;
+
+	/// <summary>
+	/// Method clone current instance of object and wraps it to the RAII memory wrapper
+	/// </summary>
+	/// <returns>returns memory-safe free pointer to this instance of object</returns>
+	std::unique_ptr<TDerived> Clone() const
+	{
+		static_assert(std::is_member_function_pointer_v<decltype(UnderlyingType().Clone())>, "No function implementation in the derived class");
+		return UnderlyingType().Clone();
+	}
+
+protected:
+	/// <summary>
+	/// Implementation of RAII clone pattern mechanism.
+	/// </summary>
+	/// <returns>returns RAW pointer to this instance of object</returns>
+	TDerived* _CloneImpl() const
+	{
+		static_assert(std::is_member_function_pointer_v<decltype(UnderlyingType()._CloneImpl())>, "No function implementation in the derived class");
+		return UnderlyingType()._CloneImpl();
+	}
 };

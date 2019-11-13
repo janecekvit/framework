@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -39,6 +39,7 @@
     <ClInclude Include="Common\WinInclude.h" />
     <ClInclude Include="Crypto\CryptoUtils.h" />
     <ClInclude Include="Interface\ICloneable.h" />
+    <ClInclude Include="Interface\ICRTP.h" />
     <ClInclude Include="Socket\BaseSocket.h" />
     <ClInclude Include="Socket\ClientSocket.h" />
     <ClInclude Include="Socket\ServerSocket.h" />
