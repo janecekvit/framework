@@ -729,6 +729,33 @@ protected:
 } //namespace Storage
 
 
+template <class ... Args>
+class Accessor
+{
+public:
+	Accessor(Args&&... args)
+	{
+		Value = std::make_tuple(std::forward<Args>(args)...);
+	}
+
+	operator std::tuple<Args...>&()
+	{
+		return Value;
+	}
+
+	operator std::tuple<Args...>&() const
+	{
+		return Value;
+	}
+	
+	/*std::tuple<Args...> operator()
+	{
+		return Value;
+	}*/
+
+	std::tuple<Args...> Value = {};
+};
+
 /// <summary>
 /// Hash compute mechanism used to provide unique hash from set of input values
 /// </summary>
