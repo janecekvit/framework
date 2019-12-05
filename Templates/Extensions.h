@@ -485,8 +485,8 @@ protected:
 
 		if constexpr (sizeof...(Rest) > 0)
 			return std::tuple_cat(oTuple, _DeserializeTuple<Rest...>(std::move(listArgs)));
-
-		return std::tuple_cat(oTuple, std::tuple<Rest...>());
+		else
+			return std::tuple_cat(oTuple, std::tuple<Rest...>());
 	}
 
 protected:

@@ -40,6 +40,8 @@
     <ClInclude Include="Crypto\CryptoUtils.h" />
     <ClInclude Include="Interface\ICloneable.h" />
     <ClInclude Include="Interface\ICRTP.h" />
+    <ClInclude Include="Interface\IGetterSetter.h" />
+    <ClInclude Include="Interface\IResourceWrapper.h" />
     <ClInclude Include="Socket\BaseSocket.h" />
     <ClInclude Include="Socket\ClientSocket.h" />
     <ClInclude Include="Socket\ServerSocket.h" />

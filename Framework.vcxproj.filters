@@ -90,6 +90,12 @@
     <ClInclude Include="Interface\ICRTP.h">
       <Filter>Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Interface\IResourceWrapper.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Interface\IGetterSetter.h">
+      <Filter>Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Socket">
