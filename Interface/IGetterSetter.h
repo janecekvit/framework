@@ -27,7 +27,7 @@ Purpose:	header file contains Getter/Setter mechanism
 
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
-@version 1.01 17/03/2019
+@version 1.01 05/12/2019
 */
 
 template <class TResource>

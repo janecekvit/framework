@@ -27,7 +27,7 @@ Purpose:	header file contains RAII pattern
 
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
-@version 1.01 17/03/2019
+@version 1.01 05/12/2019
 */
 
 #include <functional>
@@ -41,7 +41,7 @@ class IResourceWrapper
 public:
 	using TAccessor = typename std::function<void(TResource&)>;
 	using TConstAccessor = typename std::function<void(const TResource&)>;
-	using TDeleter = TAccessor;
+	using TDeleter = typename TAccessor;
 public:
 	IResourceWrapper(TResource && oResource, TDeleter && fnDeleter)
 		: IGetterSetter<TResource>(std::move(oResource))
