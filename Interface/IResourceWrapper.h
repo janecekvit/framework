@@ -36,7 +36,7 @@ Purpose:	header file contains RAII pattern
 
 template <class TResource>
 class IResourceWrapper 
-	: public virtual IGetterSetter<TResource>
+	: public IGetterSetter<TResource>
 {
 public:
 	using TAccessor = typename std::function<void(TResource&)>;
@@ -61,7 +61,9 @@ public:
 		{
 			m_fnDeleter(*this);
 		}
-		catch (...) {} //check double exception serious error
+		catch (...)
+		{ // check double exception serious error
+		} 
 	}
 
 	IResourceWrapper(const IResourceWrapper&) = default;
