@@ -78,12 +78,6 @@
     <ClInclude Include="Common\Definitions.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="Templates\Concurrent.h">
-      <Filter>Templates</Filter>
-    </ClInclude>
-    <ClInclude Include="Templates\Extensions.h">
-      <Filter>Templates</Filter>
-    </ClInclude>
     <ClInclude Include="Interface\ICloneable.h">
       <Filter>Interface</Filter>
     </ClInclude>
@@ -95,6 +89,12 @@
     </ClInclude>
     <ClInclude Include="Interface\IGetterSetter.h">
       <Filter>Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="Extensions\Concurrent.h">
+      <Filter>Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="Extensions\Extensions.h">
+      <Filter>Extensions</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -110,11 +110,11 @@
     <Filter Include="Crypto">
       <UniqueIdentifier>{a86cd86d-e4dc-4751-ad87-f0bfe3400450}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Templates">
-      <UniqueIdentifier>{c2ed9f81-6a79-461b-b16a-75713f8e6275}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Interface">
       <UniqueIdentifier>{b0478a21-ddee-4d8b-93a1-e2f0686d6e5d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Extensions">
+      <UniqueIdentifier>{c09bfaf6-95d3-4ee2-a44b-f00e9bc24467}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
