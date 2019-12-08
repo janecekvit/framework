@@ -22,7 +22,7 @@ LIABILITY, WHETHER IN AN ACTION OF  CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-IResourceWrapper.h
+ResourceWrapper.h
 Purpose:	header file contains RAII pattern 
 
 @author: Vit Janecek
@@ -31,31 +31,31 @@ Purpose:	header file contains RAII pattern
 */
 
 #include <functional>
-#include "Framework/Interface/IGetterSetter.h"
+#include "Framework/Extensions/GetterSetter.h"
 
 
 template <class TResource>
-class IResourceWrapper 
-	: public IGetterSetter<TResource>
+class ResourceWrapper 
+	: public GetterSetter<TResource>
 {
 public:
 	using TAccessor = typename std::function<void(TResource&)>;
 	using TConstAccessor = typename std::function<void(const TResource&)>;
 	using TDeleter = typename TAccessor;
 public:
-	IResourceWrapper(TResource && oResource, TDeleter && fnDeleter)
-		: IGetterSetter<TResource>(std::move(oResource))
+	ResourceWrapper(TResource && oResource, TDeleter && fnDeleter)
+		: GetterSetter<TResource>(std::move(oResource))
 		, m_fnDeleter(std::move(fnDeleter))
 	{
 	}
 
-	IResourceWrapper(const TResource& oResource, TDeleter&& fnDeleter)
-		: IGetterSetter<TResource>(oResource)
+	ResourceWrapper(const TResource& oResource, TDeleter&& fnDeleter)
+		: GetterSetter<TResource>(oResource)
 		, m_fnDeleter(std::move(fnDeleter))
 	{
 	}
 
-	virtual ~IResourceWrapper()
+	virtual ~ResourceWrapper()
 	{
 		try
 		{
@@ -66,10 +66,10 @@ public:
 		} 
 	}
 
-	IResourceWrapper(const IResourceWrapper&) = default;
-	IResourceWrapper& operator=(const IResourceWrapper&) = default;
-	IResourceWrapper(IResourceWrapper&&) = default;
-	IResourceWrapper& operator=(IResourceWrapper&&) = default;
+	ResourceWrapper(const ResourceWrapper&) = default;
+	ResourceWrapper& operator=(const ResourceWrapper&) = default;
+	ResourceWrapper(ResourceWrapper&&) = default;
+	ResourceWrapper& operator=(ResourceWrapper&&) = default;
 
 	void Retrieve(TConstAccessor&& fnAccess) const
 	{

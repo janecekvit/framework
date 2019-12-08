@@ -48,9 +48,6 @@
     <ClInclude Include="Socket\SocketTools.h">
       <Filter>Socket</Filter>
     </ClInclude>
-    <ClInclude Include="Common\Finally.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="Common\Utility.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -84,16 +81,19 @@
     <ClInclude Include="Interface\ICRTP.h">
       <Filter>Interface</Filter>
     </ClInclude>
-    <ClInclude Include="Interface\IResourceWrapper.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
-    <ClInclude Include="Interface\IGetterSetter.h">
-      <Filter>Interface</Filter>
-    </ClInclude>
     <ClInclude Include="Extensions\Concurrent.h">
       <Filter>Extensions</Filter>
     </ClInclude>
     <ClInclude Include="Extensions\Extensions.h">
+      <Filter>Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="Extensions\Finally.h">
+      <Filter>Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="Extensions\GetterSetter.h">
+      <Filter>Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="Extensions\ResourceWrapper.h">
       <Filter>Extensions</Filter>
     </ClInclude>
   </ItemGroup>

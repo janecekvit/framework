@@ -22,7 +22,7 @@ LIABILITY, WHETHER IN AN ACTION OF  CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-IGetterSetter.h
+GetterSetter.h
 Purpose:	header file contains Getter/Setter mechanism
 
 @author: Vit Janecek
@@ -31,24 +31,24 @@ Purpose:	header file contains Getter/Setter mechanism
 */
 
 template <class TResource>
-class IGetterSetter
+class GetterSetter
 {
 public:
-	IGetterSetter(TResource && oResource)
+	GetterSetter(TResource && oResource)
 		: m_oResource(std::move(oResource))
 	{
 	}
 
-	IGetterSetter(const TResource& oResource)
+	GetterSetter(const TResource& oResource)
 		: m_oResource(oResource)
 	{
 	}
 
-	virtual ~IGetterSetter() = default;
-	IGetterSetter(const IGetterSetter&) = default;
-	IGetterSetter& operator=(const IGetterSetter&) = default;
-	IGetterSetter(IGetterSetter&&) = default;
-	IGetterSetter& operator=(IGetterSetter&&) = default;
+	virtual ~GetterSetter() = default;
+	GetterSetter(const GetterSetter&) = default;
+	GetterSetter& operator=(const GetterSetter&) = default;
+	GetterSetter(GetterSetter&&) = default;
+	GetterSetter& operator=(GetterSetter&&) = default;
 
 	operator auto() const& -> const TResource&
 	{
