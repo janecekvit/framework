@@ -71,6 +71,11 @@ public:
 	ResourceWrapper(ResourceWrapper&&) = default;
 	ResourceWrapper& operator=(ResourceWrapper&&) = default;
 
+	void Reset()
+	{
+		m_fnDeleter(*this);
+	}
+
 	void Retrieve(TConstAccessor&& fnAccess) const
 	{
 		fnAccess(*this);

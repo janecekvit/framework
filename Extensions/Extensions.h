@@ -34,6 +34,7 @@ Purpose:	header file contains set of extended methods implemented over stl conta
 #include <tuple>
 #include <memory>
 #include <string>
+#include <algorithm>
 #include <typeindex>
 #include <functional>
 #include <type_traits>
