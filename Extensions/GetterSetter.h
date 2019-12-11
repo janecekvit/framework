@@ -44,6 +44,7 @@ public:
 	{
 	}
 
+	GetterSetter() = default;
 	virtual ~GetterSetter() = default;
 	GetterSetter(const GetterSetter&) = default;
 	GetterSetter& operator=(const GetterSetter&) = default;
@@ -63,6 +64,16 @@ public:
 	operator auto() && -> TResource&&
 	{
 		return std::move(m_oResource);
+	}
+
+	auto operator->() & -> TResource*
+	{
+		return std::addressof(m_oResource);
+	}
+
+	TResource* operator&()
+	{
+		return std::addressof(m_oResource);
 	}
 
 protected:

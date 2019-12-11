@@ -43,6 +43,12 @@ public:
 	using TConstAccessor = typename std::function<void(const TResource&)>;
 	using TDeleter = typename TAccessor;
 public:
+	ResourceWrapper(TDeleter&& fnDeleter)
+		: GetterSetter<TResource>()
+		, m_fnDeleter(std::move(fnDeleter))
+	{
+	}
+
 	ResourceWrapper(TResource && oResource, TDeleter && fnDeleter)
 		: GetterSetter<TResource>(std::move(oResource))
 		, m_fnDeleter(std::move(fnDeleter))
