@@ -5,7 +5,7 @@ Copyright (c) 2019 Vit janecek <mailto:janecekvit@outlook.com>.
 All rights reserved.
 
 ResourceWrapper.h
-Purpose:	header file contains RAII pattern 
+Purpose:	header file contains RAII pattern
 
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
@@ -14,6 +14,10 @@ Purpose:	header file contains RAII pattern
 
 #include <functional>
 #include "Framework/Extensions/GetterSetter.h"
+#include "Framework/Extensions/Extensions.h"
+
+//namespace Extensions
+//{
 
 /// <summary>
 /// The wrapper implemented own deleter that gains functionality to release all used resources correctly.
@@ -30,27 +34,30 @@ Purpose:	header file contains RAII pattern
 /// </code>
 /// </example>
 template <class TResource>
-class ResourceWrapper 
+class ResourceWrapper
 	: public GetterSetter<TResource>
 {
 public:
 	using TAccessor = typename std::function<void(TResource&)>;
 	using TConstAccessor = typename std::function<void(const TResource&)>;
 	using TDeleter = typename TAccessor;
+
 public:
-	ResourceWrapper(TDeleter&& fnDeleter)
+	constexpr ResourceWrapper() = delete;
+
+	constexpr ResourceWrapper(TDeleter&& fnDeleter)
 		: GetterSetter<TResource>()
 		, m_fnDeleter(std::move(fnDeleter))
 	{
 	}
 
-	ResourceWrapper(TResource && oResource, TDeleter && fnDeleter)
+	constexpr ResourceWrapper(TResource&& oResource, TDeleter&& fnDeleter)
 		: GetterSetter<TResource>(std::move(oResource))
 		, m_fnDeleter(std::move(fnDeleter))
 	{
 	}
 
-	ResourceWrapper(const TResource& oResource, TDeleter&& fnDeleter)
+	constexpr ResourceWrapper(const TResource& oResource, const TDeleter& fnDeleter)
 		: GetterSetter<TResource>(oResource)
 		, m_fnDeleter(std::move(fnDeleter))
 	{
@@ -64,27 +71,47 @@ public:
 		}
 		catch (...)
 		{ // check double exception serious error
-		} 
+		}
 	}
 
-	ResourceWrapper(const ResourceWrapper& oOther)
+	constexpr ResourceWrapper(const ResourceWrapper& oOther)
+		requires std::is_copy_constructible_v<TResource>
+		: ResourceWrapper(oOther.m_oResource, oOther.m_fnDeleter)
 	{
-		ResourceWrapper::operator=(oOther);
 	}
 
-	ResourceWrapper(ResourceWrapper&& oOther)
+	constexpr ResourceWrapper(const ResourceWrapper&)
+		requires !std::is_copy_constructible_v<TResource> = delete;
+
+	constexpr ResourceWrapper(ResourceWrapper&& oOther) noexcept
+		: ResourceWrapper(std::move(oOther.m_oResource), std::move(oOther.m_fnDeleter))
 	{
-		ResourceWrapper::operator=(std::move(oOther));
 	}
 
-	ResourceWrapper& operator=(const ResourceWrapper& oOther)
+	constexpr ResourceWrapper& operator=(const ResourceWrapper& oOther)
+		requires std::is_copy_constructible_v<TResource>
 	{
 		ResourceWrapper::operator=(oOther.m_oResource);
 		m_fnDeleter = oOther.m_fnDeleter;
 		return *this;
 	}
 
-	ResourceWrapper& operator=(ResourceWrapper&& oOther)
+	constexpr ResourceWrapper& operator=(const ResourceWrapper&)
+		requires !std::is_copy_constructible_v<TResource> = delete;
+
+	template<class TQuantified = TResource, std::enable_if_t<Extensions::is_container_v<TQuantified>, int> = 0>
+	constexpr decltype(auto) begin() noexcept
+	{
+		return ResourceWrapper::m_oResource.begin();
+	}
+
+	template<class TQuantified = TResource, std::enable_if_t<Extensions::is_container_v<TQuantified>, int> = 0>
+	constexpr decltype(auto) end() noexcept
+	{
+		return ResourceWrapper::m_oResource.end();
+	}
+
+	ResourceWrapper& operator=(ResourceWrapper&& oOther) noexcept
 	{
 		ResourceWrapper::operator=(std::move(oOther.m_oResource));
 		m_fnDeleter = std::move(oOther.m_fnDeleter);
@@ -124,3 +151,5 @@ public:
 protected:
 	TDeleter m_fnDeleter = nullptr;
 };
+//
+//} //namespace Extensions

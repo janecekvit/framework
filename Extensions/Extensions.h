@@ -83,10 +83,10 @@ template <class T, class U> constexpr bool is_foundable_v = is_foundable<T, U>::
 /// <summary>
 /// Helper structures to determine if template type <T> thats is container with associative find
 /// </summary>
-template<class T, class = void, class = void> struct is_container_helper : std::false_type
+template<class T, class = void, class = void, class = void> struct is_container_helper : std::false_type
 {
 };
-template<class T> struct is_container_helper<T, std::void_t<decltype(std::declval<T>().begin())>, std::void_t<decltype(std::declval<T>().end())>> : std::true_type
+template<class T> struct is_container_helper<T, std::void_t<decltype(std::declval<T>().begin())>, std::void_t<decltype(std::declval<T>().end())>, std::void_t<decltype(std::declval<T>().size())>> : std::true_type
 {
 };
 template<class T> struct is_container : is_container_helper<typename std::remove_cv<T>::type>
