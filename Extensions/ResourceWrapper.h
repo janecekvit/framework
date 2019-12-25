@@ -16,8 +16,8 @@ Purpose:	header file contains RAII pattern
 #include "Framework/Extensions/GetterSetter.h"
 #include "Framework/Extensions/Extensions.h"
 
-//namespace Extensions
-//{
+namespace Extensions
+{
 
 /// <summary>
 /// The wrapper implemented own deleter that gains functionality to release all used resources correctly.
@@ -151,5 +151,5 @@ public:
 protected:
 	TDeleter m_fnDeleter = nullptr;
 };
-//
-//} //namespace Extensions
+
+} //namespace Extensions
