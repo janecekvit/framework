@@ -16,6 +16,7 @@ Purpose:	header file contains set of extended methods implemented over stl conta
 #include <tuple>
 #include <memory>
 #include <string>
+#include <sstream>
 #include <algorithm>
 #include <typeindex>
 #include <functional>
@@ -249,42 +250,6 @@ std::unique_ptr<TBase> Recast(
 	pItem.release();
 	return std::unique_ptr<TBase>(pTemp);
 }
-
-//template <size_t n>
-//struct factorial
-//{
-//	static constexpr size_t value = n * factorial<n - 1>::value;
-//};
-//
-//template <>
-//struct factorial<0>
-//{
-//	static constexpr size_t value = 1;
-//};
-//
-//template <typename F, size_t... Is>
-//auto gen_tuple_impl(F func, std::index_sequence<Is...>)
-//{
-//	return std::make_tuple(func(Is)...);
-//}
-//
-//template <size_t N, typename F>
-//auto gen_tuple(F func)
-//{
-//	return gen_tuple_impl(func, std::make_index_sequence<N>{});
-//}
-//
-//template <class Tuple, std::size_t ...I>
-//constexpr decltype(auto) UnpackTupleImpl(Tuple&& t, std::index_sequence<I...>)
-//{
-//	return std::get<I>(t)...;
-//}
-//
-//template <class Tuple>
-//constexpr decltype(auto) UnpackTuple(Tuple&& t)
-//{
-//	return UnpackTupleImpl(t, std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple>>>{});
-//}
 
 namespace Storage
 {
@@ -725,33 +690,93 @@ protected:
 
 } //namespace Storage
 
-
-template <class ... Args>
-class Accessor
+namespace Tuple
 {
-public:
-	Accessor(Args&&... args)
-	{
-		Value = std::make_tuple(std::forward<Args>(args)...);
-	}
 
-	operator std::tuple<Args...>&()
-	{
-		return Value;
-	}
+namespace Details
+{
+template <typename F, size_t... Is>
+auto Generate(F func, std::index_sequence<Is...>)
+{
+	return std::make_tuple(func(Is)...);
+}
 
-	operator std::tuple<Args...>&() const
-	{
-		return Value;
-	}
-	
-	/*std::tuple<Args...> operator()
-	{
-		return Value;
-	}*/
 
-	std::tuple<Args...> Value = {};
+template <class Tuple, std::size_t ...I>
+constexpr Storage::HeterogeneousContainer Unpack(Tuple&& t, std::index_sequence<I...>)
+{
+	return Storage::HeterogeneousContainer { std::get<I>(t)... };
+}
+
+} //namespace Implementation
+
+
+
+/// <summary>
+/// Generate sequence of integers from the input size N 
+/// </summary>
+/// <example>
+/// <code>
+/// 
+/// auto fnCallback = [](auto&&... oArgs) -> int
+/// {
+///		auto tt = std::forward_as_tuple(oArgs...);
+///		return std::get<0>(tt);
+/// };
+/// auto oResultGenerator = Extensions::Tuple::Generate<10>(fnCallback);
+/// </code>
+/// </example>
+template <size_t N, typename F>
+decltype(auto) Generate(F func)
+{
+	return Details::Generate(func, std::make_index_sequence<N>{});
+}
+
+
+template <class Tuple>
+constexpr Storage::HeterogeneousContainer Unpack(Tuple& t)
+{
+	return Details::Unpack(std::forward<Tuple>(t), std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple>>>{});
+}
+
+template <class TStream, class ... Args>
+auto& operator<<(TStream& os, const std::tuple<Args...>& t)
+{
+	std::apply([&os](auto&&... oArgs)
+	{
+		((os << oArgs), ...);
+	}, t);
+	return os;
+}
+template<class ... Args >
+std::stringstream Print(const std::tuple<Args...>& t, const std::string& sDelimiter)
+{
+	std::stringstream ssStream;
+	std::apply([&ssStream, &sDelimiter](auto&&... oArgs)
+	{
+		((ssStream << oArgs << sDelimiter), ...);
+	}, t);
+	return ssStream;
+}
+
+} // namespace Tuple
+
+
+namespace Numeric
+{
+template <size_t N>
+struct factorial
+{
+	static constexpr size_t value = N * factorial<N - 1>::value;
 };
+
+template <>
+struct factorial<0>
+{
+	static constexpr size_t value = 1;
+};
+
+} //namespace Numeric
 
 /// <summary>
 /// Hash compute mechanism used to provide unique hash from set of input values
