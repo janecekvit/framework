@@ -99,18 +99,6 @@ public:
 	constexpr ResourceWrapper& operator=(const ResourceWrapper&)
 		requires !std::is_copy_constructible_v<TResource> = delete;
 
-	template<class TQuantified = TResource, std::enable_if_t<Extensions::is_container_v<TQuantified>, int> = 0>
-	constexpr decltype(auto) begin() noexcept
-	{
-		return ResourceWrapper::m_oResource.begin();
-	}
-
-	template<class TQuantified = TResource, std::enable_if_t<Extensions::is_container_v<TQuantified>, int> = 0>
-	constexpr decltype(auto) end() noexcept
-	{
-		return ResourceWrapper::m_oResource.end();
-	}
-
 	ResourceWrapper& operator=(ResourceWrapper&& oOther) noexcept
 	{
 		ResourceWrapper::operator=(std::move(oOther.m_oResource));

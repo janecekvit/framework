@@ -711,7 +711,6 @@ constexpr Storage::HeterogeneousContainer Unpack(Tuple&& t, std::index_sequence<
 } //namespace Implementation
 
 
-
 /// <summary>
 /// Generate sequence of integers from the input size N 
 /// </summary>
@@ -732,7 +731,9 @@ decltype(auto) Generate(F func)
 	return Details::Generate(func, std::make_index_sequence<N>{});
 }
 
-
+/// <summary>
+/// Unpack tuple to the Heterogeneous container
+/// </summary>
 template <class Tuple>
 constexpr Storage::HeterogeneousContainer Unpack(Tuple& t)
 {
