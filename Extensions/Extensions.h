@@ -7,7 +7,7 @@ Purpose:	header file contains set of extended methods implemented over stl conta
 
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
-@version 1.12 07/11/2019
+@version 1.13 07/11/2019
 */
 
 #pragma once
@@ -17,6 +17,7 @@ Purpose:	header file contains set of extended methods implemented over stl conta
 #include <memory>
 #include <string>
 #include <sstream>
+#include <optional>
 #include <algorithm>
 #include <typeindex>
 #include <functional>
@@ -585,10 +586,16 @@ public:
 	class HeterogeneousContainerException : public std::exception
 	{
 	public:
+		HeterogeneousContainerException(_In_ const std::type_info& typeInfo, _In_ const std::string& sError) noexcept
+		{
+			using namespace std::string_literals;
+			m_sData = "HeterogeneousContainer: "s + sError + " with input type: "s + typeInfo.name();
+		}
+
 		HeterogeneousContainerException(_In_ const std::type_info& typeInfo, _In_ const std::bad_any_cast& ex) noexcept
 		{
 			using namespace std::string_literals;
-			m_sData = "HeterogeneousContainer:"s + ex.what() + " to: "s + typeInfo.name();
+			m_sData = "HeterogeneousContainer: "s + ex.what() + " to: "s + typeInfo.name();
 		}
 
 		~HeterogeneousContainerException() = default;
@@ -623,6 +630,12 @@ public:
 	decltype(auto) Get() const
 	{
 		return _Deserialize<T>();
+	}
+
+	template <class T>
+	decltype(auto) Get(_In_ size_t uPosition) const
+	{
+		return _Deserialize<T>(uPosition);
 	}
 
 	template <class T>
@@ -665,6 +678,23 @@ protected:
 			oList.emplace_back(input);
 		});
 		return oList;
+	}
+
+	template  <class T>
+	decltype(auto) _Deserialize(size_t uPosition) const
+	{
+		size_t uCounter = 0;
+		std::optional<T> oValue = std::nullopt;
+		_Visit<T>([&](const T& input)
+		{
+			if (uCounter == uPosition)
+				oValue = std::make_optional<T>(input);
+			uCounter++;
+		});
+
+		if (!oValue)
+			throw HeterogeneousContainerException(typeid(T), "Cannot retrieve position " + std::to_string(uPosition));
+		return static_cast<T>(std::move(oValue.value()));
 	}
 	
 	template  <class T>
