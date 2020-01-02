@@ -614,51 +614,51 @@ public:
 	HeterogeneousContainer() noexcept = default;
 
 	template <class ... Args>
-	HeterogeneousContainer(
+	constexpr HeterogeneousContainer(
 		_In_ const Args& ... oArgs)
 	{
 		_Serialize(oArgs...);
 	}
 	
 	template <class ... Args>
-	void Emplace(_In_ const Args& ... oArgs)
+	constexpr void Emplace(_In_ const Args& ... oArgs)
 	{
 		_Serialize(oArgs...);
 	}
 
 	template <class T>
-	decltype(auto) Get() const
+	constexpr decltype(auto) Get() const
 	{
 		return _Deserialize<T>();
 	}
 
 	template <class T>
-	decltype(auto) Get(_In_ size_t uPosition) const
+	constexpr decltype(auto) Get(_In_ size_t uPosition) const
 	{
 		return _Deserialize<T>(uPosition);
 	}
 
 	template <class T>
-	void Visit(_In_ std::function<void(const T&)>&& fnCallback) const
+	constexpr decltype(auto) First() const
 	{
-		_Visit<T>([&fnCallback](const T& input)
-		{
-			fnCallback(input);
-		});
+		return _Deserialize<T>(0);
 	}
 
 	template <class T>
-	void Visit(_In_ std::function<void(T&)>&& fnCallback)
+	constexpr void Visit(_In_ std::function<void(const T&)>&& fnCallback) const
 	{
-		_Visit<T>([&fnCallback](T& input)
-		{
-			fnCallback(input);
-		});
+		_Visit<T>(std::move(fnCallback));
+	}
+
+	template <class T>
+	constexpr void Visit(_In_ std::function<void(T&)>&& fnCallback)
+	{
+		_Visit<T>(std::move(fnCallback));
 	}
 
 protected:
 	template <class T, class... Rest>
-	void _Serialize(
+	constexpr void _Serialize(
 		_In_ const T& oFirst,
 		_In_ const Rest& ... oRest)
 	{
@@ -670,7 +670,7 @@ protected:
 	}
 
 	template  <class T>
-	decltype(auto) _Deserialize() const
+	constexpr decltype(auto) _Deserialize() const
 	{
 		std::list<T> oList = {};
 		_Visit<T>([&oList](const T& input)
@@ -681,7 +681,7 @@ protected:
 	}
 
 	template  <class T>
-	decltype(auto) _Deserialize(size_t uPosition) const
+	constexpr decltype(auto) _Deserialize(size_t uPosition) const
 	{
 		size_t uCounter = 0;
 		std::optional<T> oValue = std::nullopt;
@@ -698,7 +698,7 @@ protected:
 	}
 	
 	template  <class T>
-	void _Visit(_In_ std::function<void(T&)>&& fnCallback) const
+	constexpr void _Visit(_In_ std::function<void(T&)>&& fnCallback) const
 	{
 		try
 		{
