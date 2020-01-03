@@ -609,7 +609,7 @@ public:
 	};
 
 public:
-	virtual ~HeterogeneousContainer() = default;
+	~HeterogeneousContainer() = default;
 	HeterogeneousContainer() noexcept = default;
 
 	template <class ... Args>
