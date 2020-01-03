@@ -623,14 +623,14 @@ public:
 	decltype(auto) CallFirst(_In_ Args&& ... oArgs)
 	{
 		auto&& oFunc = First<Func>();
-		return std::invoke(oFunc, std::forward<Args...>(oArgs)...); //NVRO
+		return std::invoke(oFunc, std::forward<Args>(oArgs)...); //NVRO
 	}
 
 	template <class Func, class ... Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<Func, Args...>, Func, Args...>, int> = 0>
 	decltype(auto) Call(_In_ size_t uPosition, _In_ Args&& ... oArgs)
 	{
 		auto&& oFunc = Get<Func>(uPosition);
-		return std::invoke(oFunc, std::forward<Args...>(oArgs)...); //NVRO
+		return std::invoke(oFunc, std::forward<Args>(oArgs)...); //NVRO
 	}
 
 	template <class Func, class ... Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<Func, Args...>, Func, Args...>, int> = 0>
@@ -640,13 +640,13 @@ public:
 		if constexpr (std::is_void_v<RetType>)
 		{
 			for (auto&& func : Get<Func>())
-				std::invoke(func, std::forward<Args...>(oArgs)...);
+				std::invoke(func, std::forward<Args>(oArgs)...);
 		}
 		else
 		{
 			std::list<RetType> oList = {};
 			for (auto&& func : Get<Func>())
-				oList.emplace_back(std::invoke(func, std::forward<Args...>(oArgs)...));
+				oList.emplace_back(std::invoke(func, std::forward<Args>(oArgs)...));
 			return oList;
 		}
 	}
