@@ -618,23 +618,44 @@ public:
 	{
 		_Serialize(oArgs...);
 	}
+
+	template <class ... Args>
+	constexpr void Emplace(_In_ const Args& ... oArgs)
+	{
+		_Serialize(oArgs...);
+	}
+
+	template <class T>
+	void Reset()
+	{
+		ContainerFind(m_umapArgs, std::type_index(typeid(T)), [](std::list<std::any>& listInput)
+		{
+			listInput.clear();
+		});
+	}
+
+	void Reset()
+	{
+		m_umapArgs.clear();
+	}
 	
+public:
 	template <class Func, class ... Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<Func, Args...>, Func, Args...>, int> = 0>
-	decltype(auto) CallFirst(_In_ Args&& ... oArgs)
+	decltype(auto) CallFirst(_In_ Args&& ... oArgs) const
 	{
 		auto&& oFunc = First<Func>();
 		return std::invoke(oFunc, std::forward<Args>(oArgs)...); //NVRO
 	}
 
 	template <class Func, class ... Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<Func, Args...>, Func, Args...>, int> = 0>
-	decltype(auto) Call(_In_ size_t uPosition, _In_ Args&& ... oArgs)
+	decltype(auto) Call(_In_ size_t uPosition, _In_ Args&& ... oArgs) const
 	{
 		auto&& oFunc = Get<Func>(uPosition);
 		return std::invoke(oFunc, std::forward<Args>(oArgs)...); //NVRO
 	}
 
 	template <class Func, class ... Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<Func, Args...>, Func, Args...>, int> = 0>
-	decltype(auto) CallAll(_In_ Args&& ... oArgs)
+	decltype(auto) CallAll(_In_ Args&& ... oArgs) const
 	{
 		using RetType = std::invoke_result_t<Func, Args...>;		
 		if constexpr (std::is_void_v<RetType>)
@@ -651,10 +672,19 @@ public:
 		}
 	}
 	
-	template <class ... Args>
-	constexpr void Emplace(_In_ const Args& ... oArgs)
+	template <class T>
+	constexpr size_t Size() const noexcept
 	{
-		_Serialize(oArgs...);
+		return ContainerFind(m_umapArgs, std::type_index(typeid(T)), [](std::list<std::any>& listInput)
+		{
+			return listInput.size();
+		});
+	}
+
+	template <class T>
+	constexpr bool Contains() const noexcept
+	{
+		return Size<T>() > 0;
 	}
 
 	template <class T>
@@ -687,7 +717,7 @@ public:
 		_Visit<T>(std::move(fnCallback));
 	}
 
-protected:
+private:
 	template <class T, class... Rest>
 	constexpr void _Serialize(
 		_In_ const T& oFirst,
