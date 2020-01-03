@@ -579,7 +579,7 @@ protected:
 ///  Heterogeneous Container implement lazy evaluation idiom to enable processing input arguments as late as possible
 /// <exception cref="HeterogeneousContainerException">When cast to the input type failed.</exception>
 /// </summary>
-class HeterogeneousContainer
+class HeterogeneousContainer final
 {
 public:
 	class HeterogeneousContainerException : public std::exception
