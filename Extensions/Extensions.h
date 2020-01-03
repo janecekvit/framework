@@ -122,7 +122,7 @@ template <class T> constexpr bool is_container_v = is_container<T>::value;
 /// </code>
 /// </example>
 template <template <class ...> class Container, class Key, class ... Args, class Functor>
-auto ContainerFind(
+decltype(auto) ContainerFind(
 	_In_ Container<Args...>& oContainer,
 	_In_ const Key& oKey,
 	_In_ Functor&& oCallback)
@@ -157,7 +157,6 @@ auto ContainerFind(
 		if constexpr (!std::is_void_v<decltype(oCallback(*it))>)
 			return decltype(oCallback(*it)){};
 	}
-
 }
 
 template <template <class ...> class Container, class Key, class ... Args, class Functor>
@@ -589,7 +588,7 @@ public:
 		HeterogeneousContainerException(_In_ const std::type_info& typeInfo, _In_ const std::string& sError) noexcept
 		{
 			using namespace std::string_literals;
-			m_sData = "HeterogeneousContainer: "s + sError + " with input type: "s + typeInfo.name();
+			m_sData = "HeterogeneousContainer: "s + sError + " with specified type: "s + typeInfo.name();
 		}
 
 		HeterogeneousContainerException(_In_ const std::type_info& typeInfo, _In_ const std::bad_any_cast& ex) noexcept
@@ -618,6 +617,38 @@ public:
 		_In_ const Args& ... oArgs)
 	{
 		_Serialize(oArgs...);
+	}
+	
+	template <class Func, class ... Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<Func, Args...>, Func, Args...>, int> = 0>
+	decltype(auto) CallFirst(_In_ Args&& ... oArgs)
+	{
+		auto&& oFunc = First<Func>();
+		return std::invoke(oFunc, std::forward<Args...>(oArgs)...); //NVRO
+	}
+
+	template <class Func, class ... Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<Func, Args...>, Func, Args...>, int> = 0>
+	decltype(auto) Call(_In_ size_t uPosition, _In_ Args&& ... oArgs)
+	{
+		auto&& oFunc = Get<Func>(uPosition);
+		return std::invoke(oFunc, std::forward<Args...>(oArgs)...); //NVRO
+	}
+
+	template <class Func, class ... Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<Func, Args...>, Func, Args...>, int> = 0>
+	decltype(auto) CallAll(_In_ Args&& ... oArgs)
+	{
+		using RetType = std::invoke_result_t<Func, Args...>;		
+		if constexpr (std::is_void_v<RetType>)
+		{
+			for (auto&& func : Get<Func>())
+				std::invoke(func, std::forward<Args...>(oArgs)...);
+		}
+		else
+		{
+			std::list<RetType> oList = {};
+			for (auto&& func : Get<Func>())
+				oList.emplace_back(std::invoke(func, std::forward<Args...>(oArgs)...));
+			return oList;
+		}
 	}
 	
 	template <class ... Args>
@@ -693,7 +724,7 @@ protected:
 		});
 
 		if (!oValue)
-			throw HeterogeneousContainerException(typeid(T), "Cannot retrieve position " + std::to_string(uPosition));
+			throw HeterogeneousContainerException(typeid(T), "Cannot retrieve value on position " + std::to_string(uPosition));
 		return static_cast<T>(std::move(oValue.value()));
 	}
 	
