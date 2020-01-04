@@ -23,6 +23,8 @@ Purpose:	header file contains set of extended methods implemented over stl conta
 #include <functional>
 #include <type_traits>
 
+#include "Concurrent.h"
+
 ///Namespace owns set of extended methods implemented over stl containers
 namespace Extensions
 {
@@ -628,7 +630,8 @@ public:
 	template <class T>
 	void Reset()
 	{
-		ContainerFind(m_umapArgs, std::type_index(typeid(T)), [](std::list<std::any>& listInput)
+		auto oScope = m_umapArgs.Concurrent();
+		ContainerFind(oScope.Get() , std::type_index(typeid(T)), [](std::list<std::any>& listInput)
 		{
 			listInput.clear();
 		});
@@ -636,7 +639,7 @@ public:
 
 	void Reset()
 	{
-		m_umapArgs.clear();
+		m_umapArgs.Exclusive()->clear();
 	}
 	
 public:
@@ -675,7 +678,8 @@ public:
 	template <class T>
 	constexpr size_t Size() const noexcept
 	{
-		return ContainerFind(m_umapArgs, std::type_index(typeid(T)), [](std::list<std::any>& listInput)
+		auto oScope = m_umapArgs.Concurrent();
+		return ContainerFind(oScope.Get(), std::type_index(typeid(T)), [](std::list<std::any>& listInput)
 		{
 			return listInput.size();
 		});
@@ -724,7 +728,7 @@ private:
 		_In_ const Rest& ... oRest)
 	{
 		static_assert(std::is_copy_constructible<T>::value, "Cannot assign <T> type, because isn't CopyConstructible!");
-		m_umapArgs[std::type_index(typeid(T))].emplace_back(std::make_any<T>(oFirst));
+		m_umapArgs.Exclusive()[std::type_index(typeid(T))].emplace_back(std::make_any<T>(oFirst));
 
 		if constexpr (sizeof...(Rest) > 0)
 			_Serialize(oRest...);
@@ -763,7 +767,8 @@ private:
 	{
 		try
 		{
-			ContainerFind(m_umapArgs, std::type_index(typeid(T)), [&fnCallback](std::list<std::any>& listInput)
+			auto oScope = m_umapArgs.Concurrent();
+			ContainerFind(oScope.Get(), std::type_index(typeid(T)), [&fnCallback](std::list<std::any>& listInput)
 			{
 				for (auto&& item : listInput)
 					fnCallback(std::any_cast<T&>(item));
@@ -776,7 +781,7 @@ private:
 	}
 
 protected:
-	std::unordered_map<std::type_index, std::list<std::any>> m_umapArgs;
+	Concurrent::UnorderedMap<std::type_index, std::list<std::any>> m_umapArgs;
 };
 
 } //namespace Storage
