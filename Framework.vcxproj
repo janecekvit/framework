@@ -38,6 +38,7 @@
     <ClInclude Include="Common\WinInclude.h" />
     <ClInclude Include="Crypto\CryptoUtils.h" />
     <ClInclude Include="Extensions\Concurrent.h" />
+    <ClInclude Include="Extensions\Constraints.h" />
     <ClInclude Include="Extensions\Extensions.h" />
     <ClInclude Include="Extensions\Finally.h" />
     <ClInclude Include="Extensions\GetterSetter.h" />

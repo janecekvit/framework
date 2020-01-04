@@ -30,6 +30,8 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 #include <unordered_set>
 #include <unordered_map>
 
+#include "Framework/Extensions/Constraints.h"
+
 ///Namespace owns set of thread-safe concurrent containers and methods that implemented over basic stl containers
 /// and thread-safe methods for every possiblle concurrent object
 namespace Concurrent
@@ -105,12 +107,14 @@ public:
 		return *m_pKeeper->GetResource();
 	}
 
+	template<class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
 	decltype(auto) begin() const
 	{
 		_CheckOwnership();
 		return m_pKeeper->GetResource()->begin();
 	}
 
+	template<class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
 	decltype(auto) end() const
 	{
 		_CheckOwnership();
@@ -195,12 +199,14 @@ public:
 		return *m_pKeeper->GetResource();
 	}
 
+	template<class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
 	decltype(auto) begin() const
 	{
 		_CheckOwnership();
 		return m_pKeeper->GetResource()->begin();
 	}
-
+	
+	template<class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
 	decltype(auto) end() const
 	{
 		_CheckOwnership();

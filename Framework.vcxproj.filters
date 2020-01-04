@@ -96,6 +96,9 @@
     <ClInclude Include="Extensions\ResourceWrapper.h">
       <Filter>Extensions</Filter>
     </ClInclude>
+    <ClInclude Include="Extensions\Constraints.h">
+      <Filter>Extensions</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Socket">

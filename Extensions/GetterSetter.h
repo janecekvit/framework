@@ -12,7 +12,7 @@ Purpose:	header file contains Getter/Setter mechanism
 @version 1.04 05/12/2019
 */
 
-#include "Framework/Extensions/Extensions.h"
+#include "Framework/Extensions/Constraints.h"
 
 template <class TResource>
 class GetterSetter
@@ -50,19 +50,19 @@ public:
 		return std::move(m_oResource);
 	}
 
-	template<class TQuantified = TResource, std::enable_if_t<Extensions::is_container_v<TQuantified>, int> = 0>
+	template<class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
 	constexpr decltype(auto) begin() noexcept
 	{
 		return m_oResource.begin();
 	}
 
-	template<class TQuantified = TResource, std::enable_if_t<Extensions::is_container_v<TQuantified>, int> = 0>
+	template<class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
 	constexpr decltype(auto) end() noexcept
 	{
 		return m_oResource.end();
 	}
 
-	template<class TQuantified = TResource, std::enable_if_t<Extensions::is_container_v<TQuantified>, int> = 0>
+	template<class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
 	constexpr decltype(auto) size() noexcept
 	{
 		return m_oResource.size();
