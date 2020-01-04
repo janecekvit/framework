@@ -1,6 +1,7 @@
 /*
 Copyright (c) 2019 Vit janecek <mailto:janecekvit@outlook.com>.
 All rights reserved.
+
 Concurrent.h
 Purpose:	header file contains set of thread-safe concurrent containers,
 			also methods that implemented over basic stl containers and
