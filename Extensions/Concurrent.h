@@ -62,6 +62,12 @@ public:
 
 	virtual ~ExclusiveResourceHolder() = default;
 
+	operator TObject& () const
+	{
+		_CheckOwnership();
+		return *m_pKeeper->GetResource();
+	}
+
 	const std::shared_ptr<TObject> operator->() const
 	{
 		_CheckOwnership();
@@ -163,6 +169,12 @@ public:
 	}
 
 	virtual ~ConcurrentResourceHolder() = default;
+
+	operator const TObject& () const
+	{
+		_CheckOwnership();
+		return *m_pKeeper->GetResource();
+	}
 
 	const std::shared_ptr<const TObject> operator->() const
 	{

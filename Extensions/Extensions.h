@@ -378,7 +378,7 @@ public:
 	}
 
 	template <class ... Args>
-	std::tuple<Args...> GetPack()
+	std::tuple<Args...> GetPack() const
 	{
 		if (m_listArgs.size() != sizeof...(Args))
 			throw std::invalid_argument("Bad number of input arguments!");
@@ -523,7 +523,7 @@ public:
 	}
 
 	template <class ... Args>
-	std::tuple<Args...> GetPack()
+	std::tuple<Args...> GetPack() const
 	{
 		std::tuple<Args...> oTuple = {};
 		if (m_listArgs.size() != sizeof...(Args))
@@ -533,7 +533,7 @@ public:
 		return _Deserialize<Args...>(std::move(listArgs));
 	}
 
-	size_t Size()
+	size_t Size() const
 	{
 		return m_listArgs.size();
 	}
