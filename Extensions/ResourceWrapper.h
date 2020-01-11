@@ -48,38 +48,21 @@ public:
 
 	constexpr ResourceWrapper(TDeleter&& fnDeleter)
 		: GetterSetter<TResource>()
+		, m_pDeleter(_CreateDeleter(std::forward<TDeleter>(fnDeleter)))
 	{
-		m_pDeleter = std::shared_ptr<TDeleter>(new TDeleter(std::forward<TDeleter>(fnDeleter)), [&](TDeleter* pFunc)
-		{
-			(*pFunc)(*this);
-			
-			delete pFunc;
-			pFunc = nullptr;
-		});
+		
 	}
 
 	constexpr ResourceWrapper(TResource&& oResource, TDeleter&& fnDeleter)
 		: GetterSetter<TResource>(std::move(oResource))
+		, m_pDeleter(_CreateDeleter(std::forward<TDeleter>(fnDeleter)))
 	{
-		m_pDeleter = std::shared_ptr<TDeleter>(new TDeleter(std::forward<TDeleter>(fnDeleter)), [&](TDeleter* pFunc)
-		{
-			(*pFunc)(*this);
-
-			delete pFunc;
-			pFunc = nullptr;
-		});
 	}
 
 	constexpr ResourceWrapper(const TResource& oResource, TDeleter&& fnDeleter)
 		: GetterSetter<TResource>(oResource)
+		, m_pDeleter(_CreateDeleter(std::forward<TDeleter>(fnDeleter)))
 	{
-		m_pDeleter = std::shared_ptr<TDeleter>(new TDeleter(std::forward<TDeleter>(fnDeleter)), [&](TDeleter* pFunc)
-		{
-			(*pFunc)(*this);
-
-			delete pFunc;
-			pFunc = nullptr;
-		});
 	}
 
 	constexpr ResourceWrapper(const ResourceWrapper& oOther)
@@ -144,6 +127,19 @@ public:
 	void Update(TAccessor&& fnAccess)
 	{
 		fnAccess(*this);
+	}
+
+protected:
+	constexpr std::shared_ptr<TDeleter> _CreateDeleter(TDeleter&& fnDeleter) 
+	{
+		return std::shared_ptr<TDeleter>(new TDeleter(std::forward<TDeleter>(fnDeleter)), [this](TDeleter* pFunc)
+		{
+			//Call inner resource deleter
+			(*pFunc)(*this);
+
+			delete pFunc;
+			pFunc = nullptr;
+		});
 	}
 
 protected:
