@@ -43,40 +43,49 @@ public:
 	using TDeleter = typename TAccessor;
 
 public:
+	virtual ~ResourceWrapper() = default;
 	constexpr ResourceWrapper() = delete;
 
 	constexpr ResourceWrapper(TDeleter&& fnDeleter)
 		: GetterSetter<TResource>()
-		, m_fnDeleter(std::move(fnDeleter))
 	{
+		m_pDeleter = std::shared_ptr<TDeleter>(new TDeleter(std::forward<TDeleter>(fnDeleter)), [&](TDeleter* pFunc)
+		{
+			(*pFunc)(*this);
+			
+			delete pFunc;
+			pFunc = nullptr;
+		});
 	}
 
 	constexpr ResourceWrapper(TResource&& oResource, TDeleter&& fnDeleter)
 		: GetterSetter<TResource>(std::move(oResource))
-		, m_fnDeleter(std::move(fnDeleter))
 	{
-	}
-
-	constexpr ResourceWrapper(const TResource& oResource, const TDeleter& fnDeleter)
-		: GetterSetter<TResource>(oResource)
-		, m_fnDeleter(std::move(fnDeleter))
-	{
-	}
-
-	virtual ~ResourceWrapper()
-	{
-		try
+		m_pDeleter = std::shared_ptr<TDeleter>(new TDeleter(std::forward<TDeleter>(fnDeleter)), [&](TDeleter* pFunc)
 		{
-			Reset();
-		}
-		catch (...)
-		{ // check double exception serious error
-		}
+			(*pFunc)(*this);
+
+			delete pFunc;
+			pFunc = nullptr;
+		});
+	}
+
+	constexpr ResourceWrapper(const TResource& oResource, TDeleter&& fnDeleter)
+		: GetterSetter<TResource>(oResource)
+	{
+		m_pDeleter = std::shared_ptr<TDeleter>(new TDeleter(std::forward<TDeleter>(fnDeleter)), [&](TDeleter* pFunc)
+		{
+			(*pFunc)(*this);
+
+			delete pFunc;
+			pFunc = nullptr;
+		});
 	}
 
 	constexpr ResourceWrapper(const ResourceWrapper& oOther)
 		requires std::is_copy_constructible_v<TResource>
-		: ResourceWrapper(oOther.m_oResource, oOther.m_fnDeleter)
+		: GetterSetter<TResource>(oOther.m_oResource)
+		, m_pDeleter(oOther.m_pDeleter)
 	{
 	}
 
@@ -84,15 +93,16 @@ public:
 		requires !std::is_copy_constructible_v<TResource> = delete;
 
 	constexpr ResourceWrapper(ResourceWrapper&& oOther) noexcept
-		: ResourceWrapper(std::move(oOther.m_oResource), std::move(oOther.m_fnDeleter))
+		: GetterSetter<TResource>(std::move(oOther.m_oResource))
+		, m_pDeleter(std::move(oOther.m_pDeleter))
 	{
 	}
 
 	constexpr ResourceWrapper& operator=(const ResourceWrapper& oOther)
 		requires std::is_copy_constructible_v<TResource>
 	{
-		ResourceWrapper::operator=(oOther.m_oResource);
-		m_fnDeleter = oOther.m_fnDeleter;
+		m_pDeleter = oOther.m_pDeleter;
+		GetterSetter<TResource>::m_oResource = oOther.m_oResource;
 		return *this;
 	}
 
@@ -101,8 +111,8 @@ public:
 
 	ResourceWrapper& operator=(ResourceWrapper&& oOther) noexcept
 	{
-		ResourceWrapper::operator=(std::move(oOther.m_oResource));
-		m_fnDeleter = std::move(oOther.m_fnDeleter);
+		m_pDeleter = std::move(oOther.m_pDeleter);
+		GetterSetter<TResource>::m_oResource = std::move(oOther.m_oResource);
 		return *this;
 	}
 
@@ -122,7 +132,7 @@ public:
 
 	void Reset()
 	{
-		m_fnDeleter(*this);
+		(*m_pDeleter)(*this);
 		GetterSetter<TResource>::m_oResource = TResource {};
 	}
 
@@ -137,7 +147,7 @@ public:
 	}
 
 protected:
-	TDeleter m_fnDeleter = nullptr;
+	std::shared_ptr<TDeleter> m_pDeleter = nullptr;
 };
 
 } //namespace Extensions
