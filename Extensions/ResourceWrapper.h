@@ -143,7 +143,7 @@ protected:
 	}
 
 protected:
-	std::shared_ptr<TDeleter> m_pDeleter = nullptr;
+	std::shared_ptr<TDeleter> m_pDeleter {};
 };
 
 } //namespace Extensions
