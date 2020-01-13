@@ -13,7 +13,6 @@ Purpose:	header file contains RAII pattern
 */
 
 #include <functional>
-#include "Framework/Extensions/GetterSetter.h"
 #include "Framework/Extensions/Extensions.h"
 
 namespace Extensions
@@ -35,7 +34,6 @@ namespace Extensions
 /// </example>
 template <class TResource>
 class ResourceWrapper
-	: public GetterSetter<TResource>
 {
 public:
 	using TAccessor = typename std::function<void(TResource&)>;
@@ -47,28 +45,28 @@ public:
 	constexpr ResourceWrapper() = delete;
 
 	constexpr ResourceWrapper(TDeleter&& fnDeleter)
-		: GetterSetter<TResource>()
-		, m_pDeleter(_CreateDeleter(std::forward<TDeleter>(fnDeleter)))
+		: m_pResource(_CreateResource(TResource{}, TDeleter(fnDeleter)))
+		, m_oDeleter(std::forward<TDeleter>(fnDeleter))
 	{
-		
 	}
 
-	constexpr ResourceWrapper(TResource&& oResource, TDeleter&& fnDeleter)
-		: GetterSetter<TResource>(std::move(oResource))
-		, m_pDeleter(_CreateDeleter(std::forward<TDeleter>(fnDeleter)))
+	template <class TFwdResource>
+	constexpr ResourceWrapper(TFwdResource&& oResource, TDeleter&& fnDeleter)
+		: m_pResource(_CreateResource(std::forward<TResource>(oResource), TDeleter(fnDeleter)))
+		, m_oDeleter(std::forward<TDeleter>(fnDeleter))
 	{
 	}
 
 	constexpr ResourceWrapper(const TResource& oResource, TDeleter&& fnDeleter)
-		: GetterSetter<TResource>(oResource)
-		, m_pDeleter(_CreateDeleter(std::forward<TDeleter>(fnDeleter)))
+		: m_pResource(_CreateResource(oResource, TDeleter(fnDeleter)))
+		, m_oDeleter(std::forward<TDeleter>(fnDeleter))
 	{
 	}
 
 	constexpr ResourceWrapper(const ResourceWrapper& oOther)
 		requires std::is_copy_constructible_v<TResource>
-		: GetterSetter<TResource>(oOther.m_oResource)
-		, m_pDeleter(oOther.m_pDeleter)
+		: m_pResource(oOther.m_pResource)
+		, m_oDeleter(oOther.m_oDeleter)
 	{
 	}
 
@@ -76,16 +74,16 @@ public:
 		requires !std::is_copy_constructible_v<TResource> = delete;
 
 	constexpr ResourceWrapper(ResourceWrapper&& oOther) noexcept
-		: GetterSetter<TResource>(std::move(oOther.m_oResource))
-		, m_pDeleter(std::move(oOther.m_pDeleter))
+		: m_pResource(std::move(oOther.m_pResource))
+		, m_oDeleter(std::move(oOther.m_oDeleter))
 	{
 	}
 
 	constexpr ResourceWrapper& operator=(const ResourceWrapper& oOther)
 		requires std::is_copy_constructible_v<TResource>
 	{
-		m_pDeleter = oOther.m_pDeleter;
-		GetterSetter<TResource>::m_oResource = oOther.m_oResource;
+		m_oDeleter = oOther.m_oDeleter;
+		m_pResource = oOther.m_pResource;
 		return *this;
 	}
 
@@ -94,56 +92,104 @@ public:
 
 	ResourceWrapper& operator=(ResourceWrapper&& oOther) noexcept
 	{
-		m_pDeleter = std::move(oOther.m_pDeleter);
-		GetterSetter<TResource>::m_oResource = std::move(oOther.m_oResource);
+		m_oDeleter = std::move(oOther.m_oDeleter);
+		m_pResource = std::move(oOther.m_pResource);
 		return *this;
 	}
 
 	ResourceWrapper& operator=(const TResource& oResource)
 	{
-		Reset();
-		GetterSetter<TResource>::m_oResource = oResource;
+		m_pResource = _CreateResource(oResource, TDeleter(m_oDeleter));
 		return *this;
 	}
 
 	ResourceWrapper& operator=(TResource&& oResource)
 	{
-		Reset();
-		GetterSetter<TResource>::m_oResource = std::move(oResource);
+		m_pResource = _CreateResource(std::move(oResource), TDeleter(m_oDeleter));
 		return *this;
 	}
 
 	void Reset()
 	{
-		(*m_pDeleter)(*this);
-		GetterSetter<TResource>::m_oResource = TResource {};
+		m_pResource = _CreateResource(nullptr, TDeleter(m_oDeleter));
 	}
 
 	void Retrieve(TConstAccessor&& fnAccess) const
 	{
-		fnAccess(*this);
+		fnAccess(*m_pResource);
 	}
 
 	void Update(TAccessor&& fnAccess)
 	{
-		fnAccess(*this);
+		fnAccess(*m_pResource);
+	}
+
+	constexpr operator auto() const& -> const TResource&
+	{
+		return *m_pResource;
+	}
+
+	constexpr operator auto() & -> TResource&
+	{
+		return *m_pResource;
+	}
+
+	constexpr operator auto() && -> TResource&&
+	{
+		return std::move(*m_pResource);
+	}
+
+	template<class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	constexpr decltype(auto) begin() noexcept
+	{
+		return m_pResource->begin();
+	}
+
+	template<class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	constexpr decltype(auto) end() noexcept
+	{
+		return m_pResource->end();
+	}
+
+	template<class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	constexpr decltype(auto) size() noexcept
+	{
+		return m_pResource->size();
+	}
+
+	template<class TQuantified = TResource, std::enable_if_t<std::is_pointer_v<TQuantified>, int> = 0>
+	constexpr auto operator->() & -> TResource&
+	{
+		return *m_pResource;
+	}
+
+	template<class TQuantified = TResource, std::enable_if_t<!std::is_pointer_v<TQuantified>, int> = 0>
+	constexpr auto operator->() & -> TResource*
+	{
+		return std::addressof(*m_pResource);
+	}
+
+	constexpr TResource* operator&()
+	{
+		return std::addressof(*m_pResource);
 	}
 
 protected:
-	constexpr std::shared_ptr<TDeleter> _CreateDeleter(TDeleter&& fnDeleter) 
+	constexpr std::shared_ptr<TResource> _CreateResource(TResource&& oResource, TDeleter &&fnDeleter)
 	{
-		return std::shared_ptr<TDeleter>(new TDeleter(std::forward<TDeleter>(fnDeleter)), [this](TDeleter* pFunc)
+		return std::shared_ptr<TResource>(new TResource(std::forward<TResource>(oResource)), [x = std::move(fnDeleter)](TResource* pResource)
 		{
 			//Call inner resource deleter
-			(*pFunc)(*this);
+			x(*pResource);
 
-			delete pFunc;
-			pFunc = nullptr;
+			delete pResource;
+			pResource = nullptr;
 		});
 	}
 
 protected:
-	std::shared_ptr<TDeleter> m_pDeleter {};
+	std::shared_ptr<TResource> m_pResource {};
+	TDeleter m_oDeleter {};
 };
 
 } //namespace Extensions
