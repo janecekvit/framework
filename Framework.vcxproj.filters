@@ -34,6 +34,9 @@
     <ClCompile Include="Common\Definitions.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="Crypto\SchannelUtils.cpp">
+      <Filter>Crypto</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Socket\BaseSocket.h">
@@ -98,6 +101,9 @@
     </ClInclude>
     <ClInclude Include="Extensions\Constraints.h">
       <Filter>Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\SchannelUtils.h">
+      <Filter>Crypto</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
