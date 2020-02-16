@@ -202,6 +202,7 @@ namespace Storage
 /// <example>
 /// <code>
 /// 
+/*
 /// struct IInterface
 /// {
 /// 	virtual ~IInterface() = default;
@@ -256,6 +257,9 @@ namespace Storage
 ///		auto oPack = Extensions::ParameterPack(25, 333, pInt, pShared, &oInt);
 ///		oTest.Run(std::move(oPack));
 /// }
+/// 
+/// 
+*/
 /// </code>
 /// </example>
 class ParameterPackLegacy
@@ -266,6 +270,7 @@ private:
 	{
 	public:
 		virtual ~ParameterBase() = default;
+
 		template <class T>
 		const T& Get() const; // Method is implemented after Parameter derived class, to gain ability to operate with it
 	};
@@ -276,7 +281,8 @@ private:
 	{
 	public:
 		virtual ~Parameter() = default;
-		constexpr Parameter(const T& oValue)
+
+		Parameter(const T& oValue)
 			: m_oValue(oValue)
 		{
 		}
@@ -293,6 +299,7 @@ private:
 	// Main class
 public:
 	using Parameters = std::list<std::shared_ptr<ParameterBase>>;
+
 	virtual ~ParameterPackLegacy() = default;
 
 	template <class ... Args>
@@ -402,6 +409,8 @@ const T& Storage::ParameterPackLegacy::ParameterBase::Get() const
 /// <example>
 /// <code>
 /// 
+/*
+/// 
 /// struct IInterface
 /// {
 /// 	virtual ~IInterface() = default;
@@ -446,12 +455,16 @@ const T& Storage::ParameterPackLegacy::ParameterBase::Get() const
 ///		auto oPack = Extensions::ParameterPack(25, 333, pInt, pShared, &oInt);
 ///		oTest.Run(std::move(oPack));
 /// }
+/// 
+*/
+/// 
 /// </code>
 /// </example>
 class ParameterPack
 {
 public:
 	using Parameters = std::list<std::any>;
+
 	virtual ~ParameterPack() = default;
 
 	template <class ... Args>
@@ -555,6 +568,7 @@ public:
 
 public:
 	~HeterogeneousContainer() = default;
+
 	HeterogeneousContainer() noexcept = default;
 
 	template <class ... Args>
