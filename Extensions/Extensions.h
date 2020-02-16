@@ -42,12 +42,12 @@ namespace Extensions
 /// <param name="oContainer">The input container defined by begin() and end() iterators.</param>
 /// <param name="oKey">The input key to search value in container.</param>
 /// <param name="oCallback">The lambda/functor callback what is called when value was found in container.</param>
-/// <returns>Deduced return type from callback's retrun type</returns>
+/// <returns>Deduced return type from callback's return type</returns>
 /// <example>
 /// <code>
 ///	std::unordered_map<int, int> mapInts;
 ///	mapInts.emplace(5, 10);
-///	auto iResult = Extensions::ContainerFind(mapInts, 5, [](_In_ int &oResult)
+///	auto iResult = Extensions::ContainerFind(mapInts, 5, [](int &oResult)
 ///	{
 ///		oResult += 1;
 ///		return oResult;
@@ -55,14 +55,14 @@ namespace Extensions
 /// </code>
 /// </example>
 template <template <class ...> class Container, class Key, class ... Args, class Functor>
-decltype(auto) ContainerFind(
-	_In_ Container<Args...>& oContainer,
-	_In_ const Key& oKey,
-	_In_ Functor&& oCallback)
+constexpr decltype(auto) ContainerFind(
+	Container<Args...>& oContainer,
+	const Key& oKey,
+	Functor&& oCallback)
 {
 	if constexpr (Constraints::is_foundable_v<Container<Args...>, Key>)
 	{
-		if constexpr (Constraints::is_pair_v<std::iterator_traits<decltype(oContainer.find(oKey))>::value_type>)
+		if constexpr (Constraints::is_pair_v<std::_Iter_value_t<decltype(oContainer.find(oKey))>>)
 		{
 			auto&& it = oContainer.find(oKey);
 			if (it != oContainer.end())
@@ -93,10 +93,10 @@ decltype(auto) ContainerFind(
 }
 
 template <template <class ...> class Container, class Key, class ... Args, class Functor>
-decltype(auto) ContainerFind(
-	_In_ const Container<Args...>& oContainer,
-	_In_ const Key& oKey,
-	_In_ Functor&& oCallback)
+constexpr decltype(auto) ContainerFind(
+	const Container<Args...>& oContainer,
+	const Key& oKey,
+	Functor&& oCallback)
 {
 	return ContainerFind(const_cast<Container<Args...>&> (oContainer), oKey, oCallback);
 }
@@ -108,20 +108,22 @@ decltype(auto) ContainerFind(
 /// <param name="oCallback">The lambda/functor callback called for each value in container.</param>
 /// <returns>void()</returns>
 template <template <class ...> class Container, class ... Args, class Functor>
-auto ForEach(
-	_In_ Container<Args...>& oContainer,
-	_In_ Functor&& oCallback)
+[[noreturn]]
+constexpr auto ForEach(
+	Container<Args...>& oContainer,
+	Functor&& oCallback)
 	-> decltype(std::begin(oContainer), std::end(oContainer), void())
 {
 	std::for_each(oContainer.begin(), oContainer.end(), oCallback);
 }
 template <template <class ...> class Container, class ... Args, class Functor>
-auto ForEach(
-	_In_ const Container<Args...>& oContainer,
-	_In_ Functor&& oCallback)
-	-> decltype(std::begin(oContainer), std::end(oContainer), void()) const
+[[noreturn]]
+constexpr auto ForEach(
+	const Container<Args...>& oContainer,
+	Functor&& oCallback)
+	-> decltype(std::begin(oContainer), std::end(oContainer), void())
 {
-	return ForEach(const_cast<Container<Args...>&> (oContainer), oCallback);
+	ForEach(const_cast<Container<Args...>&> (oContainer), oCallback);
 }
 
 /// <summary>
@@ -131,17 +133,19 @@ auto ForEach(
 /// <returns>return true, when callback predicate found result for any item in container</returns>
 /// </summary>
 template <template <class ...> class Container, class ... Args, class Functor>
-auto AnyOf(
-	_In_ Container<Args...>& oContainer,
-	_In_ Functor&& oCallback)
+[[nodiscard]]
+constexpr auto AnyOf(
+	Container<Args...>& oContainer,
+	Functor&& oCallback)
 	-> decltype(std::begin(oContainer), std::end(oContainer), oCallback(*std::begin(oContainer)), bool())
 {
 	return std::any_of(oContainer.begin(), oContainer.end(), oCallback);
 }
 template <template <class ...> class Container, class ... Args, class Functor>
-auto AnyOf(
-	_In_ const Container<Args...>& oContainer,
-	_In_ Functor&& oCallback)
+[[nodiscard]]
+constexpr auto AnyOf(
+	const Container<Args...>& oContainer,
+	Functor&& oCallback)
 	-> decltype(std::begin(oContainer), std::end(oContainer), oCallback(*std::begin(oContainer)), bool()) const
 {
 	return AnyOf(const_cast<Container<Args...>&> (oContainer), oCallback);
@@ -154,8 +158,9 @@ auto AnyOf(
 /// </summary>
 /// <returns>On success, returns recasted memory-safe pointer, else do not nothing</returns>
 template <class TBase, class TDerived>
-std::unique_ptr<TDerived> Recast(
-	_In_ std::unique_ptr<TBase>& pItem)
+[[nodiscard]]
+constexpr std::unique_ptr<TDerived> Recast(
+	std::unique_ptr<TBase>& pItem)
 {
 	auto* pTemp = dynamic_cast<TDerived*>(pItem.get());
 	if (pTemp)
@@ -173,8 +178,9 @@ std::unique_ptr<TDerived> Recast(
 /// </summary>
 /// <returns>On success, returns recasted memory-safe pointer, else do not nothing</returns>
 template <class TBase, class TDerived>
-std::unique_ptr<TBase> Recast(
-	_In_ std::unique_ptr<TDerived>& pItem)
+[[nodiscard]]
+constexpr std::unique_ptr<TBase> Recast(
+	std::unique_ptr<TDerived>& pItem)
 {
 	auto* pTemp = dynamic_cast<TBase*>(pItem.get());
 	if (pTemp)
@@ -213,13 +219,13 @@ namespace Storage
 /// struct IParamTest
 /// {
 /// 	virtual ~IParamTest() = default;
-/// 	virtual void Run(_In_ Extensions::Storage::ParameterPackLegacy&& oPack) = 0;
+/// 	virtual void Run(Extensions::Storage::ParameterPackLegacy&& oPack) = 0;
 /// };
 /// struct CParamTest : public virtual IParamTest
 /// {
 /// 	CParamTest() = default;
 /// 	virtual ~CParamTest() = default;
-/// 	virtual void Run(_In_ Extensions::Storage::ParameterPackLegacy&& oPack) override
+/// 	virtual void Run(Extensions::Storage::ParameterPackLegacy&& oPack) override
 /// 	{
 /// 		int a = 0;
 /// 		int b = 0;
@@ -270,12 +276,12 @@ private:
 	{
 	public:
 		virtual ~Parameter() = default;
-		Parameter(_In_ const T& oValue)
+		constexpr Parameter(const T& oValue)
 			: m_oValue(oValue)
 		{
 		}
 
-		const T& Get() const
+		constexpr const T& Get() const
 		{
 			return m_oValue;
 		}
@@ -291,15 +297,15 @@ public:
 
 	template <class ... Args>
 	ParameterPackLegacy(
-		_In_ const Args& ... oArgs)
+		const Args& ... oArgs)
 	{
 		_Serialize(oArgs...);
 	}
 
 public:
 	template <class ... Args>
-	void GetPack(
-		_Inout_ Args& ... oArgs) const
+	constexpr void GetPack(
+		Args& ... oArgs) const
 	{
 		if (m_listArgs.size() != sizeof...(Args))
 			throw std::invalid_argument("Bad number of input arguments!");
@@ -309,7 +315,8 @@ public:
 	}
 
 	template <class ... Args>
-	std::tuple<Args...> GetPack() const
+	[[nodiscard]]
+	constexpr std::tuple<Args...> GetPack() const
 	{
 		if (m_listArgs.size() != sizeof...(Args))
 			throw std::invalid_argument("Bad number of input arguments!");
@@ -320,26 +327,26 @@ public:
 
 protected:
 	template <class T>
-	void _Serialize(
-		_In_ const T& oFirst)
+	constexpr void _Serialize(
+		const T& oFirst)
 	{
 		static_assert(std::is_copy_constructible<T>::value, "Cannot assign <T> type, because isn't CopyConstructible!");
 		m_listArgs.emplace_back(std::make_shared<Parameter<T>>(oFirst));
 	}
 
 	template <class T, class... Rest>
-	void _Serialize(
-		_In_ const T& oFirst,
-		_In_ const Rest& ... oRest)
+	constexpr void _Serialize(
+		const T& oFirst,
+		const Rest& ... oRest)
 	{
 		_Serialize(oFirst);
 		_Serialize(oRest...);
 	}
 
 	template <class T>
-	void _Deserialize(
-		_In_ Parameters&& listArgs,
-		_Inout_ T& oFirst) const
+	constexpr void _Deserialize(
+		Parameters&& listArgs,
+		T& oFirst) const
 	{
 		static_assert(std::is_copy_constructible<T>::value, "Cannot assign <T> type, because isn't CopyConstructible!");
 		oFirst = listArgs.front()->Get<T>();
@@ -347,18 +354,19 @@ protected:
 	}
 
 	template <class T, class... Rest>
-	void _Deserialize(
-		_In_ Parameters&& listArgs,
-		_Inout_ T& oFirst,
-		_Inout_ Rest& ... oRest) const
+	constexpr void _Deserialize(
+		Parameters&& listArgs,
+		T& oFirst,
+		Rest& ... oRest) const
 	{
 		_Deserialize(std::move(listArgs), oFirst);
 		_Deserialize(std::move(listArgs), oRest...);
 	}
 
 	template <class T, class... Rest>
-	std::tuple<T, Rest...> _DeserializeTuple(
-		_In_ Parameters&& listArgs) const
+	[[nodiscard]]
+	constexpr std::tuple<T, Rest...> _DeserializeTuple(
+		Parameters&& listArgs) const
 	{
 
 		auto oTuple = std::make_tuple(listArgs.front()->Get<T>());
@@ -411,13 +419,13 @@ const T& Storage::ParameterPackLegacy::ParameterBase::Get() const
 /// struct IParamTest
 /// {
 /// 	virtual ~IParamTest() = default;
-/// 	virtual void Run(_In_ Extensions::Storage::ParameterPack&& oPack) = 0;
+/// 	virtual void Run(Extensions::Storage::ParameterPack&& oPack) = 0;
 /// };
 /// struct CParamTest : public virtual IParamTest
 /// {
 /// 	CParamTest() = default;
 /// 	virtual ~CParamTest() = default;
-/// 	virtual void Run(_In_ Extensions::Storage::ParemeterPack22&& oPack) override
+/// 	virtual void Run(Extensions::Storage::ParemeterPack22&& oPack) override
 /// 	{
 /// 		auto [iNumber1, iNumber2, pNumber, pShared, pInterface] = oPack.GetPack<int, int, int*, std::shared_ptr<int>, CInterface*>();
 /// 
@@ -447,14 +455,15 @@ public:
 	virtual ~ParameterPack() = default;
 
 	template <class ... Args>
-	ParameterPack(
-		_In_ const Args& ... oArgs)
+	constexpr ParameterPack(
+		const Args& ... oArgs)
 	{
 		_Serialize(oArgs...);
 	}
 
 	template <class ... Args>
-	std::tuple<Args...> GetPack() const
+	[[nodiscard]]
+	constexpr std::tuple<Args...> GetPack() const
 	{
 		std::tuple<Args...> oTuple = {};
 		if (m_listArgs.size() != sizeof...(Args))
@@ -464,16 +473,18 @@ public:
 		return _Deserialize<Args...>(std::move(listArgs));
 	}
 
-	size_t Size() const
+	[[nodiscard]]
+	size_t Size() const noexcept
 	{
 		return m_listArgs.size();
 	}
 
 protected:
 	template <class T, class... Rest>
-	void _Serialize(
-		_In_ const T& oFirst,
-		_In_ const Rest& ... oRest)
+	[[nodiscard]]
+	constexpr void _Serialize(
+		const T& oFirst,
+		const Rest& ... oRest)
 	{
 		static_assert(std::is_copy_constructible<T>::value, "Cannot assign <T> type, because isn't CopyConstructible!");
 		m_listArgs.emplace_back(std::make_any<T>(oFirst));
@@ -483,8 +494,9 @@ protected:
 	}
 
 	template <class T, class... Rest>
-	std::tuple<T, Rest...> _Deserialize(
-		_In_ Parameters&& listArgs) const
+	[[nodiscard]]
+	constexpr std::tuple<T, Rest...> _Deserialize(
+		Parameters&& listArgs) const
 	{
 		try
 		{
@@ -518,13 +530,13 @@ public:
 	class HeterogeneousContainerException : public std::exception
 	{
 	public:
-		HeterogeneousContainerException(_In_ const std::type_info& typeInfo, _In_ const std::string& sError) noexcept
+		HeterogeneousContainerException(const std::type_info& typeInfo, const std::string& sError) noexcept
 		{
 			using namespace std::string_literals;
 			m_sData = "HeterogeneousContainer: "s + sError + " with specified type: "s + typeInfo.name();
 		}
 
-		HeterogeneousContainerException(_In_ const std::type_info& typeInfo, _In_ const std::bad_any_cast& ex) noexcept
+		HeterogeneousContainerException(const std::type_info& typeInfo, const std::bad_any_cast& ex) noexcept
 		{
 			using namespace std::string_literals;
 			m_sData = "HeterogeneousContainer: "s + ex.what() + " to: "s + typeInfo.name();
@@ -547,21 +559,21 @@ public:
 
 	template <class ... Args>
 	constexpr HeterogeneousContainer(
-		_In_ const Args& ... oArgs)
+		const Args& ... oArgs)
 	{
 		_Serialize(oArgs...);
 	}
 
 	template <class ... Args>
-	constexpr void Emplace(_In_ const Args& ... oArgs)
+	constexpr void Emplace(const Args& ... oArgs)
 	{
 		_Serialize(oArgs...);
 	}
 
 	template <class T>
-	void Reset()
+	constexpr void Reset()
 	{
-		auto oScope = m_umapArgs.Concurrent();
+		auto oScope = m_umapArgs.Exclusive();
 		ContainerFind(oScope.Get() , std::type_index(typeid(T)), [](std::list<std::any>& listInput)
 		{
 			listInput.clear();
@@ -575,21 +587,21 @@ public:
 	
 public:
 	template <class Func, class ... Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<Func, Args...>, Func, Args...>, int> = 0>
-	decltype(auto) CallFirst(_In_ Args&& ... oArgs) const
+	constexpr decltype(auto) CallFirst(Args&& ... oArgs) const
 	{
 		auto&& oFunc = First<Func>();
 		return std::invoke(oFunc, std::forward<Args>(oArgs)...); //NVRO
 	}
 
 	template <class Func, class ... Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<Func, Args...>, Func, Args...>, int> = 0>
-	decltype(auto) Call(_In_ size_t uPosition, _In_ Args&& ... oArgs) const
+	constexpr decltype(auto) Call(size_t uPosition, Args&& ... oArgs) const
 	{
 		auto&& oFunc = Get<Func>(uPosition);
 		return std::invoke(oFunc, std::forward<Args>(oArgs)...); //NVRO
 	}
 
 	template <class Func, class ... Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<Func, Args...>, Func, Args...>, int> = 0>
-	decltype(auto) CallAll(_In_ Args&& ... oArgs) const
+	constexpr decltype(auto) CallAll(Args&& ... oArgs) const
 	{
 		using RetType = std::invoke_result_t<Func, Args...>;		
 		if constexpr (std::is_void_v<RetType>)
@@ -607,6 +619,7 @@ public:
 	}
 	
 	template <class T>
+	[[nodiscard]]
 	constexpr size_t Size() const noexcept
 	{
 		auto oScope = m_umapArgs.Concurrent();
@@ -617,37 +630,41 @@ public:
 	}
 
 	template <class T>
+	[[nodiscard]]
 	constexpr bool Contains() const noexcept
 	{
 		return Size<T>() > 0;
 	}
 
 	template <class T>
+	[[nodiscard]]
 	constexpr decltype(auto) Get() const
 	{
 		return _Deserialize<T>();
 	}
 
 	template <class T>
-	constexpr decltype(auto) Get(_In_ size_t uPosition) const
+	[[nodiscard]]
+	constexpr decltype(auto) Get(size_t uPosition) const
 	{
 		return _Deserialize<T>(uPosition);
 	}
 
 	template <class T>
+	[[nodiscard]]
 	constexpr decltype(auto) First() const
 	{
 		return _Deserialize<T>(0);
 	}
 
 	template <class T>
-	constexpr void Visit(_In_ std::function<void(const T&)>&& fnCallback) const
+	constexpr void Visit(std::function<void(const T&)>&& fnCallback) const
 	{
 		_Visit<T>(std::move(fnCallback));
 	}
 
 	template <class T>
-	constexpr void Visit(_In_ std::function<void(T&)>&& fnCallback)
+	constexpr void Visit(std::function<void(T&)>&& fnCallback)
 	{
 		_Visit<T>(std::move(fnCallback));
 	}
@@ -655,8 +672,8 @@ public:
 private:
 	template <class T, class... Rest>
 	constexpr void _Serialize(
-		_In_ const T& oFirst,
-		_In_ const Rest& ... oRest)
+		const T& oFirst,
+		const Rest& ... oRest)
 	{
 		static_assert(std::is_copy_constructible<T>::value, "Cannot assign <T> type, because isn't CopyConstructible!");
 		m_umapArgs.Exclusive()[std::type_index(typeid(T))].emplace_back(std::make_any<T>(oFirst));
@@ -666,6 +683,7 @@ private:
 	}
 
 	template  <class T>
+	[[nodiscard]]
 	constexpr decltype(auto) _Deserialize() const
 	{
 		std::list<T> oList = {};
@@ -677,6 +695,7 @@ private:
 	}
 
 	template  <class T>
+	[[nodiscard]]
 	constexpr decltype(auto) _Deserialize(size_t uPosition) const
 	{
 		size_t uCounter = 0;
@@ -694,7 +713,7 @@ private:
 	}
 	
 	template  <class T>
-	constexpr void _Visit(_In_ std::function<void(T&)>&& fnCallback) const
+	constexpr void _Visit(std::function<void(T&)>&& fnCallback) const
 	{
 		try
 		{
@@ -723,7 +742,7 @@ namespace Tuple
 namespace Details
 {
 template <typename F, size_t... Is>
-auto Generate(F func, std::index_sequence<Is...>)
+constexpr auto Generate(F func, std::index_sequence<Is...>)
 {
 	return std::make_tuple(func(Is)...);
 }
@@ -753,7 +772,8 @@ constexpr Storage::HeterogeneousContainer Unpack(Tuple&& t, std::index_sequence<
 /// </code>
 /// </example>
 template <size_t N, typename F>
-decltype(auto) Generate(F func)
+[[nodiscard]]
+constexpr decltype(auto) Generate(F func)
 {
 	return Details::Generate(func, std::make_index_sequence<N>{});
 }
@@ -762,6 +782,7 @@ decltype(auto) Generate(F func)
 /// Unpack tuple to the Heterogeneous container
 /// </summary>
 template <class Tuple>
+[[nodiscard]]
 constexpr Storage::HeterogeneousContainer Unpack(Tuple&& t)
 {
 	return Details::Unpack(std::forward<Tuple>(t), std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<Tuple>>>{});
@@ -813,13 +834,13 @@ namespace Hash
 {
 
 template <class T>
-size_t Combine(_In_ const T& oValue)
+constexpr size_t Combine(const T& oValue)
 {
 	return std::hash<T>{}(oValue);
 }
 
 template <class T, class ... Args>
-size_t Combine(_In_ const T& oValue, _In_ const Args& ... oArgs)
+constexpr size_t Combine(const T& oValue, const Args& ... oArgs)
 {
 	size_t uSeed = Combine(oArgs...);
 	uSeed ^= std::hash<T>{}( oValue) +0x9e3779b9 + (uSeed << 6) + (uSeed >> 2);

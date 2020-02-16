@@ -90,91 +90,101 @@ public:
 	constexpr ResourceWrapper& operator=(const ResourceWrapper&)
 		requires !std::is_copy_constructible_v<TResource> = delete;
 
-	ResourceWrapper& operator=(ResourceWrapper&& oOther) noexcept
+	constexpr ResourceWrapper& operator=(ResourceWrapper&& oOther) noexcept
 	{
 		m_oDeleter = std::move(oOther.m_oDeleter);
 		m_pResource = std::move(oOther.m_pResource);
 		return *this;
 	}
 
-	ResourceWrapper& operator=(const TResource& oResource)
+	constexpr ResourceWrapper& operator=(const TResource& oResource)
 	{
 		m_pResource = _CreateResource(oResource, TDeleter(m_oDeleter));
 		return *this;
 	}
 
-	ResourceWrapper& operator=(TResource&& oResource)
+	constexpr ResourceWrapper& operator=(TResource&& oResource)
 	{
 		m_pResource = _CreateResource(std::move(oResource), TDeleter(m_oDeleter));
 		return *this;
 	}
 
-	void Reset()
+	constexpr void Reset()
 	{
 		m_pResource = _CreateResource(nullptr, TDeleter(m_oDeleter));
 	}
 
-	void Retrieve(TConstAccessor&& fnAccess) const
+	constexpr void Retrieve(TConstAccessor&& fnAccess) const
 	{
 		fnAccess(*m_pResource);
 	}
 
-	void Update(TAccessor&& fnAccess)
+	constexpr void Update(TAccessor&& fnAccess)
 	{
 		fnAccess(*m_pResource);
 	}
 
+	[[nodiscard]]
 	constexpr operator auto() const& -> const TResource&
 	{
 		return *m_pResource;
 	}
 
+	[[nodiscard]]
 	constexpr operator auto() & -> TResource&
 	{
 		return *m_pResource;
 	}
 
+	[[nodiscard]]
 	constexpr operator auto() && -> TResource&&
 	{
 		return std::move(*m_pResource);
 	}
 
 	template<class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	[[nodiscard]]
 	constexpr decltype(auto) begin() noexcept
 	{
 		return m_pResource->begin();
 	}
 
 	template<class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	[[nodiscard]]
 	constexpr decltype(auto) end() noexcept
 	{
 		return m_pResource->end();
 	}
 
 	template<class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	[[nodiscard]]
 	constexpr decltype(auto) size() noexcept
 	{
 		return m_pResource->size();
 	}
 
 	template<class TQuantified = TResource, std::enable_if_t<std::is_pointer_v<TQuantified>, int> = 0>
+	[[nodiscard]]
 	constexpr auto operator->() & -> TResource&
 	{
 		return *m_pResource;
 	}
 
 	template<class TQuantified = TResource, std::enable_if_t<!std::is_pointer_v<TQuantified>, int> = 0>
+	[[nodiscard]]
 	constexpr auto operator->() & -> TResource*
 	{
 		return std::addressof(*m_pResource);
 	}
-
+	
+	[[nodiscard]]
 	constexpr TResource* operator&()
 	{
 		return std::addressof(*m_pResource);
 	}
 
 protected:
+	[[nodiscard]]
 	constexpr std::shared_ptr<TResource> _CreateResource(TResource&& oResource, TDeleter &&fnDeleter)
 	{
 		return std::shared_ptr<TResource>(new TResource(std::forward<TResource>(oResource)), [x = std::move(fnDeleter)](TResource* pResource)
