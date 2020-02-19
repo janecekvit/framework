@@ -108,7 +108,6 @@ constexpr decltype(auto) ContainerFind(
 /// <param name="oCallback">The lambda/functor callback called for each value in container.</param>
 /// <returns>void()</returns>
 template <template <class ...> class Container, class ... Args, class Functor>
-[[noreturn]]
 constexpr auto ForEach(
 	Container<Args...>& oContainer,
 	Functor&& oCallback)
@@ -117,7 +116,6 @@ constexpr auto ForEach(
 	std::for_each(oContainer.begin(), oContainer.end(), oCallback);
 }
 template <template <class ...> class Container, class ... Args, class Functor>
-[[noreturn]]
 constexpr auto ForEach(
 	const Container<Args...>& oContainer,
 	Functor&& oCallback)
