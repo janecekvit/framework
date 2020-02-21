@@ -131,7 +131,7 @@ public:
 
 	template<class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
 	[[nodiscard]]
-	constexpr decltype(auto) size() noexcept
+	constexpr decltype(auto) size() const
 	{
 		_CheckOwnership();
 		return m_pKeeper->GetResource()->size();
