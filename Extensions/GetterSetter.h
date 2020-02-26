@@ -14,11 +14,14 @@ Purpose:	header file contains Getter/Setter mechanism
 
 #include "Framework/Extensions/Constraints.h"
 
+namespace Extensions
+{
+
 template <class TResource>
 class GetterSetter
 {
 public:
-	constexpr GetterSetter(TResource && oResource)
+	constexpr GetterSetter(TResource&& oResource)
 		: m_oResource(std::move(oResource))
 	{
 	}
@@ -96,3 +99,5 @@ public:
 protected:
 	TResource m_oResource = {};
 };
+
+}
