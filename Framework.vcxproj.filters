@@ -105,6 +105,9 @@
     <ClInclude Include="Crypto\SchannelUtils.h">
       <Filter>Crypto</Filter>
     </ClInclude>
+    <ClInclude Include="Extensions\ArrayView.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Socket">

@@ -10,9 +10,9 @@ class ArrayView
 {
 	using TPointer = T*;
 public:
-	constexpr ArrayView(TPointer&& pPtr, ptrdiff_t iIndex)
+	constexpr ArrayView(TPointer pPtr, size_t iIndex)
 		: m_pValue(pPtr)
-		, m_iIndex(iIndex)
+		, m_iIndex(static_cast<std::ptrdiff_t>(iIndex))
 	{
 
 	}

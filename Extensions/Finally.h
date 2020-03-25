@@ -7,7 +7,7 @@
 class CFinally
 {
 public:
-	constexpr CFinally(std::function<void(void)>&& fnCallback)
+	CFinally(std::function<void(void)>&& fnCallback)
 		: m_fnCallback(std::move(fnCallback))
 	{
 	}
@@ -23,5 +23,5 @@ public:
 	}
 
 private:
-	std::function<void(void)> m_fnCallback {};
+	const std::function<void(void)> m_fnCallback {};
 };
