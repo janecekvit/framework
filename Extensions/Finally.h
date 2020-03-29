@@ -18,7 +18,7 @@ public:
 		{
 			m_fnCallback();
 		}
-		catch (...) {} //check double exception serious error
+		catch (const std::exception& ) {} //check double exception serious error
 		
 	}
 

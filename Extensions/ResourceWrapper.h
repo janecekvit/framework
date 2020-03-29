@@ -36,6 +36,24 @@ template <class TResource>
 class ResourceWrapper
 {
 public:
+	class DeleterMissingException : public std::exception
+	{
+	public:
+		DeleterMissingException(const std::type_info& typeInfo) noexcept
+		{
+			using namespace std::string_literals;
+			m_sData = "ResourceWrapper: Deleter with specified type cannot be found: "s + typeInfo.name();
+		}
+		const char* what() const override
+		{
+			return m_sData.c_str();
+		}
+	
+	protected:
+		std::string m_sData;
+	};
+
+public:
 	using TAccessor = typename std::function<void(TResource&)>;
 	using TConstAccessor = typename std::function<void(const TResource&)>;
 	using TDeleter = typename TAccessor;
@@ -187,13 +205,17 @@ protected:
 	[[nodiscard]]
 	constexpr std::shared_ptr<TResource> _CreateResource(TResource&& oResource, TDeleter &&fnDeleter)
 	{
-		return std::shared_ptr<TResource>(new TResource(std::forward<TResource>(oResource)), [x = std::move(fnDeleter)](TResource* pResource)
+		return std::shared_ptr<TResource>(new TResource(std::forward<TResource>(oResource)), [fnStoredDeleter = std::move(fnDeleter)](TResource* pResource)
 		{
 			//Call inner resource deleter
-			x(*pResource);
+			if (fnStoredDeleter)
+				fnStoredDeleter(*pResource);
 
 			delete pResource;
 			pResource = nullptr;
+
+			if (!fnStoredDeleter)
+				throw DeleterMissingException(typeid(fnStoredDeleter));
 		});
 	}
 
