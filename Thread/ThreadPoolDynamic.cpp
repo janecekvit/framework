@@ -1,6 +1,65 @@
 #include "ThreadPoolDynamic.h"
 
-CThreadPoolDynamic::CThreadPoolDynamic(_In_ const size_t uiPoolSize, _In_ const double uDifference)
+
+ThreadPoolDynamic::Worker::Worker(ThreadPoolDynamic& oParentPool, _In_ const std::function<void()>& pCallback)
+	: m_oParentPool(oParentPool)
+	, m_pCallback(pCallback)
+{
+	m_oThread = std::thread(&ThreadPoolDynamic::Worker::_Work, this);
+}
+
+ThreadPoolDynamic::Worker::~Worker()
+{
+	if (m_oThread.joinable())
+		m_oThread.join();
+}
+
+
+void ThreadPoolDynamic::Worker::_Work()
+{
+	std::function<void()> fnCurrentTask;
+
+	for (;;)
+	{
+		//Create Unique Lock which owns Mutex object and lock it until wait or block end
+		std::unique_lock<std::mutex> unqQueueLock(m_oParentPool.m_mxtQueueLock);
+
+		//Check if deallocation is enabled
+		if (m_oParentPool.IsDeallocationEnabled())
+		{
+			//Callback and decrement reference counter
+			m_pCallback();
+			m_bWorkerEnd = true;
+			return;
+		}
+
+		//Check If queue is empty, thread will wait for next task
+		if (!m_oParentPool.m_queueTask.empty())
+		{
+			//Get Task from Task Queue
+			fnCurrentTask = m_oParentPool.m_queueTask.front();
+			m_oParentPool.m_queueTask.pop();
+
+			//Unlock Queue lock
+			unqQueueLock.unlock();
+
+			//Execute Task if is added
+			try
+			{
+				fnCurrentTask();
+			}
+			catch (...)
+			{
+			}
+		}
+		else
+			m_oParentPool.m_cvQueueEvent.wait(unqQueueLock);
+
+	}
+}
+
+
+ThreadPoolDynamic::ThreadPoolDynamic(_In_ const size_t uiPoolSize, _In_ const double uDifference)
 	: m_dDifference(uDifference)
 {
 	//Minimum pool size is 4
@@ -8,11 +67,11 @@ CThreadPoolDynamic::CThreadPoolDynamic(_In_ const size_t uiPoolSize, _In_ const 
 		m_uMinimumPoolSize = uiPoolSize;
 
 	_AddWorkers(m_uMinimumPoolSize);
-	m_pCurrentThread = new std::thread(&CThreadPoolDynamic::_PoolController, this);
+	m_pCurrentThread = new std::thread(&ThreadPoolDynamic::_PoolController, this);
 }
 
 
-CThreadPoolDynamic::~CThreadPoolDynamic()
+ThreadPoolDynamic::~ThreadPoolDynamic()
 {
 	//Set End Flag and Notify Finish
 	m_uConditionEvents = EConditionEvents::eExit;
@@ -25,7 +84,7 @@ CThreadPoolDynamic::~CThreadPoolDynamic()
 	m_cvPoolEndEvent.wait(unqEndLock);
 }
 
-void CThreadPoolDynamic::AddTask(_In_ const std::function<void()> &fn)
+void ThreadPoolDynamic::AddTask(_In_ const std::function<void()> &fn)
 {
 	if (m_uConditionEvents == EConditionEvents::eExit)
 		return;
@@ -59,7 +118,7 @@ void CThreadPoolDynamic::AddTask(_In_ const std::function<void()> &fn)
 	}
 }
 
-size_t CThreadPoolDynamic::GetPoolSize()
+size_t ThreadPoolDynamic::GetPoolSize()
 {
 	//Lock Pool by Unique lock
 	std::unique_lock<std::mutex> unqPoolLock(m_mxtPoolLock);
@@ -67,7 +126,7 @@ size_t CThreadPoolDynamic::GetPoolSize()
 }
 
 
-void CThreadPoolDynamic::_PoolController()
+void ThreadPoolDynamic::_PoolController()
 {
 	for (;;)
 	{
@@ -82,8 +141,7 @@ void CThreadPoolDynamic::_PoolController()
 			m_cvQueueEvent.notify_all();
 
 			//Wait for Workers finish
-			for (auto &oWorker : m_ListOfWorkers)
-				oWorker.Join();
+			m_ListOfWorkers.clear();
 
 			//pool thread going to exit
 			m_cvPoolEndEvent.notify_one();
@@ -103,13 +161,12 @@ void CThreadPoolDynamic::_PoolController()
 		else if (m_uConditionEvents == EConditionEvents::eDealloc)
 		{
 			//release workers
-			for (std::list<CWorkerDynamic>::iterator it = m_ListOfWorkers.begin(); it != m_ListOfWorkers.end();)
+			for (std::list<Worker>::iterator it = m_ListOfWorkers.begin(); it != m_ListOfWorkers.end();)
 			{
 				//If Worker Ends
 				if (it->IsWorkerEnd())
 				{
 					//Join workrer and release resources
-					it->Join();
 					m_ListOfWorkers.erase(it++);
 				}
 				else //Or Get next
@@ -122,13 +179,13 @@ void CThreadPoolDynamic::_PoolController()
 	}
 }
 
-void CThreadPoolDynamic::_AddWorkers(_In_ const size_t uWorkerCount)
+void ThreadPoolDynamic::_AddWorkers(_In_ const size_t uWorkerCount)
 {
 	for (size_t uCount = 0; uCount < uWorkerCount; uCount++)
-		m_ListOfWorkers.emplace_back(this, std::bind(&CThreadPoolDynamic::_PoolCallback, this));
+		m_ListOfWorkers.emplace_back(*this, std::bind(&ThreadPoolDynamic::_PoolCallback, this));
 }
 
-void CThreadPoolDynamic::_PoolCallback()
+void ThreadPoolDynamic::_PoolCallback()
 {
 	if (m_uConditionEvents == EConditionEvents::eExit)
 		return;

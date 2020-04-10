@@ -22,13 +22,7 @@
     <ClCompile Include="Thread\ThreadPoolDynamic.cpp">
       <Filter>Thread</Filter>
     </ClCompile>
-    <ClCompile Include="Thread\WorkerDynamic.cpp">
-      <Filter>Thread</Filter>
-    </ClCompile>
     <ClCompile Include="Thread\ThreadPool.cpp">
-      <Filter>Thread</Filter>
-    </ClCompile>
-    <ClCompile Include="Thread\Worker.cpp">
       <Filter>Thread</Filter>
     </ClCompile>
     <ClCompile Include="Common\Definitions.cpp">
@@ -63,13 +57,7 @@
     <ClInclude Include="Thread\ThreadPoolDynamic.h">
       <Filter>Thread</Filter>
     </ClInclude>
-    <ClInclude Include="Thread\WorkerDynamic.h">
-      <Filter>Thread</Filter>
-    </ClInclude>
     <ClInclude Include="Thread\ThreadPool.h">
-      <Filter>Thread</Filter>
-    </ClInclude>
-    <ClInclude Include="Thread\Worker.h">
       <Filter>Thread</Filter>
     </ClInclude>
     <ClInclude Include="Common\BaseException.h">
@@ -127,6 +115,9 @@
     </Filter>
     <Filter Include="Extensions">
       <UniqueIdentifier>{c09bfaf6-95d3-4ee2-a44b-f00e9bc24467}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Async">
+      <UniqueIdentifier>{43f65235-46de-4866-a395-5f1c5f8d5a17}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

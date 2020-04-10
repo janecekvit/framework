@@ -29,8 +29,6 @@
     <ClCompile Include="Socket\SocketTools.cpp" />
     <ClCompile Include="Thread\ThreadPool.cpp" />
     <ClCompile Include="Thread\ThreadPoolDynamic.cpp" />
-    <ClCompile Include="Thread\Worker.cpp" />
-    <ClCompile Include="Thread\WorkerDynamic.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Common\BaseException.h" />
@@ -54,8 +52,6 @@
     <ClInclude Include="Socket\SocketTools.h" />
     <ClInclude Include="Thread\ThreadPool.h" />
     <ClInclude Include="Thread\ThreadPoolDynamic.h" />
-    <ClInclude Include="Thread\Worker.h" />
-    <ClInclude Include="Thread\WorkerDynamic.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

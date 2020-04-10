@@ -4,21 +4,61 @@
 #include <mutex>
 #include <atomic>
 #include <functional>
-#include "WorkerDynamic.h"
 
-class CWorkerDynamic;
-class CThreadPoolDynamic
+class ThreadPoolDynamic
 {
-public:
-	friend class CWorkerDynamic;
 
+public:
+	class Worker
+	{
+	public:
+		/// <summary>
+		/// Initializes a new instance of the <see cref="Worker"/> class.
+		/// </summary>
+		/// <param name="pParentPool">The p parent pool.</param>
+		/// <param name="pCallback">The p callback.</param>
+		Worker(ThreadPoolDynamic& oParentPool, _In_ const std::function<void()>& pCallback);
+
+		/// /// <summary>
+		/// Finalizes an instance of the <see cref="Worker"/> class.
+		/// </summary>
+		virtual ~Worker();
+
+		/// <summary>
+		/// Determines whether [is worker end].
+		/// </summary>
+		/// <returns>
+		///   <c>true</c> if [is worker end]; otherwise, <c>false</c>.
+		/// </returns>
+		bool IsWorkerEnd()
+		{
+			return m_bWorkerEnd;
+		}
+
+	private:
+		/// <summary>
+		/// Main working instance.
+		/// </summary>
+		void _Work();
+
+
+		ThreadPoolDynamic& m_oParentPool; //dependency
+		std::thread m_oThread;
+
+		std::atomic<bool> m_bWorkerEnd = false;
+		std::function<void()> m_pCallback = nullptr;
+
+	};
+
+
+public:
 	/// <summary>
-	/// Initializes a new instance of the <see cref="CThreadPoolDynamic"/> class.
+	/// Initializes a new instance of the <see cref="ThreadPoolDynamic"/> class.
 	/// </summary>
 	/// <param name="uiPoolSize">Size of the thread pool.</param>
 	/// <param name="uDifference">The difference between size of queue and number of threads for incrasing number of threads.</param>
-	CThreadPoolDynamic(_In_ const size_t uiPoolSize, _In_ const double uDifference);
-	virtual ~CThreadPoolDynamic();
+	ThreadPoolDynamic(_In_ const size_t uiPoolSize, _In_ const double uDifference);
+	virtual ~ThreadPoolDynamic();
 	
 	/// <summary>
 	/// Adds the task to working queue.
@@ -94,6 +134,6 @@ private:
 
 
 	std::thread *m_pCurrentThread = nullptr;
-	std::list<CWorkerDynamic> m_ListOfWorkers;
+	std::list<Worker> m_ListOfWorkers;
 #pragma endregion 
 };

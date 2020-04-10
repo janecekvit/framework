@@ -35,15 +35,27 @@ Purpose: header file of static thread pool class
 #include <atomic>
 #include <functional>
 
-#include "Worker.h"
 
-class CWorker;
-class CThreadPool
+class ThreadPool
 {
+	class Worker
+	{
+	public:
+		Worker(ThreadPool& oParentPool);
+		virtual ~Worker();
+
+	private:
+		void _Work();
+
+	private:
+		ThreadPool& m_oParentPool; //dependency
+		std::thread m_oThread;
+	};
+
 public:
-	CThreadPool(_In_ const size_t uiPoolSize);
-	virtual ~CThreadPool();
-	void AddTask(_In_ const std::function<void()> &fn);
+	ThreadPool(const size_t uiPoolSize);
+	virtual ~ThreadPool();
+	void AddTask(const std::function<void()> &fn);
 
 	std::mutex m_mxtQueueLock;
 	std::queue<std::function<void()>> m_queueTask;
@@ -51,5 +63,5 @@ public:
 	std::atomic<bool> m_bEndFlag = false;
 
 private:
-	std::list<CWorker> m_ListOfWorkers;
+	std::list<Worker> m_ListOfWorkers;
 };
