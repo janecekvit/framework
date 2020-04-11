@@ -153,6 +153,19 @@ public:
 		return (*m_pKeeper->GetResource())[oKey];
 	}
 
+	template <class Predicate>
+	constexpr void Wait(std::condition_variable_any& cv, Predicate&& pred)
+	{
+		_CheckOwnership();
+		cv.wait(m_oExclusiveLock, std::move(pred));
+	}
+
+	constexpr void Wait(const std::condition_variable_any& cv)
+	{
+		_CheckOwnership();
+		cv.wait(m_oExclusiveLock);
+	}
+
 	constexpr void Release() const
 	{
 		_CheckOwnership();
@@ -251,6 +264,19 @@ public:
 	{
 		_CheckOwnership();
 		return (*m_pKeeper->GetResource())[oKey];
+	}
+
+	template <class Predicate>
+	constexpr void Wait(std::condition_variable_any& cv, Predicate&& pred)
+	{
+		_CheckOwnership();
+		cv.wait(m_oConcurrentLock, std::move(pred));
+	}
+
+	constexpr void Wait(const std::condition_variable_any& cv)
+	{
+		_CheckOwnership();
+		cv.wait(m_oConcurrentLock);
 	}
 
 	constexpr void Release() const

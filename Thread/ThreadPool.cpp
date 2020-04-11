@@ -15,33 +15,36 @@ ThreadPool::Worker::~Worker()
 
 void ThreadPool::Worker::_Work()
 {
-	std::function<void()> fnCurrentTask;
 	for (;;)
 	{
-		//Create Unique Lock which owns Mutex object and lock it until wait or block end
-		std::unique_lock<std::mutex> mtxQueueLock(m_oParentPool.m_mxtQueueLock);
-
-		//Check If queue is empty thread wait for next task
-		if (m_oParentPool.m_queueTask.empty() && !m_oParentPool.m_bEndFlag)
+		// Wait for the signal and unblock queue until the signal will be received
+		auto&& oScope = m_oParentPool.m_queueTask.Exclusive();
+		oScope.Wait(m_oParentPool.Event(), [&oScope, this]()
 		{
-			m_oParentPool.m_cvPoolEvent.wait(mtxQueueLock);
-			continue;
-		}
+			return !oScope->empty() || m_oParentPool.Exit();
+		});
 
-		//Check if Queue is empty and End flag is set
-		if (m_oParentPool.m_queueTask.empty() && m_oParentPool.m_bEndFlag)
+		if (m_oParentPool.Exit())
 			return;
 
-		fnCurrentTask = m_oParentPool.m_queueTask.front();
-		m_oParentPool.m_queueTask.pop();
-		mtxQueueLock.unlock();
+		// retrieve current task
+		auto fnCurrentTask = oScope->front();
+		oScope->pop();
+		oScope.Release();
 
-		//Execute Task if is added
-		fnCurrentTask();
+		try
+		{ //execute the input task
+			fnCurrentTask();
+		}
+		catch (const std::exception& ex)
+		{
+			m_oParentPool.ErrorCallback(ex);
+		}
 	}
 }
 
-ThreadPool::ThreadPool(_In_ const size_t uiPoolSize)
+ThreadPool::ThreadPool(_In_ const size_t uiPoolSize, WorkerErrorCallback&& fnCallback)
+	: m_fnErrorCallback(fnCallback)
 {
 	for (size_t uCount = 0; uCount < uiPoolSize; uCount++)
 		m_ListOfWorkers.emplace_back(*this);
@@ -55,16 +58,32 @@ ThreadPool::~ThreadPool()
 	m_cvPoolEvent.notify_all();
 }
 
-void ThreadPool::AddTask(_In_ const std::function<void()> &fn)
+void ThreadPool::AddTask(Task&& fn) noexcept
 {
 	if (m_bEndFlag)
 		return;
 
-	//Add Task to locked queue 
-	std::unique_lock<std::mutex> mtxThreadLock(m_mxtQueueLock);
-	m_queueTask.emplace(fn);
-	mtxThreadLock.unlock();
-
-	//Notify worker Thread
+	//Add new task to queue and inform workers about it
+	m_queueTask.Exclusive()->emplace(std::move(fn));
 	m_cvPoolEvent.notify_one();
+}
+
+Concurrent::Queue<IThreadPool::Task>& ThreadPool::Queue() noexcept
+{
+	return m_queueTask;
+}
+
+std::condition_variable_any& ThreadPool::Event() noexcept
+{
+	return m_cvPoolEvent;
+}
+
+bool ThreadPool::Exit() const noexcept
+{
+	return m_bEndFlag;
+}
+
+void ThreadPool::ErrorCallback(const std::exception& ex) noexcept
+{
+	m_fnErrorCallback(ex);
 }

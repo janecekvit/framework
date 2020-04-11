@@ -50,6 +50,7 @@
     <ClInclude Include="Socket\ClientSocket.h" />
     <ClInclude Include="Socket\ServerSocket.h" />
     <ClInclude Include="Socket\SocketTools.h" />
+    <ClInclude Include="Thread\IThreadPool.h" />
     <ClInclude Include="Thread\ThreadPool.h" />
     <ClInclude Include="Thread\ThreadPoolDynamic.h" />
   </ItemGroup>

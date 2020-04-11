@@ -31,12 +31,14 @@ Purpose: header file of static thread pool class
 #pragma once
 #include <list>
 #include <queue>
-#include <mutex>
 #include <atomic>
-#include <functional>
+
+#include "IThreadPool.h"
+#include "Framework/Extensions/Concurrent.h"
 
 
-class ThreadPool
+class ThreadPool 
+	: public virtual IThreadPool
 {
 	class Worker
 	{
@@ -53,15 +55,24 @@ class ThreadPool
 	};
 
 public:
-	ThreadPool(const size_t uiPoolSize);
+	ThreadPool(const size_t uiPoolSize, WorkerErrorCallback&& fnCallback);
 	virtual ~ThreadPool();
-	void AddTask(const std::function<void()> &fn);
 
-	std::mutex m_mxtQueueLock;
-	std::queue<std::function<void()>> m_queueTask;
-	std::condition_variable m_cvPoolEvent;
-	std::atomic<bool> m_bEndFlag = false;
+public: // IThreadPool interface
+	void AddTask(Task&& fn) noexcept override;
+
+protected:
+	Concurrent::Queue<Task>& Queue() noexcept;
+	std::condition_variable_any& Event() noexcept;
+	bool Exit() const noexcept;
+	void ErrorCallback(const std::exception& ex) noexcept;
 
 private:
+	Concurrent::Queue<Task> m_queueTask;
+	WorkerErrorCallback m_fnErrorCallback;
+
+	std::condition_variable_any m_cvPoolEvent;
+	std::atomic<bool> m_bEndFlag = false;
+
 	std::list<Worker> m_ListOfWorkers;
 };

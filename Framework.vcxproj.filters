@@ -96,6 +96,9 @@
     <ClInclude Include="Extensions\ArrayView.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="Thread\IThreadPool.h">
+      <Filter>Thread</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Socket">
