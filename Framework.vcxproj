@@ -44,6 +44,7 @@
     <ClInclude Include="Extensions\Finally.h" />
     <ClInclude Include="Extensions\GetterSetter.h" />
     <ClInclude Include="Extensions\ResourceWrapper.h" />
+    <ClInclude Include="Extensions\WaitForMultipleConditions.h" />
     <ClInclude Include="Interface\ICloneable.h" />
     <ClInclude Include="Interface\ICRTP.h" />
     <ClInclude Include="Socket\BaseSocket.h" />

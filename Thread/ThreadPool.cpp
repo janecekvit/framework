@@ -19,6 +19,7 @@ void ThreadPool::Worker::_Work()
 	{
 		// Wait for the signal and unblock queue until the signal will be received
 		auto&& oScope = m_oParentPool.m_queueTask.Exclusive();
+		oScope.Wait(m_oParentPool.Event());
 		oScope.Wait(m_oParentPool.Event(), [&oScope, this]()
 		{
 			return !oScope->empty() || m_oParentPool.Exit();
@@ -48,6 +49,9 @@ ThreadPool::ThreadPool(_In_ const size_t uiPoolSize, WorkerErrorCallback&& fnCal
 {
 	for (size_t uCount = 0; uCount < uiPoolSize; uCount++)
 		m_ListOfWorkers.emplace_back(*this);
+
+	m_cvPoolEvent2.NotifyOne(1);
+	m_cvPoolEvent2.NotifyAll(0);	
 }
 
 

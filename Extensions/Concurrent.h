@@ -153,14 +153,17 @@ public:
 		return (*m_pKeeper->GetResource())[oKey];
 	}
 
-	template <class Predicate>
-	constexpr void Wait(std::condition_variable_any& cv, Predicate&& pred)
+	template <class TCondition, class TPredicate>
+		requires Constraints::condition_variable_pred<TCondition, std::unique_lock<std::shared_mutex>, TPredicate>
+	constexpr void Wait(TCondition& cv, TPredicate&& pred) const
 	{
 		_CheckOwnership();
 		cv.wait(m_oExclusiveLock, std::move(pred));
 	}
 
-	constexpr void Wait(const std::condition_variable_any& cv)
+	template <class TCondition>
+		requires Constraints::condition_variable<TCondition, std::unique_lock<std::shared_mutex>>
+	constexpr void Wait(TCondition& cv) const
 	{
 		_CheckOwnership();
 		cv.wait(m_oExclusiveLock);
@@ -266,14 +269,17 @@ public:
 		return (*m_pKeeper->GetResource())[oKey];
 	}
 
-	template <class Predicate>
-	constexpr void Wait(std::condition_variable_any& cv, Predicate&& pred)
+	template <class TCondition, class TPredicate> 
+		requires Constraints::condition_variable_pred<TCondition, std::shared_lock<std::shared_mutex>, TPredicate>
+	constexpr void Wait(TCondition& cv, TPredicate&& pred) const
 	{
 		_CheckOwnership();
 		cv.wait(m_oConcurrentLock, std::move(pred));
 	}
 
-	constexpr void Wait(const std::condition_variable_any& cv)
+	template <class TCondition>
+		requires Constraints::condition_variable<TCondition, std::shared_lock<std::shared_mutex>>
+	constexpr void Wait(TCondition& cv) const
 	{
 		_CheckOwnership();
 		cv.wait(m_oConcurrentLock);

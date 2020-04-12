@@ -18,6 +18,7 @@ Purpose:	header file contains set of extended constraints to describe stl contai
 #include <string>
 #include <sstream>
 #include <optional>
+#include <concepts>
 #include <algorithm>
 #include <typeindex>
 #include <functional>
@@ -96,5 +97,33 @@ template<class T> struct is_container : is_container_helper<typename std::remove
 {
 };
 template <class T> constexpr bool is_container_v = is_container<T>::value;
+
+/// <summary>
+/// Helper concept to determine if template type <T> is condition variable
+/// </summary>
+template <class TCondition, class TLock> concept condition_variable = requires(TCondition & cv, TLock& lock)
+{
+	{
+		cv.notify_one()
+	} noexcept;
+	{
+		cv.notify_all()
+	} noexcept;
+	{
+		cv.wait(lock)
+	};
+};
+
+/// <summary>
+/// Helper concept to determine if template type <T> is condition variable with pred
+/// </summary>
+template <class TCondition, class TLock, class TPredicate> concept condition_variable_pred = condition_variable< TCondition, TLock> && requires(TCondition & cv, TLock & lock, TPredicate&& pred)
+{
+	{
+		cv.wait(lock, std::move(pred))
+	};
+};
+
+
 
 } //namespace Constraints
