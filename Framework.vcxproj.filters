@@ -99,8 +99,8 @@
     <ClInclude Include="Thread\IThreadPool.h">
       <Filter>Thread</Filter>
     </ClInclude>
-    <ClInclude Include="Extensions\WaitForMultipleConditions.h">
-      <Filter>Extensions</Filter>
+    <ClInclude Include="Thread\WaitForMultipleConditions.h">
+      <Filter>Thread</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -155,18 +155,18 @@ public:
 
 	template <class TCondition, class TPredicate>
 		requires Constraints::condition_variable_pred<TCondition, std::unique_lock<std::shared_mutex>, TPredicate>
-	constexpr void Wait(TCondition& cv, TPredicate&& pred) const
+	constexpr decltype(auto) Wait(TCondition& cv, TPredicate&& pred) const
 	{
 		_CheckOwnership();
-		cv.wait(m_oExclusiveLock, std::move(pred));
+		return cv.wait(m_oExclusiveLock, std::move(pred));
 	}
 
 	template <class TCondition>
 		requires Constraints::condition_variable<TCondition, std::unique_lock<std::shared_mutex>>
-	constexpr void Wait(TCondition& cv) const
+	constexpr decltype(auto) Wait(TCondition& cv) const
 	{
 		_CheckOwnership();
-		cv.wait(m_oExclusiveLock);
+		return cv.wait(m_oExclusiveLock);
 	}
 
 	constexpr void Release() const
@@ -271,18 +271,18 @@ public:
 
 	template <class TCondition, class TPredicate> 
 		requires Constraints::condition_variable_pred<TCondition, std::shared_lock<std::shared_mutex>, TPredicate>
-	constexpr void Wait(TCondition& cv, TPredicate&& pred) const
+	constexpr decltype(auto) Wait(TCondition& cv, TPredicate&& pred) const
 	{
 		_CheckOwnership();
-		cv.wait(m_oConcurrentLock, std::move(pred));
+		return cv.wait(m_oConcurrentLock, std::move(pred));
 	}
 
 	template <class TCondition>
 		requires Constraints::condition_variable<TCondition, std::shared_lock<std::shared_mutex>>
-	constexpr void Wait(TCondition& cv) const
+	constexpr decltype(auto) Wait(TCondition& cv) const
 	{
 		_CheckOwnership();
-		cv.wait(m_oConcurrentLock);
+		return cv.wait(m_oConcurrentLock);
 	}
 
 	constexpr void Release() const

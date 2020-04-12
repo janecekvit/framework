@@ -35,7 +35,6 @@ Purpose: header file of static thread pool class
 
 #include "IThreadPool.h"
 #include "Framework/Extensions/Concurrent.h"
-#include "Framework/Extensions/WaitForMultipleConditions.h"
 
 
 class ThreadPool 
@@ -72,9 +71,8 @@ private:
 	Concurrent::Queue<Task> m_queueTask;
 	WorkerErrorCallback m_fnErrorCallback;
 
-	WaitForMultipleConditions<> m_cvPoolEvent2;
 	std::condition_variable_any m_cvPoolEvent;
 	std::atomic<bool> m_bEndFlag = false;
 
-	std::list<Worker> m_ListOfWorkers;
+	std::list<Worker> m_oWorkers;
 };
