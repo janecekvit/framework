@@ -153,6 +153,12 @@ public:
 		return (*m_pKeeper->GetResource())[oKey];
 	}
 
+	constexpr void Release() const
+	{
+		_CheckOwnership();
+		m_oExclusiveLock.unlock();
+	}
+
 	template <class TCondition, class TPredicate>
 		requires Constraints::condition_variable_pred<TCondition, std::unique_lock<std::shared_mutex>, TPredicate>
 	constexpr decltype(auto) Wait(TCondition& cv, TPredicate&& pred) const
@@ -167,12 +173,6 @@ public:
 	{
 		_CheckOwnership();
 		return cv.wait(m_oExclusiveLock);
-	}
-
-	constexpr void Release() const
-	{
-		_CheckOwnership();
-		m_oExclusiveLock.unlock();
 	}
 
 private:
@@ -269,6 +269,12 @@ public:
 		return (*m_pKeeper->GetResource())[oKey];
 	}
 
+	constexpr void Release() const
+	{
+		_CheckOwnership();
+		m_oConcurrentLock.unlock();
+	}
+
 	template <class TCondition, class TPredicate> 
 		requires Constraints::condition_variable_pred<TCondition, std::shared_lock<std::shared_mutex>, TPredicate>
 	constexpr decltype(auto) Wait(TCondition& cv, TPredicate&& pred) const
@@ -284,13 +290,6 @@ public:
 		_CheckOwnership();
 		return cv.wait(m_oConcurrentLock);
 	}
-
-	constexpr void Release() const
-	{
-		_CheckOwnership();
-		m_oConcurrentLock.unlock();
-	}
-
 
 private:
 	constexpr void _CheckOwnership() const

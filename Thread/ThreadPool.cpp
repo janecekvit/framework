@@ -15,32 +15,18 @@ ThreadPool::Worker::~Worker()
 
 void ThreadPool::Worker::_Work()
 {
-	for (;;)
+	for (auto&& fnCurrentTask = m_oParentPool.GetTask(); fnCurrentTask; fnCurrentTask = m_oParentPool.GetTask())
 	{
-		// Wait for the signal and unblock queue until the signal will be received
-		auto&& oScope = m_oParentPool.m_queueTask.Exclusive();
-		oScope.Wait(m_oParentPool.Event(), [&oScope, this]()
-		{
-			return !oScope->empty() || m_oParentPool.Exit();
-		});
-
-		if (m_oParentPool.Exit())
-			return;
-
-		// retrieve current task
-		auto fnCurrentTask = oScope->front();
-		oScope->pop();
-		oScope.Release();
-
 		try
-		{ //execute the input task
-			fnCurrentTask();
+		{ //execute task
+			(*fnCurrentTask)();
 		}
 		catch (const std::exception& ex)
 		{
 			m_oParentPool.ErrorCallback(ex);
 		}
 	}
+	int exit = 0;
 }
 
 ThreadPool::ThreadPool(_In_ const size_t uiPoolSize, WorkerErrorCallback&& fnCallback)
@@ -53,9 +39,10 @@ ThreadPool::ThreadPool(_In_ const size_t uiPoolSize, WorkerErrorCallback&& fnCal
 
 ThreadPool::~ThreadPool()
 {
-	//Set End Flag and Notify Finish
+	//Finish thread pool and wait for 
 	m_bEndFlag = true;
 	m_cvPoolEvent.notify_all();
+	m_oWorkers.clear();
 }
 
 void ThreadPool::AddTask(Task&& fn) noexcept
@@ -68,14 +55,48 @@ void ThreadPool::AddTask(Task&& fn) noexcept
 	m_cvPoolEvent.notify_one();
 }
 
+void ThreadPool::WaitAll() const noexcept
+{
+	auto&& oScope = m_queueTask.Concurrent();
+	oScope.Wait(WaitEvent(), [&oScope, this]()
+	{
+		return oScope->empty() || Exit();
+	});
+}
+
+std::optional<ThreadPool::Task> ThreadPool::GetTask() noexcept
+{
+	// Wait for the signal and unblock queue until the signal will be received
+	auto&& oScope = m_queueTask.Exclusive();
+	oScope.Wait(Event(), [&oScope, this]()
+	{
+		if (oScope->empty())
+			m_cvWaitEvent.notify_all();
+
+		return !oScope->empty() || Exit();
+	});
+
+	if (Exit())
+		return {};
+
+	auto fnCurrentTask = oScope->front();
+	oScope->pop();
+	return fnCurrentTask;
+}
+
 Concurrent::Queue<IThreadPool::Task>& ThreadPool::Queue() noexcept
 {
 	return m_queueTask;
 }
 
-std::condition_variable_any& ThreadPool::Event() noexcept
+std::condition_variable_any& ThreadPool::Event() const noexcept
 {
 	return m_cvPoolEvent;
+}
+
+std::condition_variable_any& ThreadPool::WaitEvent() const noexcept
+{
+	return m_cvWaitEvent;
 }
 
 bool ThreadPool::Exit() const noexcept

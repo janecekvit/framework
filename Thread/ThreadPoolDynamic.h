@@ -12,24 +12,9 @@ public:
 	class Worker
 	{
 	public:
-		/// <summary>
-		/// Initializes a new instance of the <see cref="Worker"/> class.
-		/// </summary>
-		/// <param name="pParentPool">The p parent pool.</param>
-		/// <param name="pCallback">The p callback.</param>
+	
 		Worker(ThreadPoolDynamic& oParentPool, _In_ const std::function<void()>& pCallback);
-
-		/// /// <summary>
-		/// Finalizes an instance of the <see cref="Worker"/> class.
-		/// </summary>
 		virtual ~Worker();
-
-		/// <summary>
-		/// Determines whether [is worker end].
-		/// </summary>
-		/// <returns>
-		///   <c>true</c> if [is worker end]; otherwise, <c>false</c>.
-		/// </returns>
 		bool IsWorkerEnd()
 		{
 			return m_bWorkerEnd;

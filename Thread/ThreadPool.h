@@ -40,13 +40,17 @@ Purpose: header file of static thread pool class
 class ThreadPool 
 	: public virtual IThreadPool
 {
+public:
+	using WorkerErrorCallback = typename std::function<void(const std::exception&)>;
+
+private:
 	class Worker
 	{
 	public:
 		Worker(ThreadPool& oParentPool);
 		virtual ~Worker();
 
-	private:
+	protected:
 		void _Work();
 
 	private:
@@ -60,18 +64,24 @@ public:
 
 public: // IThreadPool interface
 	void AddTask(Task&& fn) noexcept override;
+	void WaitAll() const noexcept override;
+
+protected:
+	std::optional<Task> GetTask() noexcept;
 
 protected:
 	Concurrent::Queue<Task>& Queue() noexcept;
-	std::condition_variable_any& Event() noexcept;
+	std::condition_variable_any& Event() const noexcept;
+	std::condition_variable_any& WaitEvent() const noexcept;
 	bool Exit() const noexcept;
 	void ErrorCallback(const std::exception& ex) noexcept;
 
 private:
 	Concurrent::Queue<Task> m_queueTask;
-	WorkerErrorCallback m_fnErrorCallback;
+	const WorkerErrorCallback m_fnErrorCallback;
 
-	std::condition_variable_any m_cvPoolEvent;
+	mutable std::condition_variable_any m_cvPoolEvent;
+	mutable std::condition_variable_any m_cvWaitEvent;
 	std::atomic<bool> m_bEndFlag = false;
 
 	std::list<Worker> m_oWorkers;
