@@ -20,4 +20,14 @@ public:
 	/// Method synchronously waits until all input tasks in the thread pool will be finished.
 	/// </summary>
 	virtual void WaitAll() const noexcept = 0;
+
+	/// <summary>
+	/// Get the queue size.
+	/// </summary>
+	virtual size_t Size() const noexcept = 0;
+
+	/// <summary>
+	/// Get the thread pool size.
+	/// </summary>
+	virtual size_t PoolSize() const noexcept = 0;
 };

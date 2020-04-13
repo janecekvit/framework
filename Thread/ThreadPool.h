@@ -41,14 +41,17 @@ class ThreadPool
 	: public virtual IThreadPool
 {
 public:
+	using WorkerCallback = typename std::function<bool()>;
 	using WorkerErrorCallback = typename std::function<void(const std::exception&)>;
 
-private:
+protected:
 	class Worker
 	{
 	public:
-		Worker(ThreadPool& oParentPool);
+		Worker(ThreadPool& oParentPool, std::optional<WorkerCallback>&& optTask);
 		virtual ~Worker();
+		
+		std::thread::id Id() const noexcept;
 
 	protected:
 		void _Work();
@@ -56,33 +59,44 @@ private:
 	private:
 		ThreadPool& m_oParentPool; //dependency
 		std::thread m_oThread;
+		std::optional<WorkerCallback> m_optTask;
 	};
 
 public:
-	ThreadPool(const size_t uiPoolSize, WorkerErrorCallback&& fnCallback);
+	ThreadPool(size_t uiPoolSize, WorkerErrorCallback&& fnCallback);
+
+protected:
+	ThreadPool(size_t uiPoolSize, WorkerErrorCallback&& fnCallback, std::optional<WorkerCallback>&& optTask);
+
+public:
 	virtual ~ThreadPool();
 
 public: // IThreadPool interface
 	void AddTask(Task&& fn) noexcept override;
 	void WaitAll() const noexcept override;
+	size_t Size() const noexcept override;
+	size_t PoolSize() const noexcept override;
 
 protected:
-	std::optional<Task> GetTask() noexcept;
+	std::optional<Task> _GetTask() noexcept;
+	void _AddWorkers(size_t uWorkerCount, std::optional<WorkerCallback>&& optTask) noexcept;
+	void _ErrorCallback(const std::exception& ex) noexcept;
 
-protected:
-	Concurrent::Queue<Task>& Queue() noexcept;
-	std::condition_variable_any& Event() const noexcept;
-	std::condition_variable_any& WaitEvent() const noexcept;
-	bool Exit() const noexcept;
-	void ErrorCallback(const std::exception& ex) noexcept;
+protected: //getters && setters
+	Concurrent::Queue<Task>& _Queue() noexcept;
+	Concurrent::List<Worker>& _Pool() noexcept;
+	std::condition_variable_any& _Event() const noexcept;
+	std::condition_variable_any& _WaitEvent() const noexcept;
+	bool _Exit() const noexcept;
+	void _SetExit() noexcept;
 
 private:
-	Concurrent::Queue<Task> m_queueTask;
+	std::atomic<bool> m_bEndFlag = false;
 	const WorkerErrorCallback m_fnErrorCallback;
 
 	mutable std::condition_variable_any m_cvPoolEvent;
 	mutable std::condition_variable_any m_cvWaitEvent;
-	std::atomic<bool> m_bEndFlag = false;
 
-	std::list<Worker> m_oWorkers;
+	Concurrent::Queue<Task> m_queueTask;
+	Concurrent::List<Worker> m_oWorkers;
 };

@@ -5,120 +5,58 @@
 #include <atomic>
 #include <functional>
 
-class ThreadPoolDynamic
+#include "Framework/Thread/ThreadPool.h"
+#include "Framework/Thread/WaitForMultipleConditions.h"
+
+class ThreadPoolDynamic final
+	: public virtual ThreadPool
 {
-
-public:
-	class Worker
-	{
-	public:
-	
-		Worker(ThreadPoolDynamic& oParentPool, _In_ const std::function<void()>& pCallback);
-		virtual ~Worker();
-		bool IsWorkerEnd()
-		{
-			return m_bWorkerEnd;
-		}
-
-	private:
-		/// <summary>
-		/// Main working instance.
-		/// </summary>
-		void _Work();
-
-
-		ThreadPoolDynamic& m_oParentPool; //dependency
-		std::thread m_oThread;
-
-		std::atomic<bool> m_bWorkerEnd = false;
-		std::function<void()> m_pCallback = nullptr;
-
-	};
-
-
 public:
 	/// <summary>
 	/// Initializes a new instance of the <see cref="ThreadPoolDynamic"/> class.
 	/// </summary>
-	/// <param name="uiPoolSize">Size of the thread pool.</param>
+	/// <param name="uiPoolSize">The minimum size of the thread pool. Cannot be less that this parameter</param>
 	/// <param name="uDifference">The difference between size of queue and number of threads for incrasing number of threads.</param>
-	ThreadPoolDynamic(_In_ const size_t uiPoolSize, _In_ const double uDifference);
+	ThreadPoolDynamic(size_t uiMinimumPoolSize, const double uDifference, WorkerErrorCallback&& fnCallback);
 	virtual ~ThreadPoolDynamic();
-	
-	/// <summary>
-	/// Adds the task to working queue.
-	/// </summary>
-	/// <param name="fn">The function.</param>
-	void AddTask(_In_ const std::function<void()> &fn);
-	
-	/// <summary>
-	/// Gets the Pools the size.
-	/// </summary>
-	/// <returns>return size of the pool</returns>
-	size_t GetPoolSize();
 
-	
-	/// <summary>
-	/// Determines whether [is deallocation enabled].
-	/// </summary>
-	/// <returns>
-	///   <c>true</c> if [is deallocation enabled]; otherwise, <c>false</c>.
-	/// </returns>
-	bool IsDeallocationEnabled() const { return m_uDeallocationPoolSize > 0; }
+public: // IThreadPool interface
+	void AddTask(Task&& fn) noexcept override;
 
 private:
-#pragma region Fully Private Methods
-	
+	bool _IsDeallocationEnabled() const noexcept;
+	bool _IsDeallocationFinished() const;
+
 	/// <summary>
 	/// Maine subroutine of thread pool.
 	/// </summary>
 	void _PoolController();
 	
-	/// <summary>
-	/// Adds the new workers to thread pool.
-	/// </summary>
-	/// <param name="uWorkerCount">The worker count.</param>
-	void _AddWorkers(_In_ const size_t uWorkerCount);
+	void _DeallocateWorkers();
 
 	/// <summary>
 	/// Thread pool the callback for worker to call deallocation subrotine.
 	/// </summary>
-	void _PoolCallback();
+	bool _PoolCallback();
 
-#pragma endregion 
 
-#pragma region Friend Class Members
+
 	enum class EConditionEvents : size_t
 	{
-		eNone = 0,
-		eExit = 1,
-		eMagnify = 2,
-		eReduce = 3,
-		eDealloc = 4,
+		eNone,
+		eExit,
+		eMagnify,
+		eReduce,
+		eDealloc,
 	};
 	
-	std::atomic<size_t> m_uDeallocationPoolSize = 0;
-	std::atomic<EConditionEvents> m_uConditionEvents = EConditionEvents::eNone;
-
-	std::mutex m_mxtQueueLock;
-	std::condition_variable m_cvQueueEvent;
-	std::queue<std::function<void()>> m_queueTask;
-#pragma endregion 
-
-
-#pragma region Fully Private Members
-	
-	double m_dDifference = 0;
-	size_t m_uMinimumPoolSize = 4;
+	const double m_dDifference = 0;
+	const size_t m_uMinimumPoolSize = 0;
 	const size_t m_uPoolMultiplier = 2;
 	const size_t m_uPoolDeallocationMultiplier = 8;
 
-	std::mutex m_mxtPoolLock;
-	std::condition_variable m_cvPoolEvent;
-	std::condition_variable m_cvPoolEndEvent;
-
-
-	std::thread *m_pCurrentThread = nullptr;
-	std::list<Worker> m_ListOfWorkers;
-#pragma endregion 
+	std::thread m_oThread;
+	std::atomic<size_t> m_uDeallocationPoolSize = 0;
+	WaitForMultipleConditions<> m_cvDynamicPoolEvent;
+	Concurrent::UnorderedSet<std::thread::id> m_oDeallocatedWorkers;
 };
