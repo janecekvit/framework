@@ -8,6 +8,12 @@
 #include "Framework/Thread/ThreadPool.h"
 #include "Framework/Sync/WaitForMultipleConditions.h"
 
+/// <summary>
+/// 
+/// Dynamic size thread pool that executes the task from the queue.
+/// When the tasks queue is bigger than the multiplied thread by difference, the pool will be doubled.
+/// Otherwise, when tasks queue is 8x smaller than current thread pool size, size is halved.
+/// </summary>
 class ThreadPoolDynamic final
 	: public virtual ThreadPool
 {
@@ -15,8 +21,8 @@ public:
 	/// <summary>
 	/// Initializes a new instance of the <see cref="ThreadPoolDynamic"/> class.
 	/// </summary>
-	/// <param name="uiPoolSize">The minimum size of the thread pool. Cannot be less that this parameter</param>
-	/// <param name="uDifference">The difference between size of queue and number of threads for incrasing number of threads.</param>
+	/// <param name="uiPoolSize">The minimum size of the thread pool.</param>
+	/// <param name="uDifference">The difference between the size of the queue and the number of threads for an increasing number of threads.</param>
 	ThreadPoolDynamic(size_t uiMinimumPoolSize, const double uDifference, WorkerErrorCallback&& fnCallback);
 	virtual ~ThreadPoolDynamic();
 

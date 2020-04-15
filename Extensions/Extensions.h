@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2019 Vit janecek <mailto:janecekvit@outlook.com>.
+Copyright (c) 2020 Vit janecek <mailto:janecekvit@outlook.com>.
 All rights reserved.
 
 Extensions.h

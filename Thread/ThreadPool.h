@@ -37,6 +37,9 @@ Purpose: header file of static thread pool class
 #include "Framework/Extensions/Concurrent.h"
 
 
+/// <summary>
+/// Fixed sized thread pool that executes the task from the queue.
+/// </summary>
 class ThreadPool 
 	: public virtual IThreadPool
 {

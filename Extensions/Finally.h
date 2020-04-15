@@ -1,27 +1,39 @@
 #pragma once
 #include <functional>
+#include "Framework/Extensions/Constraints.h"
+
+namespace Extensions
+{
 
 /// <summary>
-/// CFinally class implements finally block in C++
+/// Finally class implements finally block in C++
 /// </summary>
-class CFinally
+
+template <class Func, class ... Args>
+class Finally 
 {
 public:
-	CFinally(std::function<void(void)>&& fnCallback)
+	template <std::enable_if_t<std::is_invocable_v<Func, Args...>, int> = 0>
+	Finally(Func&& fnCallback)
 		: m_fnCallback(std::move(fnCallback))
 	{
 	}
 
-	virtual ~CFinally()
+	virtual ~Finally()
 	{
 		try
 		{
 			m_fnCallback();
 		}
-		catch (const std::exception& ) {} //check double exception serious error
+		catch (const std::exception& ) 
+		{
+
+		} //check double exception serious error
 		
 	}
 
 private:
-	const std::function<void(void)> m_fnCallback {};
+	const Func m_fnCallback {};
 };
+
+} //namespace Extensions

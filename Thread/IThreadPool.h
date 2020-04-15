@@ -2,10 +2,14 @@
 #include <optional>
 #include <functional>
 
+/// <summary>
+/// Interface implementing methods to create the thread pool that executes tasks from the queue of tasks.
+/// </summary>
 class IThreadPool
 {
 public:
 	using Task = typename std::function<void()>;
+
 public:
 	IThreadPool() = default;
 	virtual ~IThreadPool() = default;
