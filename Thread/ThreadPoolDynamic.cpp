@@ -70,7 +70,7 @@ void ThreadPoolDynamic::_PoolController()
 
 			if (eEvent == EConditionEvents::eMagnify)
 			{
-				if (!_IsDeallocationEnabled())
+				if (!_IsDeallocationEnabled() && _IsDeallocationFinished())
 				{
 					_AddWorkers(PoolSize(), [this]()
 					{
@@ -80,7 +80,7 @@ void ThreadPoolDynamic::_PoolController()
 			}
 			else if (eEvent == EConditionEvents::eReduce)
 			{
-				if (!_IsDeallocationEnabled())
+				if (!_IsDeallocationEnabled() && _IsDeallocationFinished())
 					m_uDeallocationPoolSize = PoolSize() / m_uPoolMultiplier;
 			}
 

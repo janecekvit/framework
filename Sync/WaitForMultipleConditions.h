@@ -9,7 +9,7 @@ template <class TCondition = std::condition_variable_any>
 class WaitForMultipleConditions
 {
 public:
-	using TResult = typename std::list<size_t>;
+	using TResult = typename std::unordered_set<size_t>;
 public:
 	WaitForMultipleConditions() = default;
 	virtual ~WaitForMultipleConditions() = default;
@@ -53,13 +53,13 @@ public:
 
 	void notify_one(size_t uEvent) noexcept
 	{
-		m_oEvents.Exclusive()->emplace_back(uEvent);
+		m_oEvents.Exclusive()->emplace(uEvent);
 		m_condition.notify_one();
 	}
 
 	void notify_all(size_t uEvent) noexcept
 	{
-		m_oEvents.Exclusive()->emplace_back(uEvent);
+		m_oEvents.Exclusive()->emplace(uEvent);
 		m_condition.notify_all();
 	}
 
@@ -71,6 +71,6 @@ private:
 
 private:
 	mutable AtomicConditionVariable<TCondition> m_condition;
-	mutable Concurrent::List<size_t> m_oEvents;
+	mutable Concurrent::UnorderedSet<size_t> m_oEvents;
 };
 
