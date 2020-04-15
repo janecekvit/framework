@@ -23,10 +23,6 @@ void ThreadPool::Worker::_Work()
 {
 	for (auto&& fnCurrentTask = m_oParentPool._GetTask(); fnCurrentTask; fnCurrentTask = m_oParentPool._GetTask())
 	{
-		//Check worker's callback to check if the processing is necessary to exit.
-		if (m_optTask && (*m_optTask)())
-			return;
-
 		try
 		{ //execute task
 			(*fnCurrentTask)();
@@ -35,6 +31,10 @@ void ThreadPool::Worker::_Work()
 		{
 			m_oParentPool._ErrorCallback(ex);
 		}
+
+		//Check worker's callback to check if the processing is necessary to exit.
+		if (m_optTask && (*m_optTask)())
+			return;
 	}
 }
 
