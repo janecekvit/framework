@@ -50,10 +50,11 @@
     <ClInclude Include="Socket\ClientSocket.h" />
     <ClInclude Include="Socket\ServerSocket.h" />
     <ClInclude Include="Socket\SocketTools.h" />
+    <ClInclude Include="Sync\AtomicConditionVariable.h" />
+    <ClInclude Include="Sync\WaitForMultipleConditions.h" />
     <ClInclude Include="Thread\IThreadPool.h" />
     <ClInclude Include="Thread\ThreadPool.h" />
     <ClInclude Include="Thread\ThreadPoolDynamic.h" />
-    <ClInclude Include="Thread\WaitForMultipleConditions.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

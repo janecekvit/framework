@@ -6,7 +6,7 @@
 #include <functional>
 
 #include "Framework/Thread/ThreadPool.h"
-#include "Framework/Thread/WaitForMultipleConditions.h"
+#include "Framework/Sync/WaitForMultipleConditions.h"
 
 class ThreadPoolDynamic final
 	: public virtual ThreadPool
@@ -26,21 +26,11 @@ public: // IThreadPool interface
 private:
 	bool _IsDeallocationEnabled() const noexcept;
 	bool _IsDeallocationFinished() const;
-
-	/// <summary>
-	/// Maine subroutine of thread pool.
-	/// </summary>
 	void _PoolController();
-	
 	void _DeallocateWorkers();
-
-	/// <summary>
-	/// Thread pool the callback for worker to call deallocation subrotine.
-	/// </summary>
 	bool _PoolCallback();
 
-
-
+private:
 	enum class EConditionEvents : size_t
 	{
 		eNone,

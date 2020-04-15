@@ -99,8 +99,11 @@
     <ClInclude Include="Thread\IThreadPool.h">
       <Filter>Thread</Filter>
     </ClInclude>
-    <ClInclude Include="Thread\WaitForMultipleConditions.h">
-      <Filter>Thread</Filter>
+    <ClInclude Include="Sync\AtomicConditionVariable.h">
+      <Filter>Sync</Filter>
+    </ClInclude>
+    <ClInclude Include="Sync\WaitForMultipleConditions.h">
+      <Filter>Sync</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -124,6 +127,9 @@
     </Filter>
     <Filter Include="Async">
       <UniqueIdentifier>{43f65235-46de-4866-a395-5f1c5f8d5a17}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sync">
+      <UniqueIdentifier>{453cea18-ecff-4211-94a0-9a68cbddcce0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

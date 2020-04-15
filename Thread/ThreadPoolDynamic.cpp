@@ -33,11 +33,11 @@ void ThreadPoolDynamic::AddTask(Task&& fn) noexcept
 	size_t uCurrentPoolSize = PoolSize();
 
 	//Check if Task _Queue is bigger that multiplier of the list of workers -> increase thread pool.
-	if (uCurrentQueueSize > m_dDifference * uCurrentPoolSize && _IsDeallocationFinished())
+	if (uCurrentQueueSize > m_dDifference * uCurrentPoolSize)
 		m_cvDynamicPoolEvent.notify_one(static_cast<size_t>(EConditionEvents::eMagnify));
 
 	//Check if Task _Queue is smaller than the minimum pool size and smaller that multiplier of the list of workers.
-	else if ((uCurrentPoolSize > m_uMinimumPoolSize) && ((uCurrentQueueSize * m_uPoolDeallocationMultiplier) < uCurrentPoolSize) && _IsDeallocationFinished())
+	else if ((uCurrentPoolSize > m_uMinimumPoolSize) && ((uCurrentQueueSize * m_uPoolDeallocationMultiplier) < uCurrentPoolSize))
 		m_cvDynamicPoolEvent.notify_one(static_cast<size_t>(EConditionEvents::eReduce));
 
 
@@ -62,30 +62,33 @@ void ThreadPoolDynamic::_PoolController()
 
 	for (;;)
 	{
-		auto&& eEvent = static_cast<EConditionEvents>(m_cvDynamicPoolEvent.wait(unqPoolLock));
-		if (eEvent == EConditionEvents::eExit)
-			return;
-
-		if (eEvent == EConditionEvents::eMagnify)
+		for (auto&& uEvent : m_cvDynamicPoolEvent.wait(unqPoolLock))
 		{
-			if (_IsDeallocationEnabled())
+			auto&& eEvent = static_cast<EConditionEvents>(uEvent);
+			if (eEvent == EConditionEvents::eExit)
+				return;
+
+			if (eEvent == EConditionEvents::eMagnify)
 			{
-				_AddWorkers(PoolSize(), [this]()
+				if (!_IsDeallocationEnabled())
 				{
-					return _PoolCallback();
-				});
+					_AddWorkers(PoolSize(), [this]()
+					{
+						return _PoolCallback();
+					});
+				}
 			}
-		}
-		else if (eEvent == EConditionEvents::eReduce)
-		{
-			if (!_IsDeallocationEnabled())
-				m_uDeallocationPoolSize = Size() / m_uPoolMultiplier;
-		}
+			else if (eEvent == EConditionEvents::eReduce)
+			{
+				if (!_IsDeallocationEnabled())
+					m_uDeallocationPoolSize = PoolSize() / m_uPoolMultiplier;
+			}
 
-		else if (eEvent == EConditionEvents::eDealloc)
-		{
-			_DeallocateWorkers();
-			m_oDeallocatedWorkers.Exclusive()->clear();
+			else if (eEvent == EConditionEvents::eDealloc)
+			{
+				_DeallocateWorkers();
+				m_oDeallocatedWorkers.Exclusive()->clear();
+			}
 		}
 	}
 }
