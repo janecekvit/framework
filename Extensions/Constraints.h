@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2019 Vit janecek <mailto:janecekvit@outlook.com>.
+Copyright (c) 2020 Vit janecek <mailto:janecekvit@outlook.com>.
 All rights reserved.
 
 Constraints.h
@@ -7,7 +7,7 @@ Purpose:	header file contains set of extended constraints to describe stl contai
 
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
-@version 1.13 07/11/2019
+@version 1.14 16/04/2020
 */
 
 #pragma once
@@ -97,6 +97,20 @@ template<class T> struct is_container : is_container_helper<typename std::remove
 {
 };
 template <class T> constexpr bool is_container_v = is_container<T>::value;
+
+/// <summary>
+/// Helper structures to determine if template type <T> is interator
+/// </summary>
+template<class T, class = void> struct is_iterator_helper : std::false_type
+{
+};
+template<class T> struct is_iterator_helper<T, typename std::enable_if<!std::is_same<typename std::iterator_traits<T>::value_type, void>::value>::type> : std::true_type
+{
+};
+template<class T> struct is_iterator : is_iterator_helper<typename std::remove_cv<T>::type>
+{
+};
+template <class T> constexpr bool is_iterator_v = is_iterator<T>::value;
 
 /// <summary>
 /// Helper concept to determine if template type <T> is condition variable

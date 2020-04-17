@@ -52,6 +52,7 @@ protected:
 	{
 	public:
 		Worker(ThreadPool& oParentPool, std::optional<WorkerCallback>&& optTask);
+		
 		virtual ~Worker();
 		
 		std::thread::id Id() const noexcept;
