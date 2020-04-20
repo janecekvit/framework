@@ -113,9 +113,19 @@ template<class T> struct is_iterator : is_iterator_helper<typename std::remove_c
 template <class T> constexpr bool is_iterator_v = is_iterator<T>::value;
 
 /// <summary>
+/// Helper structures to determine if template type <T> is explicitly convertible
+/// </summary>
+template <class T, class U> struct is_explicitly_convertible : std::integral_constant<bool, std::is_constructible_v<U, T> && !std::is_convertible_v<T, U>>
+{
+
+};
+
+template <class T, class U> constexpr bool is_explicitly_convertible_v = is_explicitly_convertible<T, U>::value;
+
+/// <summary>
 /// Helper concept to determine if template type <T> is condition variable
 /// </summary>
-template <class TCondition, class TLock> concept condition_variable = requires(TCondition & cv, TLock& lock)
+template <class TCondition, class TLock> concept condition_variable = requires(TCondition & cv, TLock & lock)
 {
 	{
 		cv.notify_one()
@@ -131,13 +141,11 @@ template <class TCondition, class TLock> concept condition_variable = requires(T
 /// <summary>
 /// Helper concept to determine if template type <T> is condition variable with pred
 /// </summary>
-template <class TCondition, class TLock, class TPredicate> concept condition_variable_pred = condition_variable< TCondition, TLock> && requires(TCondition & cv, TLock & lock, TPredicate&& pred)
+template <class TCondition, class TLock, class TPredicate> concept condition_variable_pred = condition_variable< TCondition, TLock> && requires(TCondition & cv, TLock & lock, TPredicate && pred)
 {
 	{
 		cv.wait(lock, std::move(pred))
 	};
 };
-
-
 
 } //namespace Constraints

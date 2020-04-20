@@ -160,6 +160,13 @@ public:
 		return std::move(*m_pResource);
 	}
 
+	template<class TQuantified = TResource, std::enable_if_t<Constraints::is_explicitly_convertible_v<TQuantified, bool>, int> = 0>
+	[[nodiscard]]
+	constexpr explicit operator bool() noexcept
+	{
+		return static_cast<bool>(*m_pResource);
+	}
+
 	template<class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
 	[[nodiscard]]
 	constexpr decltype(auto) begin() noexcept
