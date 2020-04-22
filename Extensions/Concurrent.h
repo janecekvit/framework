@@ -58,13 +58,24 @@ public:
 	{
 	}
 
-	constexpr ExclusiveResourceHolder(const ExclusiveResourceHolder&& oOther) noexcept
+	constexpr ExclusiveResourceHolder(const ExclusiveResourceHolder& oOther) noexcept = delete;
+
+	constexpr ExclusiveResourceHolder(ExclusiveResourceHolder&& oOther) noexcept
 		: m_pKeeper(std::move(oOther.m_pKeeper))
 		, m_oExclusiveLock(std::move(oOther.m_oExclusiveLock))
 	{
 	}
 
 	virtual ~ExclusiveResourceHolder() = default;
+
+	constexpr ExclusiveResourceHolder& operator=(const ExclusiveResourceHolder& oOther) noexcept = delete;
+
+	constexpr ExclusiveResourceHolder& operator=(ExclusiveResourceHolder&& oOther) noexcept
+	{
+		m_pKeeper = std::move(oOther.m_pKeeper);
+		m_oExclusiveLock = std::move(oOther.m_oExclusiveLock);
+		return *this;
+	}
 
 	[[nodiscard]]
 	constexpr operator TObject& () const
@@ -183,7 +194,7 @@ private:
 	}
 
 private:
-	const std::shared_ptr<ResourceKeeper<TObject>> m_pKeeper = nullptr;
+	std::shared_ptr<ResourceKeeper<TObject>> m_pKeeper = nullptr;
 	mutable std::unique_lock<std::shared_mutex> m_oExclusiveLock;
 };
 
@@ -201,13 +212,24 @@ public:
 	{
 	}
 
-	constexpr ConcurrentResourceHolder(const ConcurrentResourceHolder&& oOther) noexcept
+	constexpr ConcurrentResourceHolder(const ConcurrentResourceHolder& oOther) noexcept = delete;
+
+	constexpr ConcurrentResourceHolder(ConcurrentResourceHolder&& oOther) noexcept
 		: m_pKeeper(std::move(oOther.m_pKeeper))
 		, m_oConcurrentLock(std::move(oOther.m_oConcurrentLock))
 	{
 	}
 
 	virtual ~ConcurrentResourceHolder() = default;
+
+	constexpr ConcurrentResourceHolder& operator=(const ConcurrentResourceHolder& oOther) noexcept = delete;
+
+	constexpr ConcurrentResourceHolder& operator=(ConcurrentResourceHolder&& oOther) noexcept
+	{
+		m_pKeeper = std::move(oOther.m_pKeeper);
+		m_oConcurrentLock = std::move(oOther.m_oConcurrentLock);
+		return *this;
+	}
 
 	[[nodiscard]]
 	constexpr operator const TObject& () const
@@ -299,7 +321,7 @@ private:
 	}
 
 private:
-	const std::shared_ptr<const ResourceKeeper<TObject>> m_pKeeper = nullptr;
+	std::shared_ptr<const ResourceKeeper<TObject>> m_pKeeper = nullptr;
 	mutable std::shared_lock<std::shared_mutex> m_oConcurrentLock;
 };
 
@@ -408,7 +430,7 @@ public:
 	}
 
 	[[nodiscard]]
-	constexpr const ConcurrentResourceHolder<TObject> Concurrent() const noexcept
+	constexpr ConcurrentResourceHolder<TObject> Concurrent() const noexcept
 	{
 		return ConcurrentResourceHolder<TObject>(m_pKeeper);
 	}
