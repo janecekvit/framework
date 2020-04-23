@@ -170,6 +170,14 @@ public:
 		m_oExclusiveLock.unlock();
 	}
 
+	constexpr void Acquire() const
+	{
+		if (m_oExclusiveLock.owns_lock())
+			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "ExclusiveResourceHolder already owns the resource!");
+
+		m_oExclusiveLock.lock();
+	}
+
 	template <class TCondition, class TPredicate>
 		requires Constraints::condition_variable_pred<TCondition, std::unique_lock<std::shared_mutex>, TPredicate>
 	constexpr decltype(auto) Wait(TCondition& cv, TPredicate&& pred) const
@@ -295,6 +303,14 @@ public:
 	{
 		_CheckOwnership();
 		m_oConcurrentLock.unlock();
+	}
+
+	constexpr void Acquire() const
+	{
+		if (m_oConcurrentLock.owns_lock())
+			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "ExclusiveResourceHolder already owns the resource!");
+
+		m_oConcurrentLock.lock();
 	}
 
 	template <class TCondition, class TPredicate> 
