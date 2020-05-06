@@ -31,6 +31,9 @@
     <ClCompile Include="Crypto\SchannelUtils.cpp">
       <Filter>Crypto</Filter>
     </ClCompile>
+    <ClCompile Include="Crypto\Schannel.cpp">
+      <Filter>Crypto</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Socket\BaseSocket.h">
@@ -104,6 +107,9 @@
     </ClInclude>
     <ClInclude Include="Sync\WaitForMultipleConditions.h">
       <Filter>Sync</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypto\Schannel.h">
+      <Filter>Crypto</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

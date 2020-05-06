@@ -22,6 +22,7 @@
     <ClCompile Include="Common\Definitions.cpp" />
     <ClCompile Include="Common\Utility.cpp" />
     <ClCompile Include="Crypto\CryptoUtils.cpp" />
+    <ClCompile Include="Crypto\Schannel.cpp" />
     <ClCompile Include="Crypto\SchannelUtils.cpp" />
     <ClCompile Include="Socket\BaseSocket.cpp" />
     <ClCompile Include="Socket\ClientSocket.cpp" />
@@ -36,6 +37,7 @@
     <ClInclude Include="Common\Utility.h" />
     <ClInclude Include="Common\WinInclude.h" />
     <ClInclude Include="Crypto\CryptoUtils.h" />
+    <ClInclude Include="Crypto\Schannel.h" />
     <ClInclude Include="Crypto\SchannelUtils.h" />
     <ClInclude Include="Extensions\ArrayView.h" />
     <ClInclude Include="Extensions\Concurrent.h" />
