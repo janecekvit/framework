@@ -12,6 +12,7 @@ template <class T>
 class ArrayView
 {
 	using TPointer = T*;
+	using TConstPointer = const T*;
 public:
 	constexpr ArrayView(TPointer pPtr, size_t iIndex)
 		: m_pValue(pPtr)
@@ -28,10 +29,16 @@ public:
 	}
 	virtual ~ArrayView() = default;
 
-	constexpr TPointer Data() const noexcept
+	constexpr TPointer Data() noexcept
 	{
 		return m_pValue;
 	}
+	
+	constexpr TConstPointer Data() const noexcept
+	{
+		return m_pValue;
+	}
+
 	constexpr std::ptrdiff_t Size() const noexcept
 	{
 		return m_iIndex;
