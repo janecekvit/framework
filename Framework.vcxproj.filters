@@ -70,10 +70,10 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Interface\ICloneable.h">
-      <Filter>Interface</Filter>
+      <Filter>Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="Interface\ICRTP.h">
-      <Filter>Interface</Filter>
+      <Filter>Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="Extensions\Concurrent.h">
       <Filter>Extensions</Filter>
@@ -125,9 +125,6 @@
     <Filter Include="Crypto">
       <UniqueIdentifier>{a86cd86d-e4dc-4751-ad87-f0bfe3400450}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Interface">
-      <UniqueIdentifier>{b0478a21-ddee-4d8b-93a1-e2f0686d6e5d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Extensions">
       <UniqueIdentifier>{c09bfaf6-95d3-4ee2-a44b-f00e9bc24467}</UniqueIdentifier>
     </Filter>
@@ -136,6 +133,9 @@
     </Filter>
     <Filter Include="Sync">
       <UniqueIdentifier>{453cea18-ecff-4211-94a0-9a68cbddcce0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interfaces">
+      <UniqueIdentifier>{b0478a21-ddee-4d8b-93a1-e2f0686d6e5d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
