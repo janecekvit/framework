@@ -43,14 +43,34 @@ class DefaultGetter
 /// class TestGetterSetter
 /// {
 /// public:
-/// 	Extensions::GetterSetter<std::vector<int>> TestGetterSetter;
-/// 	Extensions::GetterSetter<std::vector<int>, GetterSetterVisibility> TestGetterSetter;
-/// 	Extensions::GetterSetter<std::vector<int>, GetterSetterVisibility, GetterSetterVisibility> TestGetterSetter;
+/// 	void AllAccessible()
+/// 	{
+/// 		Int = 5;
+/// 		IntSetterPrivate = 6;//   -> private set
+/// 		IntBothPrivate = 6;//  -> private set
+/// 
+/// 		Vec.begin();
+/// 		VecSetterPrivate.begin();
+/// 		VecBothPrivate.begin(); // -> private get
+/// 
+/// 		Vec->emplace_back(5);
+/// 		VecSetterPrivate->emplace_back(5); // -> private set
+/// 		VecBothPrivate->emplace_back(5);  //-> private set
+/// 	}
+/// 
+/// public:
+/// 	Extensions::GetterSetter<int> Int;
+/// 	Extensions::GetterSetter<int, TestGetterSetter> IntSetterPrivate;
+/// 	Extensions::GetterSetter<int, TestGetterSetter, TestGetterSetter> IntBothPrivate;
+/// 
+/// 	Extensions::GetterSetter<std::vector<int>> Vec;
+/// 	Extensions::GetterSetter<std::vector<int>, TestGetterSetter> VecSetterPrivate;
+/// 	Extensions::GetterSetter<std::vector<int>, TestGetterSetter, TestGetterSetter> VecBothPrivate;
 /// };
 /// 
 /// void AnyStuff()
 /// {
-/// 	GetterSetterVisibility visibility;
+/// 	TestGetterSetter visibility;
 /// 
 /// 	visibility.Int = 5;
 /// 	//visibility.IntSetterPrivate = 6;//   -> private set
@@ -63,8 +83,7 @@ class DefaultGetter
 /// 	visibility.Vec->emplace_back(5);
 /// 	//visibility.VecSetterPrivate->emplace_back(5);  -> private set
 /// 	//visibility.VecBothPrivate->emplace_back(5);  -> private set
-////}
-
+/// }
 /// </code>
 /// </example>
 template <class TResource, class TSetter = DefaultSetter, class TGetter = DefaultGetter>
