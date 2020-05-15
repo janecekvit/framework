@@ -9,22 +9,64 @@ Purpose:	header file contains Getter/Setter mechanism
 
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
-@version 1.07 15/05/2020
+@version 1.08 15/05/2020
 */
 
 #include "Framework/Extensions/Constraints.h"
 
 namespace Extensions
 {
-
+/// <summary>
+/// Default setter that says that GetterSetter wrapper is public.
+/// </summary>
 class DefaultSetter
 {
 };
 
+/// <summary>
+/// Default getter that says that GetterSetter wrapper is public.
+/// </summary>
 class DefaultGetter
 {
 };
 
+
+/// <summary>
+/// The Getter/Setter wrapper implements C++ like assessors to modify inner value of the defined resource type (TResource).
+/// Wrapper via accessors can modify the visibility of set and get methods.
+/// Instead of default setter or default getter assign just type of the class that holds the resource.
+/// If you assign to the default setter the resource owner type, only resource owner can work with set methods.
+/// If you assign to the default getter the resource owner type, only resource owner can work with set methods.
+/// </summary>
+/// <example>
+/// <code>
+/// class TestGetterSetter
+/// {
+/// public:
+/// 	Extensions::GetterSetter<std::vector<int>> TestGetterSetter;
+/// 	Extensions::GetterSetter<std::vector<int>, GetterSetterVisibility> TestGetterSetter;
+/// 	Extensions::GetterSetter<std::vector<int>, GetterSetterVisibility, GetterSetterVisibility> TestGetterSetter;
+/// };
+/// 
+/// void AnyStuff()
+/// {
+/// 	GetterSetterVisibility visibility;
+/// 
+/// 	visibility.Int = 5;
+/// 	//visibility.IntSetterPrivate = 6;//   -> private set
+/// 	//visibility.IntBothPrivate = 6;//  -> private set
+/// 
+/// 	visibility.Vec.begin();
+/// 	visibility.VecSetterPrivate.begin();
+/// 	// visibility.VecBothPrivate.begin(); -> private get
+/// 
+/// 	visibility.Vec->emplace_back(5);
+/// 	//visibility.VecSetterPrivate->emplace_back(5);  -> private set
+/// 	//visibility.VecBothPrivate->emplace_back(5);  -> private set
+////}
+
+/// </code>
+/// </example>
 template <class TResource, class TSetter = DefaultSetter, class TGetter = DefaultGetter>
 class GetterSetter
 {
@@ -63,37 +105,65 @@ private: // private set
 	{
 	}
 
-//public: // public set	
-//	template<class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-//	GetterSetter(const GetterSetter&) = default;
-//
-//private: // private set
-//	template<class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-//	GetterSetter(const GetterSetter&) = default;
-//
-//public: // public set
-//	template<class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-//	GetterSetter(GetterSetter&&) = default;
-//
-//private: // private set
-//	template<class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-//	GetterSetter(GetterSetter&&) = default;
-//
-//public: // public set
-//	template<class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-//	GetterSetter& operator=(const GetterSetter&) = default;
-//
-//private: // private set
-//	template<class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-//	GetterSetter& operator=(const GetterSetter&) = default;
-//
-//public: // public set
-//	template<class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-//	GetterSetter& operator=(GetterSetter&&) = default;
-//
-//private: // private set
-//	template<class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-//	GetterSetter& operator=(GetterSetter&&) = default;
+public: // public set	
+	template<class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	GetterSetter(const GetterSetter& oOther)
+		: m_oResource(oOther.m_oResource)
+	{
+	}
+
+private: // private set
+	template<class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	GetterSetter(const GetterSetter& oOther)
+		: m_oResource(oOther.m_oResource)
+	{
+	}
+
+public: // public set
+	template<class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	GetterSetter(GetterSetter&& oOther) 
+		: m_oResource(std::move(oOther.m_oResource))
+	{
+	}
+
+private: // private set
+	template<class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	GetterSetter(GetterSetter&& oOther) 
+		: m_oResource(std::move(oOther.m_oResource))
+	{
+	}
+
+public: // public set
+	template<class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	GetterSetter& operator=(const GetterSetter& oOther)
+	{
+		m_oResource = oOther.m_oResource;
+		return *this;
+	}
+
+private: // private set
+	template<class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	GetterSetter& operator=(const GetterSetter& oOther)
+	{
+		m_oResource = oOther.m_oResource;
+		return *this;
+	}
+
+public: // public set
+	template<class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	GetterSetter& operator=(GetterSetter&& oOther)
+	{
+		m_oResource = std::move(oOther.m_oResource);
+		return *this;
+	}
+
+private: // private set
+	template<class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	GetterSetter& operator=(GetterSetter&& oOther)
+	{
+		m_oResource = std::move(oOther.m_oResource);
+		return *this;
+	}
 
 public: // public get
 	template<class TModifier = TGetter, std::enable_if_t<std::is_same_v<TModifier, DefaultGetter>, int> = 0>
