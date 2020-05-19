@@ -30,7 +30,6 @@ class DefaultGetter
 {
 };
 
-
 /// <summary>
 /// The Getter/Setter wrapper implements C++ like assessors to modify inner value of the defined resource type (TResource).
 /// Wrapper via accessors can modify the visibility of set and get methods.
@@ -48,38 +47,38 @@ class DefaultGetter
 /// 		Int = 5;
 /// 		IntSetterPrivate = 6;//   -> private set
 /// 		IntBothPrivate = 6;//  -> private set
-/// 
+///
 /// 		Vec.begin();
 /// 		VecSetterPrivate.begin();
 /// 		VecBothPrivate.begin(); // -> private get
-/// 
+///
 /// 		Vec->emplace_back(5);
 /// 		VecSetterPrivate->emplace_back(5); // -> private set
 /// 		VecBothPrivate->emplace_back(5);  //-> private set
 /// 	}
-/// 
+///
 /// public:
 /// 	Extensions::GetterSetter<int> Int;
 /// 	Extensions::GetterSetter<int, TestGetterSetter> IntSetterPrivate;
 /// 	Extensions::GetterSetter<int, TestGetterSetter, TestGetterSetter> IntBothPrivate;
-/// 
+///
 /// 	Extensions::GetterSetter<std::vector<int>> Vec;
 /// 	Extensions::GetterSetter<std::vector<int>, TestGetterSetter> VecSetterPrivate;
 /// 	Extensions::GetterSetter<std::vector<int>, TestGetterSetter, TestGetterSetter> VecBothPrivate;
 /// };
-/// 
+///
 /// void AnyStuff()
 /// {
 /// 	TestGetterSetter visibility;
-/// 
+///
 /// 	visibility.Int = 5;
 /// 	//visibility.IntSetterPrivate = 6;//   -> private set
 /// 	//visibility.IntBothPrivate = 6;//  -> private set
-/// 
+///
 /// 	visibility.Vec.begin();
 /// 	visibility.VecSetterPrivate.begin();
 /// 	// visibility.VecBothPrivate.begin(); -> private get
-/// 
+///
 /// 	visibility.Vec->emplace_back(5);
 /// 	//visibility.VecSetterPrivate->emplace_back(5);  -> private set
 /// 	//visibility.VecBothPrivate->emplace_back(5);  -> private set
@@ -94,66 +93,66 @@ class GetterSetter
 
 public:
 	constexpr GetterSetter() = default;
-	virtual ~GetterSetter() = default;
+	virtual ~GetterSetter()	 = default;
 
 public: // public set
-	template<class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	template <class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
 	constexpr GetterSetter(TResource&& oResource)
 		: m_oResource(std::move(oResource))
 	{
 	}
 
 private: // private set
-	template<class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	template <class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
 	constexpr GetterSetter(TResource&& oResource)
 		: m_oResource(std::move(oResource))
 	{
 	}
 
 public: // public set
-	template<class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	template <class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
 	constexpr GetterSetter(const TResource& oResource)
 		: m_oResource(oResource)
 	{
 	}
 
 private: // private set
-	template<class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	template <class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
 	constexpr GetterSetter(const TResource& oResource)
 		: m_oResource(oResource)
 	{
 	}
 
-public: // public set	
-	template<class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+public: // public set
+	template <class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
 	GetterSetter(const GetterSetter& oOther)
 		: m_oResource(oOther.m_oResource)
 	{
 	}
 
 private: // private set
-	template<class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	template <class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
 	GetterSetter(const GetterSetter& oOther)
 		: m_oResource(oOther.m_oResource)
 	{
 	}
 
 public: // public set
-	template<class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	GetterSetter(GetterSetter&& oOther) 
+	template <class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	GetterSetter(GetterSetter&& oOther)
 		: m_oResource(std::move(oOther.m_oResource))
 	{
 	}
 
 private: // private set
-	template<class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	GetterSetter(GetterSetter&& oOther) 
+	template <class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	GetterSetter(GetterSetter&& oOther)
 		: m_oResource(std::move(oOther.m_oResource))
 	{
 	}
 
 public: // public set
-	template<class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	template <class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
 	GetterSetter& operator=(const GetterSetter& oOther)
 	{
 		m_oResource = oOther.m_oResource;
@@ -161,7 +160,7 @@ public: // public set
 	}
 
 private: // private set
-	template<class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	template <class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
 	GetterSetter& operator=(const GetterSetter& oOther)
 	{
 		m_oResource = oOther.m_oResource;
@@ -169,7 +168,7 @@ private: // private set
 	}
 
 public: // public set
-	template<class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	template <class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
 	GetterSetter& operator=(GetterSetter&& oOther)
 	{
 		m_oResource = std::move(oOther.m_oResource);
@@ -177,7 +176,7 @@ public: // public set
 	}
 
 private: // private set
-	template<class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	template <class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
 	GetterSetter& operator=(GetterSetter&& oOther)
 	{
 		m_oResource = std::move(oOther.m_oResource);
@@ -185,190 +184,168 @@ private: // private set
 	}
 
 public: // public get
-	template<class TModifier = TGetter, std::enable_if_t<std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]]
-	constexpr operator auto() const& -> const TResource&
+	template <class TModifier = TGetter, std::enable_if_t<std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+	[[nodiscard]] constexpr operator auto() const& -> const TResource&
 	{
 		return m_oResource;
 	}
 
 private: // private get
-	template<class TModifier = TGetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]]
-	constexpr operator auto() const& -> const TResource&
+	template <class TModifier = TGetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+	[[nodiscard]] constexpr operator auto() const& -> const TResource&
 	{
 		return m_oResource;
 	}
 
 public: // public set
-	template<class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	[[nodiscard]]
-	constexpr operator auto() & -> TResource&
+	template <class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	[[nodiscard]] constexpr operator auto() & -> TResource&
 	{
 		return m_oResource;
 	}
 
 private: // private set
-	template<class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	[[nodiscard]]
-	constexpr operator auto() & -> TResource&
+	template <class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	[[nodiscard]] constexpr operator auto() & -> TResource&
 	{
 		return m_oResource;
 	}
 
 public: // public set
-	template<class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	[[nodiscard]]
-	constexpr operator auto() && -> TResource&&
+	template <class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	[[nodiscard]] constexpr operator auto() && -> TResource&&
 	{
 		return std::move(m_oResource);
 	}
 
 private: // private set
-	template<class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	[[nodiscard]]
-	constexpr operator auto() && -> TResource&&
+	template <class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	[[nodiscard]] constexpr operator auto() && -> TResource&&
 	{
 		return std::move(m_oResource);
 	}
 
 public: // public get
-	template<class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_explicitly_convertible_v<TQuantified, bool> && std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]]
-	constexpr explicit operator bool() const noexcept
+	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_explicitly_convertible_v<TQuantified, bool> && std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+	[[nodiscard]] constexpr explicit operator bool() const noexcept
 	{
 		return static_cast<bool>(m_oResource);
 	}
 
 private: // private get
-	template<class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_explicitly_convertible_v<TQuantified, bool> && !std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]]
-	constexpr explicit operator bool() const noexcept
+	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_explicitly_convertible_v<TQuantified, bool> && !std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+	[[nodiscard]] constexpr explicit operator bool() const noexcept
 	{
 		return static_cast<bool>(m_oResource);
 	}
 
 public: // public get
-	template<class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_container_v<TQuantified> && std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]]
-	constexpr decltype(auto) begin() const noexcept
+	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_container_v<TQuantified> && std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+	[[nodiscard]] constexpr decltype(auto) begin() const noexcept
 	{
 		return m_oResource.begin();
 	}
 
 private: // private get
-	template<class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_container_v<TQuantified> && !std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]]
-	constexpr decltype(auto) begin() const noexcept
+	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_container_v<TQuantified> && !std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+	[[nodiscard]] constexpr decltype(auto) begin() const noexcept
 	{
 		return m_oResource.begin();
 	}
 
 public: // public get
-	template<class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_container_v<TQuantified> && std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]]
-	constexpr decltype(auto) end() const noexcept
+	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_container_v<TQuantified> && std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+	[[nodiscard]] constexpr decltype(auto) end() const noexcept
 	{
 		return m_oResource.end();
 	}
 
 private: // private get
-	template<class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_container_v<TQuantified>&& !std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]]
-	constexpr decltype(auto) end() const noexcept
+	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_container_v<TQuantified> && !std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+	[[nodiscard]] constexpr decltype(auto) end() const noexcept
 	{
 		return m_oResource.end();
 	}
 
 public: // public get
-	template<class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_container_v<TQuantified> && std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]]
-	constexpr decltype(auto) size() const noexcept
+	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_container_v<TQuantified> && std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+	[[nodiscard]] constexpr decltype(auto) size() const noexcept
 	{
 		return m_oResource.size();
 	}
 
 private: // private get
-	template<class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_container_v<TQuantified>&& !std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]]
-	constexpr decltype(auto) size() const noexcept
+	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_container_v<TQuantified> && !std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+	[[nodiscard]] constexpr decltype(auto) size() const noexcept
 	{
 		return m_oResource.size();
 	}
 
 public: // public set
-	template<class TQuantified = TResource, class TModifier = TSetter, std::enable_if_t<std::is_pointer_v<TQuantified> && std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	[[nodiscard]]
-	constexpr auto operator->() & noexcept -> TResource&
+	template <class TQuantified = TResource, class TModifier = TSetter, std::enable_if_t<std::is_pointer_v<TQuantified> && std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() & noexcept -> TResource&
 	{
 		return m_oResource;
 	}
 
 private: // private set
-	template<class TQuantified = TResource, class TModifier = TSetter, std::enable_if_t<std::is_pointer_v<TQuantified> && !std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	[[nodiscard]]
-	constexpr auto operator->() & noexcept -> TResource&
+	template <class TQuantified = TResource, class TModifier = TSetter, std::enable_if_t<std::is_pointer_v<TQuantified> && !std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() & noexcept -> TResource&
 	{
 		return m_oResource;
 	}
 
 public: // public get
-	template<class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<std::is_pointer_v<TQuantified> && std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]]
-	constexpr auto operator->() const & noexcept -> const TResource&
+	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<std::is_pointer_v<TQuantified> && std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() const& noexcept -> const TResource&
 	{
 		return m_oResource;
 	}
 
 private: // private get
-	template<class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<std::is_pointer_v<TQuantified>&& !std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]]
-	constexpr auto operator->() const& noexcept -> const TResource&
+	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<std::is_pointer_v<TQuantified> && !std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() const& noexcept -> const TResource&
 	{
 		return m_oResource;
 	}
 
 public: // public set
-	template<class TQuantified = TResource, class TModifier = TSetter, std::enable_if_t<!std::is_pointer_v<TQuantified> && std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	[[nodiscard]]
-	constexpr auto operator->() & noexcept -> TResource*
+	template <class TQuantified = TResource, class TModifier = TSetter, std::enable_if_t<!std::is_pointer_v<TQuantified> && std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() & noexcept -> TResource*
 	{
 		return std::addressof(m_oResource);
 	}
 
 private: // private set
-	template<class TQuantified = TResource, class TModifier = TSetter, std::enable_if_t<!std::is_pointer_v<TQuantified> && !std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	[[nodiscard]]
-	constexpr auto operator->() & noexcept -> TResource*
+	template <class TQuantified = TResource, class TModifier = TSetter, std::enable_if_t<!std::is_pointer_v<TQuantified> && !std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() & noexcept -> TResource*
 	{
 		return std::addressof(m_oResource);
 	}
 
 public: // public get
-	template<class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<!std::is_pointer_v<TQuantified> && std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]]
-	constexpr auto operator->() const& noexcept  -> const TResource*
+	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<!std::is_pointer_v<TQuantified> && std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() const& noexcept -> const TResource*
 	{
 		return std::addressof(m_oResource);
 	}
 
 private: // private get
-	template<class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<!std::is_pointer_v<TQuantified> && !std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]]
-	constexpr auto operator->() const& noexcept  -> const TResource*
+	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<!std::is_pointer_v<TQuantified> && !std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() const& noexcept -> const TResource*
 	{
 		return std::addressof(m_oResource);
 	}
 
 public: // public set
-	template<class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	template <class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
 	constexpr TResource* operator&()
 	{
 		return std::addressof(m_oResource);
 	}
 
 private: // private set
-	template<class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
+	template <class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
 	constexpr TResource* operator&()
 	{
 		return std::addressof(m_oResource);

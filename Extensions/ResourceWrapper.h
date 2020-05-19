@@ -12,12 +12,12 @@ Purpose:	header file contains RAII pattern
 @version 1.03 21/04/2020
 */
 
-#include <functional>
 #include "Framework/Extensions/Extensions.h"
+
+#include <functional>
 
 namespace Extensions
 {
-
 /// <summary>
 /// The wrapper implemented own deleter that gains functionality to release all used resources correctly.
 /// Method derives from the GetterSetter class to using input resource with implicit conversions.
@@ -48,18 +48,18 @@ public:
 		{
 			return m_sData.c_str();
 		}
-	
+
 	protected:
 		std::string m_sData;
 	};
 
 public:
-	using TAccessor = typename std::function<void(TResource&)>;
+	using TAccessor		 = typename std::function<void(TResource&)>;
 	using TConstAccessor = typename std::function<void(const TResource&)>;
-	using TDeleter = typename TAccessor;
+	using TDeleter		 = typename TAccessor;
 
 public:
-	virtual ~ResourceWrapper() = default;
+	virtual ~ResourceWrapper()	= default;
 	constexpr ResourceWrapper() = delete;
 
 	constexpr ResourceWrapper(TDeleter&& fnDeleter)
@@ -81,15 +81,13 @@ public:
 	{
 	}
 
-	constexpr ResourceWrapper(const ResourceWrapper& oOther)
-		requires std::is_copy_constructible_v<TResource>
+	constexpr ResourceWrapper(const ResourceWrapper& oOther) requires std::is_copy_constructible_v<TResource>
 		: m_pResource(oOther.m_pResource)
 		, m_oDeleter(oOther.m_oDeleter)
 	{
 	}
 
-	constexpr ResourceWrapper(const ResourceWrapper&)
-		requires !std::is_copy_constructible_v<TResource> = delete;
+	constexpr ResourceWrapper(const ResourceWrapper&) requires !std::is_copy_constructible_v<TResource> = delete;
 
 	constexpr ResourceWrapper(ResourceWrapper&& oOther) noexcept
 		: m_pResource(std::move(oOther.m_pResource))
@@ -97,20 +95,18 @@ public:
 	{
 	}
 
-	constexpr ResourceWrapper& operator=(const ResourceWrapper& oOther)
-		requires std::is_copy_constructible_v<TResource>
+	constexpr ResourceWrapper& operator=(const ResourceWrapper& oOther) requires std::is_copy_constructible_v<TResource>
 	{
-		m_oDeleter = oOther.m_oDeleter;
+		m_oDeleter	= oOther.m_oDeleter;
 		m_pResource = oOther.m_pResource;
 		return *this;
 	}
 
-	constexpr ResourceWrapper& operator=(const ResourceWrapper&)
-		requires !std::is_copy_constructible_v<TResource> = delete;
+	constexpr ResourceWrapper& operator=(const ResourceWrapper&) requires !std::is_copy_constructible_v<TResource> = delete;
 
 	constexpr ResourceWrapper& operator=(ResourceWrapper&& oOther) noexcept
 	{
-		m_oDeleter = std::move(oOther.m_oDeleter);
+		m_oDeleter	= std::move(oOther.m_oDeleter);
 		m_pResource = std::move(oOther.m_pResource);
 		return *this;
 	}
@@ -142,107 +138,94 @@ public:
 		fnAccess(*m_pResource);
 	}
 
-	[[nodiscard]]
-	constexpr operator auto() const& -> const TResource&
+	[[nodiscard]] constexpr operator auto() const& -> const TResource&
 	{
 		return *m_pResource;
 	}
 
-	[[nodiscard]]
-	constexpr operator auto() & -> TResource&
+	[[nodiscard]] constexpr operator auto() & -> TResource&
 	{
 		return *m_pResource;
 	}
 
-	[[nodiscard]]
-	constexpr operator auto() && -> TResource&&
+	[[nodiscard]] constexpr operator auto() && -> TResource&&
 	{
 		return std::move(*m_pResource);
 	}
 
-	template<class TQuantified = TResource, std::enable_if_t<Constraints::is_explicitly_convertible_v<TQuantified, bool>, int> = 0>
-	[[nodiscard]]
-	constexpr explicit operator bool() const noexcept
+	template <class TQuantified = TResource, std::enable_if_t<Constraints::is_explicitly_convertible_v<TQuantified, bool>, int> = 0>
+	[[nodiscard]] constexpr explicit operator bool() const noexcept
 	{
 		return static_cast<bool>(*m_pResource);
 	}
 
-	template<class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
-	[[nodiscard]]
-	constexpr decltype(auto) begin() const noexcept
+	template <class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	[[nodiscard]] constexpr decltype(auto) begin() const noexcept
 	{
 		return m_pResource->begin();
 	}
 
-	template<class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
-	[[nodiscard]]
-	constexpr decltype(auto) end() const noexcept
+	template <class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	[[nodiscard]] constexpr decltype(auto) end() const noexcept
 	{
 		return m_pResource->end();
 	}
 
-	template<class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
-	[[nodiscard]]
-	constexpr decltype(auto) size() const noexcept
+	template <class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	[[nodiscard]] constexpr decltype(auto) size() const noexcept
 	{
 		return m_pResource->size();
 	}
 
-	template<class TQuantified = TResource, std::enable_if_t<std::is_pointer_v<TQuantified>, int> = 0>
-	[[nodiscard]]
-	constexpr auto operator->() & noexcept -> TResource&
+	template <class TQuantified = TResource, std::enable_if_t<std::is_pointer_v<TQuantified>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() & noexcept -> TResource&
 	{
 		return *m_pResource;
 	}
 
-	template<class TQuantified = TResource, std::enable_if_t<std::is_pointer_v<TQuantified>, int> = 0>
-	[[nodiscard]]
-	constexpr auto operator->() const & noexcept -> const TResource&
+	template <class TQuantified = TResource, std::enable_if_t<std::is_pointer_v<TQuantified>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() const& noexcept -> const TResource&
 	{
 		return *m_pResource;
 	}
 
-	template<class TQuantified = TResource, std::enable_if_t<!std::is_pointer_v<TQuantified>, int> = 0>
-	[[nodiscard]]
-	constexpr auto operator->() & noexcept  -> TResource*
+	template <class TQuantified = TResource, std::enable_if_t<!std::is_pointer_v<TQuantified>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() & noexcept -> TResource*
 	{
 		return std::addressof(*m_pResource);
 	}
 
-	template<class TQuantified = TResource, std::enable_if_t<!std::is_pointer_v<TQuantified>, int> = 0>
-	[[nodiscard]]
-	constexpr auto operator->() const & noexcept -> const TResource*
+	template <class TQuantified = TResource, std::enable_if_t<!std::is_pointer_v<TQuantified>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() const& noexcept -> const TResource*
 	{
 		return std::addressof(*m_pResource);
 	}
-	
-	[[nodiscard]]
-	constexpr TResource* operator&()
+
+	[[nodiscard]] constexpr TResource* operator&()
 	{
 		return std::addressof(*m_pResource);
 	}
 
 protected:
-	[[nodiscard]]
-	constexpr std::shared_ptr<TResource> _CreateResource(TResource&& oResource, TDeleter &&fnDeleter)
+	[[nodiscard]] constexpr std::shared_ptr<TResource> _CreateResource(TResource&& oResource, TDeleter&& fnDeleter)
 	{
 		return std::shared_ptr<TResource>(new TResource(std::forward<TResource>(oResource)), [fnStoredDeleter = std::move(fnDeleter)](TResource* pResource)
-		{
-			//Call inner resource deleter
-			if (fnStoredDeleter)
-				fnStoredDeleter(*pResource);
+			{
+				//Call inner resource deleter
+				if (fnStoredDeleter)
+					fnStoredDeleter(*pResource);
 
-			delete pResource;
-			pResource = nullptr;
+				delete pResource;
+				pResource = nullptr;
 
-			if (!fnStoredDeleter)
-				throw DeleterMissingException(typeid(fnStoredDeleter));
-		});
+				if (!fnStoredDeleter)
+					throw DeleterMissingException(typeid(fnStoredDeleter));
+			});
 	}
 
 protected:
-	std::shared_ptr<TResource> m_pResource {};
-	TDeleter m_oDeleter {};
+	std::shared_ptr<TResource> m_pResource{};
+	TDeleter m_oDeleter{};
 };
 
 } //namespace Extensions

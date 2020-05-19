@@ -16,28 +16,26 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 //#define LOCK_PARAMS __FILE__, __func__, __LINE__
 
 #pragma once
-#include <shared_mutex>
-
-#include <set>
-#include <map>
-#include <list>
-#include <array>
-#include <queue>
-#include <stack>
-#include <cerrno>
-#include <vector>
-#include <exception>
-#include <system_error>
-#include <unordered_set>
-#include <unordered_map>
-
 #include "Framework/Extensions/Constraints.h"
+
+#include <array>
+#include <cerrno>
+#include <exception>
+#include <list>
+#include <map>
+#include <queue>
+#include <set>
+#include <shared_mutex>
+#include <stack>
+#include <system_error>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 ///Namespace owns set of thread-safe concurrent containers and methods that implemented over basic stl containers
 /// and thread-safe methods for every possiblle concurrent object
 namespace Concurrent
 {
-
 template <class TObject>
 class ResourceOwner;
 
@@ -72,27 +70,24 @@ public:
 
 	constexpr ExclusiveResourceHolder& operator=(ExclusiveResourceHolder&& oOther) noexcept
 	{
-		m_pKeeper = std::move(oOther.m_pKeeper);
+		m_pKeeper		 = std::move(oOther.m_pKeeper);
 		m_oExclusiveLock = std::move(oOther.m_oExclusiveLock);
 		return *this;
 	}
 
-	[[nodiscard]]
-	constexpr operator TObject& () const
+	[[nodiscard]] constexpr operator TObject&() const
 	{
 		_CheckOwnership();
 		return *m_pKeeper->GetResource();
 	}
 
-	[[nodiscard]]
-	constexpr const std::shared_ptr<TObject> operator->() const
+	[[nodiscard]] constexpr const std::shared_ptr<TObject> operator->() const
 	{
 		_CheckOwnership();
 		return m_pKeeper->GetResource();
 	}
 
-	[[nodiscard]]
-	constexpr TObject& Get() const
+	[[nodiscard]] constexpr TObject& Get() const
 	{
 		_CheckOwnership();
 		return *m_pKeeper->GetResource();
@@ -110,55 +105,48 @@ public:
 		m_pKeeper->SwapResource(oObject);
 	}
 
-	[[nodiscard]]
-	constexpr TObject Move() const
+	[[nodiscard]] constexpr TObject Move() const
 	{
 		_CheckOwnership();
 		return m_pKeeper->MoveResource();
 	}
 
-	[[nodiscard]]
-	constexpr TObject& operator()() const
+	[[nodiscard]] constexpr TObject& operator()() const
 	{
 		_CheckOwnership();
 		return *m_pKeeper->GetResource();
 	}
 
-	template<class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
-	[[nodiscard]]
-	constexpr decltype(auto) begin() const
+	template <class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	[[nodiscard]] constexpr decltype(auto) begin() const
 	{
 		_CheckOwnership();
 		return m_pKeeper->GetResource()->begin();
 	}
 
-	template<class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
-	[[nodiscard]]
-	constexpr decltype(auto) end() const
+	template <class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	[[nodiscard]] constexpr decltype(auto) end() const
 	{
 		_CheckOwnership();
 		return m_pKeeper->GetResource()->end();
 	}
 
-	template<class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
-	[[nodiscard]]
-	constexpr decltype(auto) size() const
+	template <class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	[[nodiscard]] constexpr decltype(auto) size() const
 	{
 		_CheckOwnership();
 		return m_pKeeper->GetResource()->size();
 	}
 
-	template<class TKey>
-	[[nodiscard]]
-	constexpr auto& operator[](const TKey& oKey)
+	template <class TKey>
+	[[nodiscard]] constexpr auto& operator[](const TKey& oKey)
 	{
 		_CheckOwnership();
 		return (*m_pKeeper->GetResource())[oKey];
 	}
 
-	template<class TKey>
-	[[nodiscard]]
-	constexpr const auto& operator[](const TKey& oKey) const
+	template <class TKey>
+	[[nodiscard]] constexpr const auto& operator[](const TKey& oKey) const
 	{
 		_CheckOwnership();
 		return (*m_pKeeper->GetResource())[oKey];
@@ -179,16 +167,14 @@ public:
 	}
 
 	template <class TCondition, class TPredicate>
-		requires Constraints::condition_variable_pred<TCondition, std::unique_lock<std::shared_mutex>, TPredicate>
-	constexpr decltype(auto) Wait(TCondition& cv, TPredicate&& pred) const
+	requires Constraints::condition_variable_pred<TCondition, std::unique_lock<std::shared_mutex>, TPredicate> constexpr decltype(auto) Wait(TCondition& cv, TPredicate&& pred) const
 	{
 		_CheckOwnership();
 		return cv.wait(m_oExclusiveLock, std::move(pred));
 	}
 
 	template <class TCondition>
-		requires Constraints::condition_variable<TCondition, std::unique_lock<std::shared_mutex>>
-	constexpr decltype(auto) Wait(TCondition& cv) const
+	requires Constraints::condition_variable<TCondition, std::unique_lock<std::shared_mutex>> constexpr decltype(auto) Wait(TCondition& cv) const
 	{
 		_CheckOwnership();
 		return cv.wait(m_oExclusiveLock);
@@ -234,66 +220,58 @@ public:
 
 	constexpr ConcurrentResourceHolder& operator=(ConcurrentResourceHolder&& oOther) noexcept
 	{
-		m_pKeeper = std::move(oOther.m_pKeeper);
+		m_pKeeper		  = std::move(oOther.m_pKeeper);
 		m_oConcurrentLock = std::move(oOther.m_oConcurrentLock);
 		return *this;
 	}
 
-	[[nodiscard]]
-	constexpr operator const TObject& () const
+	[[nodiscard]] constexpr operator const TObject&() const
 	{
 		_CheckOwnership();
 		return *m_pKeeper->GetResource();
 	}
 
-	[[nodiscard]]
-	constexpr const std::shared_ptr<const TObject> operator->() const
+	[[nodiscard]] constexpr const std::shared_ptr<const TObject> operator->() const
 	{
 		_CheckOwnership();
 		return m_pKeeper->GetResource();
 	}
 
-	[[nodiscard]]
-	constexpr const TObject& Get() const
+	[[nodiscard]] constexpr const TObject& Get() const
 	{
 		_CheckOwnership();
 		return *m_pKeeper->GetResource();
 	}
 
-	[[nodiscard]]
-	constexpr const TObject& operator()() const
+	[[nodiscard]] constexpr const TObject& operator()() const
 	{
 		_CheckOwnership();
 		return *m_pKeeper->GetResource();
 	}
 
-	template<class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
-	[[nodiscard]]
-	constexpr decltype(auto) begin() const
+	template <class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	[[nodiscard]] constexpr decltype(auto) begin() const
 	{
 		_CheckOwnership();
 		return m_pKeeper->GetResource()->begin();
 	}
-	
-	template<class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
-	[[nodiscard]]
-	constexpr decltype(auto) end() const
+
+	template <class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	[[nodiscard]] constexpr decltype(auto) end() const
 	{
 		_CheckOwnership();
 		return m_pKeeper->GetResource()->end();
 	}
 
-	template<class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
-	[[nodiscard]]
-	constexpr decltype(auto) size() const
+	template <class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	[[nodiscard]] constexpr decltype(auto) size() const
 	{
 		_CheckOwnership();
 		return m_pKeeper->GetResource()->size();
 	}
 
-	template<class TKey>
-	[[nodiscard]]
-	constexpr const auto& operator[](const TKey& oKey) const
+	template <class TKey>
+	[[nodiscard]] constexpr const auto& operator[](const TKey& oKey) const
 	{
 		_CheckOwnership();
 		return (*m_pKeeper->GetResource())[oKey];
@@ -313,17 +291,15 @@ public:
 		m_oConcurrentLock.lock();
 	}
 
-	template <class TCondition, class TPredicate> 
-		requires Constraints::condition_variable_pred<TCondition, std::shared_lock<std::shared_mutex>, TPredicate>
-	constexpr decltype(auto) Wait(TCondition& cv, TPredicate&& pred) const
+	template <class TCondition, class TPredicate>
+	requires Constraints::condition_variable_pred<TCondition, std::shared_lock<std::shared_mutex>, TPredicate> constexpr decltype(auto) Wait(TCondition& cv, TPredicate&& pred) const
 	{
 		_CheckOwnership();
 		return cv.wait(m_oConcurrentLock, std::move(pred));
 	}
 
 	template <class TCondition>
-		requires Constraints::condition_variable<TCondition, std::shared_lock<std::shared_mutex>>
-	constexpr decltype(auto) Wait(TCondition& cv) const
+	requires Constraints::condition_variable<TCondition, std::shared_lock<std::shared_mutex>> constexpr decltype(auto) Wait(TCondition& cv) const
 	{
 		_CheckOwnership();
 		return cv.wait(m_oConcurrentLock);
@@ -369,32 +345,28 @@ public:
 		std::swap(oObject, *m_pResource);
 	}
 
-	[[nodiscard]]
-	constexpr TObject MoveResource() noexcept
+	[[nodiscard]] constexpr TObject MoveResource() noexcept
 	{
 		return std::move(*m_pResource);
 	}
 
-	[[nodiscard]]
-	constexpr const std::shared_ptr<std::shared_mutex> GetMutex() const noexcept
+	[[nodiscard]] constexpr const std::shared_ptr<std::shared_mutex> GetMutex() const noexcept
 	{
 		return m_pMutex;
 	}
-	
-	[[nodiscard]]
-	constexpr const std::shared_ptr<TObject> GetResource() noexcept
+
+	[[nodiscard]] constexpr const std::shared_ptr<TObject> GetResource() noexcept
 	{
 		return m_pResource;
 	}
 
-	[[nodiscard]]
-	constexpr const std::shared_ptr<const TObject> GetResource() const noexcept
+	[[nodiscard]] constexpr const std::shared_ptr<const TObject> GetResource() const noexcept
 	{
 		return m_pResource;
 	}
 
 private:
-	std::shared_ptr<TObject> m_pResource = std::make_shared<TObject>();
+	std::shared_ptr<TObject> m_pResource			  = std::make_shared<TObject>();
 	const std::shared_ptr<std::shared_mutex> m_pMutex = std::make_shared<std::shared_mutex>();
 };
 
@@ -406,17 +378,17 @@ private:
 /// <example>
 /// <code>
 ///  Concurrent::ResourceOwner<std::unordered_map<int, int>> oMap; //Can be Concurrent::UnorderedMap<int, int> oMap;
-/// 
+///
 /// // exclusive access with lifetime of one operation
-/// oMap.Exclusive()->emplace(5, 3); 
+/// oMap.Exclusive()->emplace(5, 3);
 /// { // exclusive access with extended lifetime for more that only one
 ///		auto oScope = oMap.Exclusive();
 ///		oScope->emplace(6, 4);
 ///	} // exclusive access ends
-/// 
+///
 /// // Concurrent access with lifetime of one operation
-/// auto iResult = oMap.Concurrent()->at(5); 
-/// 
+/// auto iResult = oMap.Concurrent()->at(5);
+///
 /// { // concurrent access with extended lifetime for more that only one
 ///		auto oScope = oMap.Concurrent();
 ///		auto iResultScope = oScope->at(6);
@@ -439,14 +411,12 @@ public:
 		ExclusiveResourceHolder<TObject> oFinish(m_pKeeper);
 	}
 
-	[[nodiscard]]
-	constexpr ExclusiveResourceHolder<TObject> Exclusive() noexcept
+	[[nodiscard]] constexpr ExclusiveResourceHolder<TObject> Exclusive() noexcept
 	{
 		return ExclusiveResourceHolder<TObject>(m_pKeeper);
 	}
 
-	[[nodiscard]]
-	constexpr ConcurrentResourceHolder<TObject> Concurrent() const noexcept
+	[[nodiscard]] constexpr ConcurrentResourceHolder<TObject> Concurrent() const noexcept
 	{
 		return ConcurrentResourceHolder<TObject>(m_pKeeper);
 	}
@@ -457,46 +427,46 @@ private:
 
 /// Pre-defined conversions ///
 
-template <class ... Args>
+template <class... Args>
 using List = ResourceOwner<std::list<Args...>>;
 
-template <class ... Args>
+template <class... Args>
 using Queue = ResourceOwner<std::queue<Args...>>;
 
-template <class ... Args>
+template <class... Args>
 using Stack = ResourceOwner<std::stack<Args...>>;
 
-template <class ... Args>
+template <class... Args>
 using Array = ResourceOwner<std::array<Args...>>;
 
-template <class ... Args>
+template <class... Args>
 using Vector = ResourceOwner<std::vector<Args...>>;
 
-template <class ... Args>
+template <class... Args>
 using Set = ResourceOwner<std::set<Args...>>;
 
-template <class ... Args>
+template <class... Args>
 using Map = ResourceOwner<std::map<Args...>>;
 
-template <class ... Args>
+template <class... Args>
 using MultiSet = ResourceOwner<std::multiset<Args...>>;
 
-template <class ... Args>
+template <class... Args>
 using MultiMap = ResourceOwner<std::multimap<Args...>>;
 
-template <class ... Args>
+template <class... Args>
 using UnorderedSet = ResourceOwner<std::unordered_set<Args...>>;
 
-template <class ... Args>
+template <class... Args>
 using UnorderedMap = ResourceOwner<std::unordered_map<Args...>>;
 
-template <class ... Args>
+template <class... Args>
 using UnorderedMultiSet = ResourceOwner<std::unordered_multiset<Args...>>;
 
-template <class ... Args>
+template <class... Args>
 using UnorderedMultiMap = ResourceOwner<std::unordered_multimap<Args...>>;
 
 template <class T>
 using Functor = ResourceOwner<std::function<T>>;
 
-} // namespace Concurrent 
+} // namespace Concurrent
