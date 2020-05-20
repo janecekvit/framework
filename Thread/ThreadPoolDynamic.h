@@ -1,15 +1,15 @@
 #pragma once
-#include <list>
-#include <queue>
-#include <mutex>
+#include "Framework/Sync/WaitForMultipleConditions.h"
+#include "Framework/Thread/ThreadPool.h"
+
 #include <atomic>
 #include <functional>
-
-#include "Framework/Thread/ThreadPool.h"
-#include "Framework/Sync/WaitForMultipleConditions.h"
+#include <list>
+#include <mutex>
+#include <queue>
 
 /// <summary>
-/// 
+///
 /// Dynamic size thread pool that executes the task from the queue.
 /// When the tasks queue is bigger than the multiplied thread by difference, the pool will be doubled.
 /// Otherwise, when tasks queue is 8x smaller than current thread pool size, size is halved.
@@ -45,10 +45,10 @@ private:
 		eReduce,
 		eDealloc,
 	};
-	
-	const double m_dDifference = 0;
-	const size_t m_uMinimumPoolSize = 0;
-	const size_t m_uPoolMultiplier = 2;
+
+	const double m_dDifference				   = 0;
+	const size_t m_uMinimumPoolSize			   = 0;
+	const size_t m_uPoolMultiplier			   = 2;
 	const size_t m_uPoolDeallocationMultiplier = 8;
 
 	std::thread m_oThread;

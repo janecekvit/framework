@@ -1,17 +1,15 @@
 #include "ThreadPoolDynamic.h"
 
-
 ThreadPoolDynamic::ThreadPoolDynamic(size_t uiPoolSize, const double uDifference, WorkerErrorCallback&& fnCallback)
 	: ThreadPool(uiPoolSize, std::move(fnCallback), [this]()
-	{
-		return _PoolCallback();
-	})
+		  {
+			  return _PoolCallback();
+		  })
 	, m_dDifference(uDifference)
 	, m_uMinimumPoolSize(uiPoolSize)
-{	
+{
 	m_oThread = std::thread(&ThreadPoolDynamic::_PoolController, this);
 }
-
 
 ThreadPoolDynamic::~ThreadPoolDynamic()
 {
@@ -28,9 +26,9 @@ void ThreadPoolDynamic::AddTask(Task&& fn) noexcept
 {
 	if (_Exit())
 		return;
-	
+
 	size_t uCurrentQueueSize = Size();
-	size_t uCurrentPoolSize = PoolSize();
+	size_t uCurrentPoolSize	 = PoolSize();
 
 	//Check if Task _Queue is bigger that multiplier of the list of workers -> increase thread pool.
 	if (uCurrentQueueSize > m_dDifference * uCurrentPoolSize)
@@ -39,7 +37,6 @@ void ThreadPoolDynamic::AddTask(Task&& fn) noexcept
 	//Check if Task _Queue is smaller than the minimum pool size and smaller that multiplier of the list of workers.
 	else if ((uCurrentPoolSize > m_uMinimumPoolSize) && ((uCurrentQueueSize * m_uPoolDeallocationMultiplier) < uCurrentPoolSize))
 		m_cvDynamicPoolEvent.notify_one(static_cast<size_t>(EConditionEvents::eReduce));
-
 
 	//Call base task
 	ThreadPool::AddTask(std::move(fn));
@@ -73,9 +70,9 @@ void ThreadPoolDynamic::_PoolController()
 				if (!_IsDeallocationEnabled() && _IsDeallocationFinished())
 				{
 					_AddWorkers(PoolSize(), [this]()
-					{
-						return _PoolCallback();
-					});
+						{
+							return _PoolCallback();
+						});
 				}
 			}
 			else if (eEvent == EConditionEvents::eReduce)
@@ -96,7 +93,7 @@ void ThreadPoolDynamic::_PoolController()
 void ThreadPoolDynamic::_DeallocateWorkers()
 {
 	//release workers
-	auto&& oScope = _Pool().Exclusive();
+	auto&& oScope		 = _Pool().Exclusive();
 	auto&& oDeallocation = m_oDeallocatedWorkers.Concurrent();
 	for (std::list<Worker>::iterator it = oScope->begin(); it != oScope->end();)
 	{
@@ -115,7 +112,7 @@ bool ThreadPoolDynamic::_PoolCallback()
 
 	if (!_IsDeallocationEnabled())
 		return false;
-	
+
 	//Decrement reference counter and save thread id
 	m_uDeallocationPoolSize--;
 	m_oDeallocatedWorkers.Exclusive()->emplace(std::this_thread::get_id());
@@ -126,6 +123,6 @@ bool ThreadPoolDynamic::_PoolCallback()
 		//Notify controller to delete memory (Garbage Collector)
 		m_cvDynamicPoolEvent.notify_one(static_cast<size_t>(EConditionEvents::eDealloc));
 	}
-	
+
 	return true;
 }

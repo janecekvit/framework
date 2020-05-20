@@ -11,21 +11,20 @@ namespace Extensions
 template <class T>
 class ArrayView
 {
-	using TPointer = T*;
+	using TPointer		= T*;
 	using TConstPointer = const T*;
+
 public:
 	constexpr ArrayView(TPointer pPtr, size_t iIndex)
 		: m_pValue(pPtr)
 		, m_iIndex(static_cast<std::ptrdiff_t>(iIndex))
 	{
-
 	}
 
 	constexpr ArrayView(std::basic_string<T>&& data)
 		: m_pValue(data.data())
 		, m_iIndex(static_cast<std::ptrdiff_t>(data.size()))
 	{
-
 	}
 	virtual ~ArrayView() = default;
 
@@ -33,7 +32,7 @@ public:
 	{
 		return m_pValue;
 	}
-	
+
 	constexpr TConstPointer Data() const noexcept
 	{
 		return m_pValue;
@@ -45,8 +44,8 @@ public:
 	}
 
 private:
-	const TPointer m_pValue {};
-	const std::ptrdiff_t m_iIndex {};
+	const TPointer m_pValue{};
+	const std::ptrdiff_t m_iIndex{};
 };
 
-}
+} // namespace Extensions

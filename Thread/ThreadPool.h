@@ -29,22 +29,21 @@ Purpose: header file of static thread pool class
 */
 
 #pragma once
+#include "Framework/Extensions/Concurrent.h"
+#include "IThreadPool.h"
+
+#include <atomic>
 #include <list>
 #include <queue>
-#include <atomic>
-
-#include "IThreadPool.h"
-#include "Framework/Extensions/Concurrent.h"
-
 
 /// <summary>
 /// Fixed sized thread pool that executes the task from the queue.
 /// </summary>
-class ThreadPool 
+class ThreadPool
 	: public virtual IThreadPool
 {
 public:
-	using WorkerCallback = typename std::function<bool()>;
+	using WorkerCallback	  = typename std::function<bool()>;
 	using WorkerErrorCallback = typename std::function<void(const std::exception&)>;
 
 protected:
@@ -52,9 +51,9 @@ protected:
 	{
 	public:
 		Worker(ThreadPool& oParentPool, std::optional<WorkerCallback>&& optTask);
-		
+
 		virtual ~Worker();
-		
+
 		std::thread::id Id() const noexcept;
 
 	protected:

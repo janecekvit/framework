@@ -1,4 +1,5 @@
 #include "ThreadPool.h"
+
 #include <thread>
 
 ThreadPool::Worker::Worker(ThreadPool& oParentPool, std::optional<WorkerCallback>&& optTask)
@@ -49,10 +50,9 @@ ThreadPool::ThreadPool(size_t uiPoolSize, WorkerErrorCallback&& fnCallback, std:
 	_AddWorkers(uiPoolSize, std::move(optTask));
 }
 
-
 ThreadPool::~ThreadPool()
 {
-	//Finish thread pool and wait for 
+	//Finish thread pool and wait for
 	m_bEndFlag = true;
 	m_cvPoolEvent.notify_all();
 	m_oWorkers.Exclusive()->clear();
@@ -72,9 +72,9 @@ void ThreadPool::WaitAll() const noexcept
 {
 	auto&& oScope = m_queueTask.Concurrent();
 	oScope.Wait(_WaitEvent(), [&oScope, this]()
-	{
-		return oScope->empty() || _Exit();
-	});
+		{
+			return oScope->empty() || _Exit();
+		});
 }
 
 size_t ThreadPool::Size() const noexcept
@@ -92,12 +92,12 @@ std::optional<ThreadPool::Task> ThreadPool::_GetTask() noexcept
 	// Wait for the signal and unblock queue until the signal will be received
 	auto&& oScope = m_queueTask.Exclusive();
 	oScope.Wait(_Event(), [&oScope, this]()
-	{
-		if (oScope->empty())
-			m_cvWaitEvent.notify_all();
+		{
+			if (oScope->empty())
+				m_cvWaitEvent.notify_all();
 
-		return !oScope->empty() || _Exit();
-	});
+			return !oScope->empty() || _Exit();
+		});
 
 	if (_Exit())
 		return {};
