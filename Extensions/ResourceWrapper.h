@@ -9,7 +9,7 @@ Purpose:	header file contains RAII pattern
 
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
-@version 1.03 21/04/2020
+@version 1.04 24/05/2020
 */
 
 #include "Framework/Extensions/Extensions.h"
@@ -22,6 +22,8 @@ namespace Extensions
 /// The wrapper implemented own deleter that gains functionality to release all used resources correctly.
 /// Method derives from the GetterSetter class to using input resource with implicit conversions.
 /// Ensure that deleter's body can be called multiple times to handle deallocations of the same resource in case of CopyConstructible methods of this wrapper are used.
+/// When TDestuctorThrowException is set to true, destructor can raise exception when TDeleter functor fails or isn't initialized.
+/// Throwing an exception out of a destructor is dangerous. If another exception is already propagating the application will terminate. Be careful with this.
 /// </summary>
 /// <example>
 /// <code>
@@ -32,11 +34,12 @@ namespace Extensions
 ///	bool open = oWrapperFile->is_open();
 /// </code>
 /// </example>
-template <class TResource>
+template <class TResource, bool TDestuctorThrowException = false>
 class ResourceWrapper
 {
 public:
-	class DeleterMissingException : public std::exception
+	class DeleterMissingException
+		: public std::exception
 	{
 	public:
 		DeleterMissingException(const std::type_info& typeInfo) noexcept
@@ -59,7 +62,13 @@ public:
 	using TDeleter		 = typename TAccessor;
 
 public:
-	virtual ~ResourceWrapper()	= default;
+	virtual ~ResourceWrapper() noexcept(!TDestuctorThrowException)
+	{
+		m_pResource.reset();
+		if constexpr (TDestuctorThrowException == true)
+			_CheckDeleter();
+	}
+
 	constexpr ResourceWrapper() = delete;
 
 	constexpr ResourceWrapper(TDeleter&& fnDeleter)
@@ -113,18 +122,21 @@ public:
 
 	constexpr ResourceWrapper& operator=(const TResource& oResource)
 	{
+		_CheckDeleter();
 		m_pResource = _CreateResource(oResource, TDeleter(m_oDeleter));
 		return *this;
 	}
 
 	constexpr ResourceWrapper& operator=(TResource&& oResource)
 	{
+		_CheckDeleter();
 		m_pResource = _CreateResource(std::move(oResource), TDeleter(m_oDeleter));
 		return *this;
 	}
 
 	constexpr void Reset()
 	{
+		_CheckDeleter();
 		m_pResource = _CreateResource(nullptr, TDeleter(m_oDeleter));
 	}
 
@@ -217,10 +229,14 @@ protected:
 
 				delete pResource;
 				pResource = nullptr;
-
-				if (!fnStoredDeleter)
-					throw DeleterMissingException(typeid(fnStoredDeleter));
 			});
+	}
+
+protected:
+	void _CheckDeleter() const
+	{
+		if (!m_oDeleter)
+			throw DeleterMissingException(typeid(std::declval<TDeleter>()));
 	}
 
 protected:

@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="Common\Definitions.cpp" />
     <ClCompile Include="Common\Utility.cpp" />
+    <ClCompile Include="Crypto\CertUtils.cpp" />
     <ClCompile Include="Crypto\CryptoUtils.cpp" />
     <ClCompile Include="Crypto\Schannel.cpp" />
     <ClCompile Include="Crypto\SchannelUtils.cpp" />
@@ -36,6 +37,7 @@
     <ClInclude Include="Common\Definitions.h" />
     <ClInclude Include="Common\Utility.h" />
     <ClInclude Include="Common\WinInclude.h" />
+    <ClInclude Include="Crypto\CertUtils.h" />
     <ClInclude Include="Crypto\CryptoUtils.h" />
     <ClInclude Include="Crypto\Schannel.h" />
     <ClInclude Include="Crypto\SchannelUtils.h" />
