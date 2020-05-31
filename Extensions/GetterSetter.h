@@ -185,56 +185,70 @@ private: // private set
 
 public: // public get
 	template <class TModifier = TGetter, std::enable_if_t<std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]] constexpr operator auto() const& -> const TResource&
+	[[nodiscard]] constexpr operator auto() const& noexcept -> const TResource&
 	{
 		return m_oResource;
 	}
 
 private: // private get
 	template <class TModifier = TGetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]] constexpr operator auto() const& -> const TResource&
+	[[nodiscard]] constexpr operator auto() const& noexcept -> const TResource&
 	{
 		return m_oResource;
 	}
 
 public: // public set
 	template <class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	[[nodiscard]] constexpr operator auto() & -> TResource&
+	[[nodiscard]] constexpr operator auto() & noexcept -> TResource&
 	{
 		return m_oResource;
 	}
 
 private: // private set
 	template <class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	[[nodiscard]] constexpr operator auto() & -> TResource&
+	[[nodiscard]] constexpr operator auto() & noexcept -> TResource&
 	{
 		return m_oResource;
 	}
 
 public: // public set
 	template <class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	[[nodiscard]] constexpr operator auto() && -> TResource&&
+	[[nodiscard]] constexpr operator auto() && noexcept -> TResource&&
 	{
 		return std::move(m_oResource);
 	}
 
 private: // private set
 	template <class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	[[nodiscard]] constexpr operator auto() && -> TResource&&
+	[[nodiscard]] constexpr operator auto() && noexcept -> TResource&&
 	{
 		return std::move(m_oResource);
 	}
 
-public: // public get
-	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_explicitly_convertible_v<TQuantified, bool> && std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+public: // public get -> bool operator const: cannot be called for native bool to avoid interfering with operator auto()
+	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<std::is_convertible_v<TQuantified, bool> && !std::is_same_v<TQuantified, bool> && std::is_same_v<TModifier, DefaultGetter>, int> = 0>
 	[[nodiscard]] constexpr explicit operator bool() const noexcept
 	{
 		return static_cast<bool>(m_oResource);
 	}
 
-private: // private get
-	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<Constraints::is_explicitly_convertible_v<TQuantified, bool> && !std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+private: // private get -> bool operator const: cannot be called for native bool to avoid interfering with operator auto()
+	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<std::is_convertible_v<TQuantified, bool> && !std::is_same_v<TQuantified, bool>&& !std::is_same_v<TModifier, DefaultGetter>, int> = 0>
 	[[nodiscard]] constexpr explicit operator bool() const noexcept
+	{
+		return static_cast<bool>(m_oResource);
+	}
+
+public: // public get -> bool operator const: cannot be called for native bool to avoid interfering with operator auto() + we can handle non-cost variable because bool is captured by value
+	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<std::is_convertible_v<TQuantified, bool> && !std::is_same_v<TQuantified, bool> && std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+	[[nodiscard]] constexpr explicit operator bool() noexcept
+	{
+		return static_cast<bool>(m_oResource);
+	}
+
+private: // private get -> bool operator const: cannot be called for native bool to avoid interfering with operator auto() + we can handle non-cost variable because bool is captured by value
+	template <class TQuantified = TResource, class TModifier = TGetter, std::enable_if_t<std::is_convertible_v<TQuantified, bool> && !std::is_same_v<TQuantified, bool> && !std::is_same_v<TModifier, DefaultGetter>, int> = 0>
+	[[nodiscard]] constexpr explicit operator bool() noexcept
 	{
 		return static_cast<bool>(m_oResource);
 	}
