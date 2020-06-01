@@ -9,7 +9,7 @@ Purpose:	header file contains Getter/Setter mechanism
 
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
-@version 1.08 15/05/2020
+@version 1.09 01/06/2020
 */
 
 #include "Framework/Extensions/Constraints.h"
