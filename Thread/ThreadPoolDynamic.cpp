@@ -97,7 +97,7 @@ void ThreadPoolDynamic::_DeallocateWorkers()
 	auto&& oDeallocation = m_oDeallocatedWorkers.Concurrent();
 	for (std::list<Worker>::iterator it = oScope->begin(); it != oScope->end();)
 	{
-		//Deallocated worker -> Join workrer and release resources
+		//Deallocated worker -> Join worker and release resources
 		if (oDeallocation->find(it->Id()) != oDeallocation->end())
 			oScope->erase(it++);
 		else //Or Get next
