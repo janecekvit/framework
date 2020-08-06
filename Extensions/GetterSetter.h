@@ -185,56 +185,56 @@ private: // private set
 
 public: // public get
 	template <class TModifier = TGetter, std::enable_if_t<std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]] constexpr operator auto() const& noexcept -> const TResource&
+	[[nodiscard]] constexpr operator const TResource&() const& noexcept
 	{
 		return m_oResource;
 	}
 
 private: // private get
 	template <class TModifier = TGetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]] constexpr operator auto() const& noexcept -> const TResource&
+	[[nodiscard]] constexpr operator const TResource&() const& noexcept
 	{
 		return m_oResource;
 	}
 
 public: // public get
 	template <class TModifier = TGetter, std::enable_if_t<std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]] constexpr operator auto() & noexcept -> const TResource&
+	[[nodiscard]] constexpr operator const TResource&() & noexcept
 	{
 		return m_oResource;
 	}
 
 private: // private get
 	template <class TModifier = TGetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultGetter>, int> = 0>
-	[[nodiscard]] constexpr operator auto() & noexcept -> const TResource&
+	[[nodiscard]] constexpr operator const TResource&() & noexcept
 	{
 		return m_oResource;
 	}
 
 public: // public set
 	template <class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	[[nodiscard]] constexpr operator auto() & noexcept -> TResource&
+	[[nodiscard]] constexpr operator TResource&() & noexcept
 	{
 		return m_oResource;
 	}
 
 private: // private set
 	template <class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	[[nodiscard]] constexpr operator auto() & noexcept -> TResource&
+	[[nodiscard]] constexpr operator TResource&() & noexcept
 	{
 		return m_oResource;
 	}
 
 public: // public set
 	template <class TModifier = TSetter, std::enable_if_t<std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	[[nodiscard]] constexpr operator auto() && noexcept -> TResource&&
+	[[nodiscard]] constexpr operator TResource&&() && noexcept
 	{
 		return std::move(m_oResource);
 	}
 
 private: // private set
 	template <class TModifier = TSetter, std::enable_if_t<!std::is_same_v<TModifier, DefaultSetter>, int> = 0>
-	[[nodiscard]] constexpr operator auto() && noexcept -> TResource&&
+	[[nodiscard]] constexpr operator TResource&&() && noexcept
 	{
 		return std::move(m_oResource);
 	}

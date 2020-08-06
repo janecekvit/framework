@@ -150,17 +150,17 @@ public:
 		fnAccess(*m_pResource);
 	}
 
-	[[nodiscard]] constexpr operator auto() const& -> const TResource&
+	[[nodiscard]] constexpr operator const TResource&() const&
 	{
 		return *m_pResource;
 	}
 
-	[[nodiscard]] constexpr operator auto() & -> TResource&
+	[[nodiscard]] constexpr operator TResource&() &
 	{
 		return *m_pResource;
 	}
 
-	[[nodiscard]] constexpr operator auto() && -> TResource&&
+	[[nodiscard]] constexpr operator TResource&&() &&
 	{
 		return std::move(*m_pResource);
 	}
