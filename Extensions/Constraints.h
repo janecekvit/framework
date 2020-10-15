@@ -118,7 +118,7 @@ template <class T>
 constexpr bool is_container_v = is_container<T>::value;
 
 /// <summary>
-/// Helper structures to determine if template type <T> thats is container with associative find
+/// Helper structures to determine if template type <T> thats is concurrent container with associative find
 /// </summary>
 template <class T, class = void, class = void>
 struct is_concurrent_container_helper : std::false_type
