@@ -7,7 +7,7 @@ Purpose:	header file contains set of extended constraints to describe stl contai
 
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
-@version 1.14 16/04/2020
+@version 1.16 15/10/2020
 */
 
 #pragma once
@@ -118,7 +118,25 @@ template <class T>
 constexpr bool is_container_v = is_container<T>::value;
 
 /// <summary>
-/// Helper structures to determine if template type <T> is interator
+/// Helper structures to determine if template type <T> thats is container with associative find
+/// </summary>
+template <class T, class = void, class = void>
+struct is_concurrent_container_helper : std::false_type
+{
+};
+template <class T>
+struct is_concurrent_container_helper<T, std::void_t<decltype(std::declval<T>().Concurrent())>, std::void_t<decltype(std::declval<T>().Exclusive())>> : std::true_type
+{
+};
+template <class T>
+struct is_concurrent_container : is_concurrent_container_helper<typename std::remove_cv<T>::type>
+{
+};
+template <class T>
+constexpr bool is_concurrent_container_v = is_concurrent_container<T>::value;
+
+/// <summary>
+/// Helper structures to determine if template type <T> is iterator
 /// </summary>
 template <class T, class = void>
 struct is_iterator_helper : std::false_type
