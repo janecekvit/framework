@@ -41,7 +41,6 @@
     <ClInclude Include="Crypto\CryptoUtils.h" />
     <ClInclude Include="Crypto\Schannel.h" />
     <ClInclude Include="Crypto\SchannelUtils.h" />
-    <ClInclude Include="Extensions\ArrayView.h" />
     <ClInclude Include="Extensions\Concurrent.h" />
     <ClInclude Include="Extensions\Constraints.h" />
     <ClInclude Include="Extensions\Extensions.h" />
