@@ -466,7 +466,6 @@ public:
 	template <class... Args>
 	[[nodiscard]] constexpr std::tuple<Args...> GetPack() const
 	{
-		std::tuple<Args...> oTuple = {};
 		if (m_listArgs.size() != sizeof...(Args))
 			throw std::invalid_argument("Bad number of input arguments!");
 
