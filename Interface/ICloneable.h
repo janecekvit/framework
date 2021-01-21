@@ -1,3 +1,4 @@
+#pragma once
 /*
 Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 Copyright (c) 2019 Vit janecek <mailto:janecekvit@outlook.com>.
@@ -28,8 +29,9 @@ Purpose:	header file contains clone pattern mechanism
 @version 1.01 17/03/2019
 */
 
-#include <memory>
 #include "ICRTP.h"
+
+#include <memory>
 
 /// <summary>
 /// Interface implementing cloneable pattern with unique pointer, where templated type is type of the used class.
@@ -74,9 +76,8 @@ protected:
 	virtual TDerived* _CloneImpl() const = 0;
 };
 
-
 template <class TDerived>
-class ICloneable: public ICRTP<TDerived>
+class ICloneable : public ICRTP<TDerived>
 {
 public:
 	/// <summary>
@@ -90,8 +91,8 @@ public:
 	/// <returns>returns memory-safe free pointer to this instance of object</returns>
 	std::unique_ptr<TDerived> Clone() const
 	{
-		static_assert(std::is_member_function_pointer_v<decltype(UnderlyingType().Clone())>, "No function implementation in the derived class");
-		return UnderlyingType().Clone();
+		static_assert(std::is_member_function_pointer_v<decltype(UnderlyingType<TDerived>().Clone())>, "No function implementation in the derived class");
+		return UnderlyingType<TDerived>().Clone();
 	}
 
 protected:
@@ -101,7 +102,7 @@ protected:
 	/// <returns>returns RAW pointer to this instance of object</returns>
 	TDerived* _CloneImpl() const
 	{
-		static_assert(std::is_member_function_pointer_v<decltype(UnderlyingType()._CloneImpl())>, "No function implementation in the derived class");
-		return UnderlyingType()._CloneImpl();
+		static_assert(std::is_member_function_pointer_v<decltype(UnderlyingType<TDerived>()._CloneImpl())>, "No function implementation in the derived class");
+		return UnderlyingType<TDerived>()._CloneImpl();
 	}
 };

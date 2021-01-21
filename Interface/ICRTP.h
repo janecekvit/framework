@@ -1,3 +1,4 @@
+#pragma once
 /*
 Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 Copyright (c) 2019 Vit janecek <mailto:janecekvit@outlook.com>.
@@ -28,9 +29,8 @@ Purpose:	header file contains CRTP pattern mechanism
 @version 1.01 17/03/2019
 */
 
-#include <memory>
 #include <iostream>
-
+#include <memory>
 
 /// <summary>
 /// Interface implementing Curiously recurring template pattern.
@@ -83,4 +83,3 @@ public:
 		return static_cast<const TDerived&>(*this);
 	}
 };
-

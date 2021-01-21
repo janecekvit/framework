@@ -290,7 +290,7 @@ private:
 	// Main class
 public:
 	using Parameters = std::list<std::shared_ptr<ParameterBase>>;
-
+	ParameterPackLegacy()		   = default;
 	virtual ~ParameterPackLegacy() = default;
 
 	template <class... Args>
@@ -453,6 +453,7 @@ class ParameterPack
 public:
 	using Parameters = std::list<std::any>;
 
+	ParameterPack()			 = default;
 	virtual ~ParameterPack() = default;
 
 	template <class... Args>
