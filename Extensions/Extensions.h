@@ -506,9 +506,10 @@ protected:
 
 			return std::tuple_cat(oTuple, std::tuple<Rest...>());
 		}
-		catch (const std::bad_any_cast&)
+		catch (const std::bad_any_cast& ex)
 		{
-			return std::tuple<T, Rest...>{};
+			using namespace std::string_literals;
+			throw std::invalid_argument("Wrong input type "s + ex.what() + "!");
 		}
 	}
 
