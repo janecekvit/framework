@@ -9,9 +9,10 @@ Purpose:	header file contains RAII pattern
 
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
-@version 1.04 24/05/2020
+@version 1.06 10/06/2021
 */
 
+#include "Framework/Extensions/Constraints.h"
 #include "Framework/Extensions/Extensions.h"
 
 #include <functional>
@@ -201,16 +202,28 @@ public:
 		return *m_pResource;
 	}
 
-	template <class TQuantified = TResource, std::enable_if_t<!std::is_pointer_v<TQuantified>, int> = 0>
+	template <class TQuantified = TResource, std::enable_if_t<!std::is_pointer_v<TQuantified> && !Constraints::is_shared_ptr_v<TQuantified>, int> = 0>
 	[[nodiscard]] constexpr auto operator->() & noexcept -> TResource*
 	{
 		return std::addressof(*m_pResource);
 	}
 
-	template <class TQuantified = TResource, std::enable_if_t<!std::is_pointer_v<TQuantified>, int> = 0>
+	template <class TQuantified = TResource, std::enable_if_t<!std::is_pointer_v<TQuantified> && !Constraints::is_shared_ptr_v<TQuantified>, int> = 0>
 	[[nodiscard]] constexpr auto operator->() const& noexcept -> const TResource*
 	{
 		return std::addressof(*m_pResource);
+	}
+
+	template <class TQuantified = TResource, std::enable_if_t<!std::is_pointer_v<TQuantified> && Constraints::is_shared_ptr_v<TQuantified>, int> = 0>
+	[[nodiscard]] constexpr decltype(auto) operator->() & noexcept
+	{
+		return *m_pResource;
+	}
+
+	template <class TQuantified = TResource, std::enable_if_t<!std::is_pointer_v<TQuantified> && Constraints::is_shared_ptr_v<TQuantified>, int> = 0>
+	[[nodiscard]] constexpr decltype(auto) operator->() const& noexcept
+	{
+		return *m_pResource;
 	}
 
 	[[nodiscard]] constexpr TResource* operator&()
