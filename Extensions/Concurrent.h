@@ -13,8 +13,6 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 @version 1.05 17/03/2019
 */
 
-//#define LOCK_PARAMS __FILE__, __func__, __LINE__
-
 #pragma once
 #include "Framework/Extensions/Constraints.h"
 
@@ -31,6 +29,7 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <source_location>
 
 ///Namespace owns set of thread-safe concurrent containers and methods that implemented over basic stl containers
 /// and thread-safe methods for every possiblle concurrent object
@@ -50,9 +49,10 @@ template <class TObject>
 class ExclusiveResourceHolder
 {
 public:
-	constexpr ExclusiveResourceHolder(const std::shared_ptr<ResourceKeeper<TObject>>& pKeeper) noexcept
+	constexpr ExclusiveResourceHolder(const std::shared_ptr<ResourceKeeper<TObject>>& pKeeper, std::source_location&& srcl) noexcept
 		: m_pKeeper(pKeeper)
 		, m_oExclusiveLock(std::unique_lock<std::shared_mutex>(*pKeeper->GetMutex()))
+		, m_srcl(srcl)
 	{
 	}
 
@@ -61,6 +61,7 @@ public:
 	constexpr ExclusiveResourceHolder(ExclusiveResourceHolder&& oOther) noexcept
 		: m_pKeeper(std::move(oOther.m_pKeeper))
 		, m_oExclusiveLock(std::move(oOther.m_oExclusiveLock))
+		, m_srcl(std::move(oOther.m_srcl))
 	{
 	}
 
@@ -190,6 +191,7 @@ private:
 	}
 
 private:
+	const std::source_location m_srcl;
 	std::shared_ptr<ResourceKeeper<TObject>> m_pKeeper = nullptr;
 	mutable std::unique_lock<std::shared_mutex> m_oExclusiveLock;
 };
@@ -202,7 +204,7 @@ template <class TObject>
 class ConcurrentResourceHolder
 {
 public:
-	constexpr ConcurrentResourceHolder(const std::shared_ptr<const ResourceKeeper<TObject>>& pKeeper) noexcept
+	constexpr ConcurrentResourceHolder(const std::shared_ptr<const ResourceKeeper<TObject>>& pKeeper, std::source_location&& srcl) noexcept
 		: m_pKeeper(pKeeper)
 		, m_oConcurrentLock(std::shared_lock<std::shared_mutex>(*pKeeper->GetMutex()))
 	{
@@ -412,17 +414,17 @@ public:
 
 	virtual ~ResourceOwner()
 	{
-		ExclusiveResourceHolder<TObject> oFinish(m_pKeeper);
+		ExclusiveResourceHolder<TObject> oFinish(m_pKeeper, std::source_location::current());
 	}
 
-	[[nodiscard]] constexpr ExclusiveResourceHolder<TObject> Exclusive() noexcept
+	[[nodiscard]] constexpr ExclusiveResourceHolder<TObject> Exclusive(std::source_location srcl = std::source_location::current()) noexcept
 	{
-		return ExclusiveResourceHolder<TObject>(m_pKeeper);
+		return ExclusiveResourceHolder<TObject>(m_pKeeper, std::move(srcl));
 	}
 
-	[[nodiscard]] constexpr ConcurrentResourceHolder<TObject> Concurrent() const noexcept
+	[[nodiscard]] constexpr ConcurrentResourceHolder<TObject> Concurrent(std::source_location srcl = std::source_location::current()) const noexcept
 	{
-		return ConcurrentResourceHolder<TObject>(m_pKeeper);
+		return ConcurrentResourceHolder<TObject>(m_pKeeper, std::move(srcl));
 	}
 
 private:
