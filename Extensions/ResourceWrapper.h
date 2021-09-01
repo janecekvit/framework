@@ -91,13 +91,18 @@ public:
 	{
 	}
 
-	constexpr ResourceWrapper(const ResourceWrapper& oOther) requires std::is_copy_constructible_v<TResource>
+	constexpr ResourceWrapper(const ResourceWrapper& oOther) 
+		#if __cplusplus > __cpp_lib_concepts
+		requires std::is_copy_constructible_v<TResource>
+		#endif
 		: m_pResource(oOther.m_pResource)
 		, m_oDeleter(oOther.m_oDeleter)
 	{
 	}
 
+	#if __cplusplus > __cpp_lib_concepts
 	constexpr ResourceWrapper(const ResourceWrapper&) requires !std::is_copy_constructible_v<TResource> = delete;
+	#endif
 
 	constexpr ResourceWrapper(ResourceWrapper&& oOther) noexcept
 		: m_pResource(std::move(oOther.m_pResource))
@@ -105,14 +110,19 @@ public:
 	{
 	}
 
-	constexpr ResourceWrapper& operator=(const ResourceWrapper& oOther) requires std::is_copy_constructible_v<TResource>
+	constexpr ResourceWrapper& operator=(const ResourceWrapper& oOther) 
+		#if __cplusplus > __cpp_lib_concepts
+		requires std::is_copy_constructible_v<TResource>
+		#endif
 	{
 		m_oDeleter	= oOther.m_oDeleter;
 		m_pResource = oOther.m_pResource;
 		return *this;
 	}
 
+	#if __cplusplus > __cpp_lib_concepts
 	constexpr ResourceWrapper& operator=(const ResourceWrapper&) requires !std::is_copy_constructible_v<TResource> = delete;
+	#endif
 
 	constexpr ResourceWrapper& operator=(ResourceWrapper&& oOther) noexcept
 	{

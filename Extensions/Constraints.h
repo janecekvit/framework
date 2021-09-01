@@ -167,6 +167,7 @@ constexpr bool is_explicitly_convertible_v = is_explicitly_convertible<T, U>::va
 /// <summary>
 /// Helper concept to determine if template type <T> is condition variable
 /// </summary>
+#if __cplusplus > __cpp_lib_concepts
 template <class TCondition, class TLock>
 concept condition_variable = requires(TCondition& cv, TLock& lock)
 {
@@ -193,5 +194,7 @@ concept condition_variable_pred = condition_variable<TCondition, TLock>&& requir
 		cv.wait(lock, std::move(pred))
 	};
 };
+
+#endif
 
 } //namespace Constraints
