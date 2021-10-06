@@ -24,12 +24,12 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 #include <queue>
 #include <set>
 #include <shared_mutex>
+#include <source_location>
 #include <stack>
 #include <system_error>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <source_location>
 
 ///Namespace owns set of thread-safe concurrent containers and methods that implemented over basic stl containers
 /// and thread-safe methods for every possiblle concurrent object
@@ -168,7 +168,7 @@ public:
 	}
 
 	template <class TCondition, class TPredicate>
-	requires Constraints::condition_variable_pred<TCondition, std::unique_lock<std::shared_mutex>, TPredicate>
+	//requires Constraints::condition_variable_pred<TCondition, std::unique_lock<std::shared_mutex>, TPredicate>
 	constexpr decltype(auto) Wait(TCondition& cv, TPredicate&& pred) const
 	{
 		_CheckOwnership();
@@ -176,7 +176,7 @@ public:
 	}
 
 	template <class TCondition>
-	requires Constraints::condition_variable<TCondition, std::unique_lock<std::shared_mutex>>
+	//requires Constraints::condition_variable<TCondition, std::unique_lock<std::shared_mutex>>
 	constexpr decltype(auto) Wait(TCondition& cv) const
 	{
 		_CheckOwnership();
@@ -296,7 +296,7 @@ public:
 	}
 
 	template <class TCondition, class TPredicate>
-	requires Constraints::condition_variable_pred<TCondition, std::shared_lock<std::shared_mutex>, TPredicate>
+	//requires Constraints::condition_variable_pred<TCondition, std::shared_lock<std::shared_mutex>, TPredicate>
 	constexpr decltype(auto) Wait(TCondition& cv, TPredicate&& pred) const
 	{
 		_CheckOwnership();
@@ -304,7 +304,7 @@ public:
 	}
 
 	template <class TCondition>
-	requires Constraints::condition_variable<TCondition, std::shared_lock<std::shared_mutex>>
+	//requires Constraints::condition_variable<TCondition, std::shared_lock<std::shared_mutex>>
 	constexpr decltype(auto) Wait(TCondition& cv) const
 	{
 		_CheckOwnership();

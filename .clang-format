@@ -1,0 +1,70 @@
+# Visual Studio generated .clang-format file
+
+AccessModifierOffset: -4
+AlignEscapedNewlines: Left
+AlignAfterOpenBracket: DontAlign
+AlignOperands: Align
+AlignTrailingComments: true
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLambdasOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: false
+AlwaysBreakAfterReturnType: None
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: Latest
+BraceWrapping:
+  AfterClass: true
+  AfterCaseLabel: true
+  AfterControlStatement: true
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeCatch: true
+  BeforeElse: true
+  BeforeLambdaBody: true
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+BreakBeforeBraces: Custom
+ColumnLimit: 0
+Cpp11BracedListStyle: false
+IncludeBlocks: Regroup
+SortIncludes: true
+IncludeCategories:
+  - Regex:           'stdafx'
+    Priority:        -1
+IndentCaseLabels: true
+IndentPPDirectives: None
+IndentWidth: 4
+MaxEmptyLinesToKeep: 1
+KeepEmptyLinesAtTheStartOfBlocks: false
+NamespaceIndentation: None
+PointerAlignment: Left
+SortUsingDeclarations: true
+AlignConsecutiveAssignments: true
+BreakConstructorInitializers: BeforeComma
+BreakInheritanceList: BeforeComma
+AlwaysBreakTemplateDeclarations: Yes
+FixNamespaceComments: true
+SpacesBeforeTrailingComments: 1
+SpaceAfterTemplateKeyword: true
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceBeforeSquareBrackets: false
+SpacesInCStyleCastParentheses: false
+SpacesInConditionalStatement: false
+SpacesInContainerLiterals: false
+SpaceAfterCStyleCast: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesInCStyleCastParentheses: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+TabWidth: 4
+UseTab: true
