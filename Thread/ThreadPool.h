@@ -29,7 +29,7 @@ Purpose: header file of static thread pool class
 */
 
 #pragma once
-#include "Framework/Extensions/Concurrent.h"
+#include "Extensions/Concurrent.h"
 #include "IThreadPool.h"
 
 #include <atomic>
@@ -86,8 +86,8 @@ protected:
 	void _ErrorCallback(const std::exception& ex) noexcept;
 
 protected: //getters && setters
-	Concurrent::Queue<Task>& _Queue() noexcept;
-	Concurrent::List<Worker>& _Pool() noexcept;
+	concurrent::queue<Task>& _Queue() noexcept;
+	concurrent::list<Worker>& _Pool() noexcept;
 	std::condition_variable_any& _Event() const noexcept;
 	std::condition_variable_any& _WaitEvent() const noexcept;
 	bool _Exit() const noexcept;
@@ -100,6 +100,6 @@ private:
 	mutable std::condition_variable_any m_cvPoolEvent;
 	mutable std::condition_variable_any m_cvWaitEvent;
 
-	Concurrent::Queue<Task> m_queueTask;
-	Concurrent::List<Worker> m_oWorkers;
+	concurrent::queue<Task> m_queueTask;
+	concurrent::list<Worker> m_oWorkers;
 };

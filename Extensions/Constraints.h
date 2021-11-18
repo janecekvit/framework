@@ -2,7 +2,7 @@
 Copyright (c) 2020 Vit janecek <mailto:janecekvit@outlook.com>.
 All rights reserved.
 
-Constraints.h
+constraints.h
 Purpose:	header file contains set of extended constraints to describe stl containers
 
 @author: Vit Janecek
@@ -24,152 +24,152 @@ Purpose:	header file contains set of extended constraints to describe stl contai
 #include <type_traits>
 #include <typeindex>
 
-///Namespace owns set of extended Constraints to describe stl containers
-namespace Constraints
+///Namespace owns set of extended constraints to describe stl containers
+namespace constraints
 {
 /// <summary>
-/// Helper structures to determine if template type <T> is std::shared_ptr
+/// Helper structures to determine if template type <_T> is std::shared_ptr
 /// </summary>
-template <class T>
+template <class _T>
 struct is_shared_ptr_helper : std::false_type
 {
 };
-template <class T>
-struct is_shared_ptr_helper<std::shared_ptr<T>> : std::true_type
+template <class _T>
+struct is_shared_ptr_helper<std::shared_ptr<_T>> : std::true_type
 {
 };
-template <class T>
-struct is_shared_ptr : is_shared_ptr_helper<typename std::remove_cv<T>::type>
+template <class _T>
+struct is_shared_ptr : is_shared_ptr_helper<typename std::remove_cv<_T>::type>
 {
 };
-template <class T>
-constexpr bool is_shared_ptr_v = is_shared_ptr<T>::value;
+template <class _T>
+constexpr bool is_shared_ptr_v = is_shared_ptr<_T>::value;
 
 /// <summary>
-/// Helper structures to determine if template type <T> is std::unique_ptr
+/// Helper structures to determine if template type <_T> is std::unique_ptr
 /// </summary>
-template <class T>
+template <class _T>
 struct is_unique_ptr_helper : std::false_type
 {
 };
-template <class T>
-struct is_unique_ptr_helper<std::unique_ptr<T>> : std::true_type
+template <class _T>
+struct is_unique_ptr_helper<std::unique_ptr<_T>> : std::true_type
 {
 };
-template <class T>
-struct is_unique_ptr : is_unique_ptr_helper<typename std::remove_cv<T>::type>
+template <class _T>
+struct is_unique_ptr : is_unique_ptr_helper<typename std::remove_cv<_T>::type>
 {
 };
-template <class T>
-constexpr bool is_unique_ptr_v = is_unique_ptr<T>::value;
+template <class _T>
+constexpr bool is_unique_ptr_v = is_unique_ptr<_T>::value;
 
 /// <summary>
-/// Helper structures to determine if template type <T> is std::pair
+/// Helper structures to determine if template type <_T> is std::pair
 /// </summary>
-template <class... Args>
+template <class... _Args>
 struct is_pair_helper : std::false_type
 {
 };
-template <class... Args>
-struct is_pair_helper<std::pair<Args...>> : std::true_type
+template <class... _Args>
+struct is_pair_helper<std::pair<_Args...>> : std::true_type
 {
 };
-template <class... Args>
-struct is_pair : is_pair_helper<typename std::remove_cv<Args...>::type>
+template <class... _Args>
+struct is_pair : is_pair_helper<typename std::remove_cv<_Args...>::type>
 {
 };
-template <class T>
-constexpr bool is_pair_v = is_pair<T>::value;
+template <class _T>
+constexpr bool is_pair_v = is_pair<_T>::value;
 
 /// <summary>
-/// Helper structures to determine if template type <T> thats is container with associative find
+/// Helper structures to determine if template type <_T> thats is container with associative find
 /// </summary>
-template <class T, class U, class = void>
+template <class _T, class _U, class = void>
 struct is_foundable_helper : std::false_type
 {
 };
-template <class T, class U>
-struct is_foundable_helper<T, U, std::void_t<decltype(std::declval<T>().find(std::declval<U>()))>> : std::true_type
+template <class _T, class _U>
+struct is_foundable_helper<_T, _U, std::void_t<decltype(std::declval<_T>().find(std::declval<_U>()))>> : std::true_type
 {
 };
-template <class T, class U>
-struct is_foundable : is_foundable_helper<typename std::remove_cv<T>::type, typename std::remove_cv<U>::type>
+template <class _T, class _U>
+struct is_foundable : is_foundable_helper<typename std::remove_cv<_T>::type, typename std::remove_cv<_U>::type>
 {
 };
-template <class T, class U>
-constexpr bool is_foundable_v = is_foundable<T, U>::value;
+template <class _T, class _U>
+constexpr bool is_foundable_v = is_foundable<_T, _U>::value;
 
 /// <summary>
-/// Helper structures to determine if template type <T> thats is container with associative find
+/// Helper structures to determine if template type <_T> thats is container with associative find
 /// </summary>
-template <class T, class = void, class = void, class = void>
+template <class _T, class = void, class = void, class = void>
 struct is_container_helper : std::false_type
 {
 };
-template <class T>
-struct is_container_helper<T, std::void_t<decltype(std::declval<T>().begin())>, std::void_t<decltype(std::declval<T>().end())>, std::void_t<decltype(std::declval<T>().size())>> : std::true_type
+template <class _T>
+struct is_container_helper<_T, std::void_t<decltype(std::declval<_T>().begin())>, std::void_t<decltype(std::declval<_T>().end())>, std::void_t<decltype(std::declval<_T>().size())>> : std::true_type
 {
 };
-template <class T>
-struct is_container : is_container_helper<typename std::remove_cv<T>::type>
+template <class _T>
+struct is_container : is_container_helper<typename std::remove_cv<_T>::type>
 {
 };
-template <class T>
-constexpr bool is_container_v = is_container<T>::value;
+template <class _T>
+constexpr bool is_container_v = is_container<_T>::value;
 
 /// <summary>
-/// Helper structures to determine if template type <T> thats is concurrent container with associative find
+/// Helper structures to determine if template type <_T> thats is concurrent container with associative find
 /// </summary>
-template <class T, class = void, class = void>
+template <class _T, class = void, class = void>
 struct is_concurrent_container_helper : std::false_type
 {
 };
-template <class T>
-struct is_concurrent_container_helper<T, std::void_t<decltype(std::declval<T>().Concurrent())>, std::void_t<decltype(std::declval<T>().Exclusive())>> : std::true_type
+template <class _T>
+struct is_concurrent_container_helper<_T, std::void_t<decltype(std::declval<_T>().concurrent())>, std::void_t<decltype(std::declval<_T>().exclusive())>> : std::true_type
 {
 };
-template <class T>
-struct is_concurrent_container : is_concurrent_container_helper<typename std::remove_cv<T>::type>
+template <class _T>
+struct is_concurrent_container : is_concurrent_container_helper<typename std::remove_cv<_T>::type>
 {
 };
-template <class T>
-constexpr bool is_concurrent_container_v = is_concurrent_container<T>::value;
+template <class _T>
+constexpr bool is_concurrent_container_v = is_concurrent_container<_T>::value;
 
 /// <summary>
-/// Helper structures to determine if template type <T> is iterator
+/// Helper structures to determine if template type <_T> is iterator
 /// </summary>
-template <class T, class = void>
+template <class _T, class = void>
 struct is_iterator_helper : std::false_type
 {
 };
-template <class T>
-struct is_iterator_helper<T, typename std::enable_if<!std::is_same<typename std::iterator_traits<T>::value_type, void>::value>::type> : std::true_type
+template <class _T>
+struct is_iterator_helper<_T, typename std::enable_if<!std::is_same<typename std::iterator_traits<_T>::value_type, void>::value>::type> : std::true_type
 {
 };
-template <class T>
-struct is_iterator : is_iterator_helper<typename std::remove_cv<T>::type>
+template <class _T>
+struct is_iterator : is_iterator_helper<typename std::remove_cv<_T>::type>
 {
 };
-template <class T>
-constexpr bool is_iterator_v = is_iterator<T>::value;
+template <class _T>
+constexpr bool is_iterator_v = is_iterator<_T>::value;
 
 /// <summary>
-/// Helper structures to determine if template type <T> is explicitly convertible
+/// Helper structures to determine if template type <_T> is explicitly convertible
 /// </summary>
-template <class T, class U>
-struct is_explicitly_convertible : std::integral_constant<bool, std::is_constructible_v<U, T> && !std::is_convertible_v<T, U>>
+template <class _T, class _U>
+struct is_explicitly_convertible : std::integral_constant<bool, std::is_constructible_v<_U, _T> && !std::is_convertible_v<_T, _U>>
 {
 };
 
-template <class T, class U>
-constexpr bool is_explicitly_convertible_v = is_explicitly_convertible<T, U>::value;
+template <class _T, class _U>
+constexpr bool is_explicitly_convertible_v = is_explicitly_convertible<_T, _U>::value;
 
 /// <summary>
-/// Helper concept to determine if template type <T> is condition variable
+/// Helper concept to determine if template type <_T> is condition variable
 /// </summary>
 #if __cplusplus > __cpp_lib_concepts
-template <class TCondition, class TLock>
-concept condition_variable = requires(TCondition& cv, TLock& lock)
+template <class _Condition, class _Lock>
+concept condition_variable = requires(_Condition& cv, _Lock& lock)
 {
 	{
 		cv.notify_one()
@@ -185,10 +185,10 @@ concept condition_variable = requires(TCondition& cv, TLock& lock)
 };
 
 /// <summary>
-/// Helper concept to determine if template type <T> is condition variable with pred
+/// Helper concept to determine if template type <_T> is condition variable with pred
 /// </summary>
-template <class TCondition, class TLock, class TPredicate>
-concept condition_variable_pred = condition_variable<TCondition, TLock>&& requires(TCondition& cv, TLock& lock, TPredicate&& pred)
+template <class _Condition, class _Lock, class _Predicate>
+concept condition_variable_pred = condition_variable<_Condition, _Lock> && requires(_Condition& cv, _Lock& lock, _Predicate&& pred)
 {
 	{
 		cv.wait(lock, std::move(pred))
@@ -197,4 +197,4 @@ concept condition_variable_pred = condition_variable<TCondition, TLock>&& requir
 
 #endif
 
-} //namespace Constraints
+} //namespace constraints

@@ -1,10 +1,10 @@
 #include "stdafx.h"
 
 #include "CppUnitTest.h"
-#include "Framework/Extensions/Concurrent.h"
-#include "Framework/Extensions/Extensions.h"
-#include "Framework/Extensions/GetterSetter.h"
-#include "Framework/Extensions/ResourceWrapper.h"
+#include "Extensions/Concurrent.h"
+#include "Extensions/GetterSetter.h"
+#include "Extensions/ResourceWrapper.h"
+#include "Extensions/extensions.h"
 
 #include <fstream>
 #include <future>
@@ -66,8 +66,8 @@ public:
 class IParamTest
 {
 public:
-	virtual ~IParamTest()													= default;
-	virtual void Run(_In_ Extensions::Storage::ParameterPackLegacy&& oPack) = 0;
+	virtual ~IParamTest()													  = default;
+	virtual void Run(_In_ extensions::Storage::parameter_pack_legacy&& oPack) = 0;
 };
 
 class CParamTest : public virtual IParamTest
@@ -75,7 +75,7 @@ class CParamTest : public virtual IParamTest
 public:
 	CParamTest()		  = default;
 	virtual ~CParamTest() = default;
-	virtual void Run(_In_ Extensions::Storage::ParameterPackLegacy&& oPack) override
+	virtual void Run(_In_ extensions::Storage::parameter_pack_legacy&& oPack) override
 	{
 		/*int a = 0;
 		int b = 0;
@@ -84,7 +84,7 @@ public:
 		CInterface* pInt = nullptr;
 
 		//Use unpack by output parameters
-		oPack.GetPack(a, b, c, d, pInt);
+		oPack.get_pack(a, b, c, d, pInt);
 		Assert::AreEqual(a, 25);
 		Assert::AreEqual(b, 333);
 		Assert::AreEqual(*c, 666);
@@ -92,7 +92,7 @@ public:
 		Assert::AreEqual(pInt->Do(), 1111);
 
 		//Use unpack by return tuple
-		auto [iNumber1, iNumber2, pNumber, pShared, pInterface] = oPack.GetPack<int, int, int*, std::shared_ptr<int>, CInterface*>();
+		auto [iNumber1, iNumber2, pNumber, pShared, pInterface] = oPack.get_pack<int, int, int*, std::shared_ptr<int>, CInterface*>();
 
 		Assert::AreEqual(iNumber1, 25);
 		Assert::AreEqual(iNumber2, 333);
@@ -111,8 +111,8 @@ public:
 class IParamTest2
 {
 public:
-	virtual ~IParamTest2()											  = default;
-	virtual void Run(_In_ Extensions::Storage::ParameterPack&& oPack) = 0;
+	virtual ~IParamTest2()											   = default;
+	virtual void Run(_In_ extensions::Storage::parameter_pack&& oPack) = 0;
 };
 
 class CParamTest2 : public virtual IParamTest2
@@ -120,10 +120,10 @@ class CParamTest2 : public virtual IParamTest2
 public:
 	CParamTest2()		   = default;
 	virtual ~CParamTest2() = default;
-	virtual void Run(_In_ Extensions::Storage::ParameterPack&& oPack) override
+	virtual void Run(_In_ extensions::Storage::parameter_pack&& oPack) override
 	{
 		//Use unpack by return tuple
-		auto [iNumber1, iNumber2, pNumber, pShared, pInterface] = oPack.GetPack<int, int, int*, std::shared_ptr<int>, CInterface*>();
+		auto [iNumber1, iNumber2, pNumber, pShared, pInterface] = oPack.get_pack<int, int, int*, std::shared_ptr<int>, CInterface*>();
 
 		Assert::AreEqual(iNumber1, 25);
 		Assert::AreEqual(iNumber2, 333);
@@ -145,7 +145,7 @@ public:
 	std::unique_ptr<int> e = nullptr;
 };
 
-void Print(int i, int j, int k, int l, int m)
+void print(int i, int j, int k, int l, int m)
 {
 	std::cout << i << j << k << l << m << std::endl;
 }
@@ -166,7 +166,7 @@ public:
 
 	void Compute() const
 	{
-		auto jj = Extensions::ContainerFind(m_mapINT, 5, [](_In_ auto& oResult)
+		auto jj = extensions::execute_on_container(m_mapINT, 5, [](_In_ auto& oResult)
 			{
 				return oResult;
 			});
@@ -225,7 +225,7 @@ struct MyContainer
 
 //different notation
 //template <class Other>
-//typename std::enable_if_t<Constraints::is_container_v<Other>>
+//typename std::enable_if_t<constraints::is_container_v<Other>>
 //Test(const Other& other)
 //{
 //	int i = 0;
@@ -233,7 +233,7 @@ struct MyContainer
 //		std::cout << item;*/
 //}
 
-template <class Other, typename std::enable_if_t<Constraints::is_container_v<Other>, int> = 0>
+template <class Other, typename std::enable_if_t<constraints::is_container_v<Other>, int> = 0>
 auto Test(const Other& other)
 {
 	int i = 0;
@@ -278,21 +278,21 @@ public:
 			i += 20;
 		};
 
-		m_pContainer = std::make_unique<Extensions::Storage::HeterogeneousContainer>(fnCallbackInt, fnCallbackInt2);
+		m_pContainer = std::make_unique<extensions::Storage::heterogeneous_container>(fnCallbackInt, fnCallbackInt2);
 	}
 	~TestHeterogeneousContainer()
 	{
 	}
 
-	int Call()
+	int call()
 	{
 		int iCall = 0;
-		m_pContainer->CallFirst<std::function<void(int&)>>(iCall);
+		m_pContainer->call_first<std::function<void(int&)>>(iCall);
 		return iCall;
 	}
 
 private:
-	std::unique_ptr<Extensions::Storage::HeterogeneousContainer> m_pContainer = nullptr;
+	std::unique_ptr<extensions::Storage::heterogeneous_container> m_pContainer = nullptr;
 };
 
 } // namespace TestHeterogeneousContainer
@@ -319,13 +319,13 @@ class GetterSetterTesting
 	}
 
 public:
-	Extensions::GetterSetter<std::vector<int>> i;
+	extensions::getter_setter<std::vector<int>> i;
 
 protected:
-	Extensions::GetterSetter<std::vector<int>> j;
+	extensions::getter_setter<std::vector<int>> j;
 
 private:
-	Extensions::GetterSetter<std::vector<int>> k;
+	extensions::getter_setter<std::vector<int>> k;
 };
 
 class TestGetterSetter
@@ -364,20 +364,20 @@ public:
 	}
 
 public:
-	Extensions::GetterSetter<int> Int;
-	Extensions::GetterSetter<int, TestGetterSetter> IntSetterPrivate;
-	Extensions::GetterSetter<int, TestGetterSetter, TestGetterSetter> IntBothPrivate;
+	extensions::getter_setter<int> Int;
+	extensions::getter_setter<int, TestGetterSetter> IntSetterPrivate;
+	extensions::getter_setter<int, TestGetterSetter, TestGetterSetter> IntBothPrivate;
 
-	Extensions::GetterSetter<std::vector<int>> Vec;
-	Extensions::GetterSetter<std::vector<int>, TestGetterSetter> VecSetterPrivate;
-	Extensions::GetterSetter<std::vector<int>, TestGetterSetter, TestGetterSetter> VecBothPrivate;
+	extensions::getter_setter<std::vector<int>> Vec;
+	extensions::getter_setter<std::vector<int>, TestGetterSetter> VecSetterPrivate;
+	extensions::getter_setter<std::vector<int>, TestGetterSetter, TestGetterSetter> VecBothPrivate;
 
-	Extensions::GetterSetter<bool, TestGetterSetter> Bool;
+	extensions::getter_setter<bool, TestGetterSetter> Bool;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-namespace FrameworkUT
+namespace FrameworkTesting
 {
 TEST_CLASS(TestTemplates){
 	public:
@@ -396,17 +396,17 @@ TestContainerTraits::WithoutEnd c;
 TestContainerTraits::WithoutBegin d;
 TestContainerTraits::MyContainer e;
 
-Assert::AreEqual(Constraints::is_container_v<decltype(vec)>, true);
-Assert::AreEqual(Constraints::is_container_v<decltype(list)>, true);
-Assert::AreEqual(Constraints::is_container_v<decltype(set)>, true);
-Assert::AreEqual(Constraints::is_container_v<decltype(map)>, true);
-Assert::AreEqual(Constraints::is_container_v<decltype(uset)>, true);
-Assert::AreEqual(Constraints::is_container_v<decltype(umap)>, true);
-Assert::AreEqual(Constraints::is_container_v<decltype(a)>, false);
-Assert::AreEqual(Constraints::is_container_v<decltype(b)>, true);
-Assert::AreEqual(Constraints::is_container_v<decltype(c)>, false);
-Assert::AreEqual(Constraints::is_container_v<decltype(d)>, false);
-Assert::AreEqual(Constraints::is_container_v<decltype(e)>, true);
+Assert::AreEqual(constraints::is_container_v<decltype(vec)>, true);
+Assert::AreEqual(constraints::is_container_v<decltype(list)>, true);
+Assert::AreEqual(constraints::is_container_v<decltype(set)>, true);
+Assert::AreEqual(constraints::is_container_v<decltype(map)>, true);
+Assert::AreEqual(constraints::is_container_v<decltype(uset)>, true);
+Assert::AreEqual(constraints::is_container_v<decltype(umap)>, true);
+Assert::AreEqual(constraints::is_container_v<decltype(a)>, false);
+Assert::AreEqual(constraints::is_container_v<decltype(b)>, true);
+Assert::AreEqual(constraints::is_container_v<decltype(c)>, false);
+Assert::AreEqual(constraints::is_container_v<decltype(d)>, false);
+Assert::AreEqual(constraints::is_container_v<decltype(e)>, true);
 
 TestContainerTraits::Test(vec);
 TestContainerTraits::Test(list);
@@ -419,7 +419,7 @@ TestContainerTraits::Test(b);
 TestContainerTraits::Test(c);
 TestContainerTraits::Test(d);
 TestContainerTraits::Test(e);
-} // namespace FrameworkUT
+} // namespace FrameworkTesting
 
 TEST_METHOD(TestParameterPackLegacy)
 {
@@ -430,7 +430,7 @@ TEST_METHOD(TestParameterPackLegacy)
 	CInterface oInt;
 
 	// Initialize parameter pack
-	auto oPack = Extensions::Storage::ParameterPackLegacy(25, 333, pInt, pShared, &oInt);
+	auto oPack = extensions::Storage::parameter_pack_legacy(25, 333, pInt, pShared, &oInt);
 	oTest.Run(std::move(oPack));
 
 	Assert::AreEqual(oTest.a, 25);
@@ -449,7 +449,7 @@ TEST_METHOD(TestParameterPack)
 	CInterface oInt;
 
 	// Initialize parameter pack
-	auto oPack = Extensions::Storage::ParameterPack(25, 333, pInt, pShared, &oInt);
+	auto oPack = extensions::Storage::parameter_pack(25, 333, pInt, pShared, &oInt);
 	oTest.Run(std::move(oPack));
 
 	Assert::AreEqual(oTest.a, 25);
@@ -485,108 +485,108 @@ TEST_METHOD(TestHeterogeneousContainer)
 	};
 
 	//Test Get and First methods
-	Extensions::Storage::HeterogeneousContainer oContainer(25, 331, 1.1, "string"s, "kase"s, std::make_tuple(25, 333), fnCallbackInt, fnCallbackInt2, fnCallbackString, fnCallbackString2);
-	auto oResult	= oContainer.Get<std::string>();
-	auto oResultInt = oContainer.Get<int>();
+	extensions::Storage::heterogeneous_container oContainer(25, 331, 1.1, "string"s, "kase"s, std::make_tuple(25, 333), fnCallbackInt, fnCallbackInt2, fnCallbackString, fnCallbackString2);
+	auto oResult	= oContainer.get<std::string>();
+	auto oResultInt = oContainer.get<int>();
 	Assert::AreEqual(*oResultInt.begin(), 25);
 	Assert::AreEqual(*++oResultInt.begin(), 331);
 
-	Assert::AreEqual(oContainer.Get<int>(0), 25);
-	Assert::AreEqual(oContainer.Get<int>(1), 331);
-	Assert::AreEqual(oContainer.First<int>(), 25);
+	Assert::AreEqual(oContainer.get<int>(0), 25);
+	Assert::AreEqual(oContainer.get<int>(1), 331);
+	Assert::AreEqual(oContainer.first<int>(), 25);
 
 	try
 	{
-		Assert::AreEqual(oContainer.Get<int>(2), 331);
+		Assert::AreEqual(oContainer.get<int>(2), 331);
 	}
 	catch (const std::exception& ex)
 	{
-		Assert::AreEqual(ex.what(), "HeterogeneousContainer: Cannot retrieve value on position 2 with specified type: int");
+		Assert::AreEqual(ex.what(), "heterogeneous_container: Cannot retrieve value on position 2 with specified type: int");
 	}
 
-	Assert::AreEqual(oContainer.Get<std::string>(0), "string"s);
-	Assert::AreEqual(oContainer.Get<std::string>(1), "kase"s);
-	Assert::AreEqual(oContainer.First<std::string>(), "string"s);
+	Assert::AreEqual(oContainer.get<std::string>(0), "string"s);
+	Assert::AreEqual(oContainer.get<std::string>(1), "kase"s);
+	Assert::AreEqual(oContainer.first<std::string>(), "string"s);
 
 	//Test visit methods
-	oContainer.Visit<int>([&](int& i)
+	oContainer.visit<int>([&](int& i)
 		{
 			i += 100;
 		});
 
 	bool bFirst = true;
-	oContainer.Visit<int>([&](const int& i)
+	oContainer.visit<int>([&](const int& i)
 		{
 			Assert::AreEqual(i, bFirst ? 125 : 431);
 			bFirst = false;
 		});
 
-	auto oResultIntNew = oContainer.Get<int>();
+	auto oResultIntNew = oContainer.get<int>();
 	Assert::AreEqual(*oResultIntNew.begin(), 125);
 	Assert::AreEqual(*++oResultIntNew.begin(), 431);
 
 	//Test call methods
 	int iCallable = 5;
-	oContainer.CallFirst<std::function<void(int&)>>(iCallable);
+	oContainer.call_first<std::function<void(int&)>>(iCallable);
 	Assert::AreEqual(15, iCallable);
 
-	oContainer.Call<std::function<void(int&)>>(1, iCallable);
+	oContainer.call<std::function<void(int&)>>(1, iCallable);
 	Assert::AreEqual(35, iCallable);
 
-	std::string sResult = oContainer.CallFirst<std::function<std::string(std::string &&)>>("Test ");
+	std::string sResult = oContainer.call_first<std::function<std::string(std::string &&)>>("Test ");
 	Assert::AreEqual("Test 123"s, sResult);
 
-	sResult = oContainer.Call<std::function<std::string(std::string &&)>>(1, "Test ");
+	sResult = oContainer.call<std::function<std::string(std::string &&)>>(1, "Test ");
 	Assert::AreEqual("Test 456"s, sResult);
 
 	try
 	{
-		oContainer.CallFirst<std::function<void(std::string &&)>>("Test ");
+		oContainer.call_first<std::function<void(std::string &&)>>("Test ");
 	}
 	catch (const std::exception& ex)
 	{
-		Assert::AreEqual(ex.what(), "HeterogeneousContainer: Cannot retrieve value on position 0 with specified type: class std::function<void __cdecl(class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > &&)>");
+		Assert::AreEqual(ex.what(), "heterogeneous_container: Cannot retrieve value on position 0 with specified type: class std::function<void __cdecl(class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > &&)>");
 	}
 
 	iCallable = 0;
-	oContainer.CallAll<std::function<void(int&)>>(iCallable);
+	oContainer.call_all<std::function<void(int&)>>(iCallable);
 	Assert::AreEqual(30, iCallable);
 
-	auto listResults = oContainer.CallAll<std::function<std::string(std::string &&)>>("Test ");
+	auto listResults = oContainer.call_all<std::function<std::string(std::string &&)>>("Test ");
 	Assert::AreEqual("Test 123"s, *listResults.begin());
 	Assert::AreEqual("Test 456"s, *std::next(listResults.begin(), 1));
 
 	//Test size and reset (1)
-	Assert::AreEqual(oContainer.Size<std::function<void(int&)>>(), size_t(2));
-	Assert::AreEqual(oContainer.Contains<std::function<void(int&)>>(), true);
+	Assert::AreEqual(oContainer.size<std::function<void(int&)>>(), size_t(2));
+	Assert::AreEqual(oContainer.contains<std::function<void(int&)>>(), true);
 
-	Assert::AreEqual(oContainer.Size<std::function<std::string(std::string &&)>>(), size_t(2));
-	Assert::AreEqual(oContainer.Contains<std::function<std::string(std::string &&)>>(), true);
+	Assert::AreEqual(oContainer.size<std::function<std::string(std::string &&)>>(), size_t(2));
+	Assert::AreEqual(oContainer.contains<std::function<std::string(std::string &&)>>(), true);
 
 	//Test size and reset (2)
-	oContainer.Reset<std::function<void(int&)>>();
+	oContainer.reset<std::function<void(int&)>>();
 
-	Assert::AreEqual(oContainer.Size<std::function<void(int&)>>(), size_t(0));
-	Assert::AreEqual(oContainer.Contains<std::function<void(int&)>>(), false);
+	Assert::AreEqual(oContainer.size<std::function<void(int&)>>(), size_t(0));
+	Assert::AreEqual(oContainer.contains<std::function<void(int&)>>(), false);
 
-	Assert::AreEqual(oContainer.Size<std::function<std::string(std::string &&)>>(), size_t(2));
-	Assert::AreEqual(oContainer.Contains<std::function<std::string(std::string &&)>>(), true);
+	Assert::AreEqual(oContainer.size<std::function<std::string(std::string &&)>>(), size_t(2));
+	Assert::AreEqual(oContainer.contains<std::function<std::string(std::string &&)>>(), true);
 
 	//Test size and reset (3)
-	oContainer.Reset();
+	oContainer.reset();
 
-	Assert::AreEqual(oContainer.Size<std::function<void(int&)>>(), size_t(0));
-	Assert::AreEqual(oContainer.Contains<std::function<void(int&)>>(), false);
+	Assert::AreEqual(oContainer.size<std::function<void(int&)>>(), size_t(0));
+	Assert::AreEqual(oContainer.contains<std::function<void(int&)>>(), false);
 
-	Assert::AreEqual(oContainer.Size<std::function<std::string(std::string &&)>>(), size_t(0));
-	Assert::AreEqual(oContainer.Contains<std::function<std::string(std::string &&)>>(), false);
+	Assert::AreEqual(oContainer.size<std::function<std::string(std::string &&)>>(), size_t(0));
+	Assert::AreEqual(oContainer.contains<std::function<std::string(std::string &&)>>(), false);
 
 	//Test container in nested class
 	TestHeterogeneousContainer::TestHeterogeneousContainer oTestContainer;
-	Assert::AreEqual(10, oTestContainer.Call());
+	Assert::AreEqual(10, oTestContainer.call());
 }
 
-TEST_METHOD(TestContainerExtensions)
+TEST_METHOD(TestContainerextensions)
 {
 	std::unordered_map<CPortsHeader, std::string, CPortsHeaderComparator, CPortsHeaderComparator> my_map;
 	my_map.emplace(CPortsHeader(5, 6), "tezko");
@@ -597,12 +597,12 @@ TEST_METHOD(TestContainerExtensions)
 		std::cout << kv.second;
 	}
 
-	Extensions::ContainerFind(my_map, CPortsHeader(5, 6), [](_In_ const std::string oResult)
+	extensions::execute_on_container(my_map, CPortsHeader(5, 6), [](_In_ const std::string oResult)
 		{
 			std::cout << oResult << std::endl;
 		});
 
-	auto i = Extensions::ContainerFind(my_map, CPortsHeader(5, 6), [](_In_ const std::string oResult) -> int
+	auto i = extensions::execute_on_container(my_map, CPortsHeader(5, 6), [](_In_ const std::string oResult) -> int
 		{
 			std::cout << oResult << std::endl;
 			return 58;
@@ -610,7 +610,7 @@ TEST_METHOD(TestContainerExtensions)
 
 	std::unordered_map<int, std::shared_ptr<std::string>> mapSecond;
 	mapSecond.emplace(5, std::make_unique<std::string>("s"));
-	auto j = Extensions::ContainerFind(mapSecond, 4, [](_In_ auto& oResult) -> std::shared_ptr<std::string>
+	auto j = extensions::execute_on_container(mapSecond, 4, [](_In_ auto& oResult) -> std::shared_ptr<std::string>
 		{
 			std::cout << oResult;
 			return nullptr;
@@ -622,13 +622,13 @@ TEST_METHOD(TestContainerExtensions)
 		return oResult;
 	};
 
-	auto j2 = Extensions::ContainerFind(mapSecond, 5, ooo);
+	auto j2 = extensions::execute_on_container(mapSecond, 5, ooo);
 
 	bool b = {};
 
 	std::map<int, int> mapInts;
 	mapInts.emplace(5, 10);
-	auto iRes = Extensions::ContainerFind(mapInts, 5, [](_In_ int& oResult)
+	auto iRes = extensions::execute_on_container(mapInts, 5, [](_In_ int& oResult)
 		{
 			oResult += 1;
 			return oResult;
@@ -638,16 +638,16 @@ TEST_METHOD(TestContainerExtensions)
 	oVal.Compute();
 
 	std::unordered_set<int> setInts{ 5 };
-	auto iEx = Extensions::ContainerFind(setInts, 5, [](_In_ const int& oResult) -> int
+	auto iEx = extensions::execute_on_container(setInts, 5, [](_In_ const int& oResult) -> int
 		{
 			return oResult;
 		});
 
-	bool bMap = Constraints::is_pair_v<std::iterator_traits<typename std::map<int, int>::iterator>::value_type>;
-	bool bVec = Constraints::is_pair_v<std::iterator_traits<typename std::vector<int>::iterator>::value_type>;
+	bool bMap = constraints::is_pair_v<std::iterator_traits<typename std::map<int, int>::iterator>::value_type>;
+	bool bVec = constraints::is_pair_v<std::iterator_traits<typename std::vector<int>::iterator>::value_type>;
 
 	std::vector<int> vecPok = { 1, 4, 6 };
-	auto iVecRes			= Extensions::ContainerFind(vecPok, 4, [](_In_ const int& oResult) -> int
+	auto iVecRes			= extensions::execute_on_container(vecPok, 4, [](_In_ const int& oResult) -> int
 		   {
 			   return oResult;
 		   });
@@ -658,7 +658,7 @@ TEST_METHOD(TestHashFunction)
 {
 	std::string s("ano");
 	int i		 = 5;
-	size_t uHash = Extensions::Hash::Combine(s, i);
+	size_t uHash = extensions::hash::combine(s, i);
 	Assert::AreEqual(uHash, static_cast<size_t>(730160148));
 }
 
@@ -666,8 +666,8 @@ TEST_METHOD(TestResourceWrapper)
 {
 	int uLambdaCalled = 0;
 
-	{ // wrapper scope -> Copy constuctor TResource
-		auto oWrapperInt = Extensions::ResourceWrapper<int*>(new int(5), [&uLambdaCalled](int*& i)
+	{ // wrapper scope -> Copy constuctor _Resource
+		auto oWrapperInt = extensions::resource_wrapper<int*>(new int(5), [&uLambdaCalled](int*& i)
 			{
 				delete i;
 				i = nullptr;
@@ -687,8 +687,8 @@ TEST_METHOD(TestResourceWrapper)
 
 	uLambdaCalled		  = 0;
 	auto bCopyDestruction = false;
-	{ // wrapper scope -> Copy constuctor Extensions::ResourceWrapper
-		auto oWrapperInt = Extensions::ResourceWrapper<int*>(new int(5), [&uLambdaCalled](int*& i)
+	{ // wrapper scope -> Copy constuctor extensions::resource_wrapper
+		auto oWrapperInt = extensions::resource_wrapper<int*>(new int(5), [&uLambdaCalled](int*& i)
 			{
 				delete i;
 				i = nullptr;
@@ -699,7 +699,7 @@ TEST_METHOD(TestResourceWrapper)
 		Assert::AreEqual(*i, 5);
 		Assert::AreEqual(*oWrapperInt, 5);
 
-		oWrapperInt = std::move(Extensions::ResourceWrapper<int*>(new int(10), [&uLambdaCalled](int*& i)
+		oWrapperInt = std::move(extensions::resource_wrapper<int*>(new int(10), [&uLambdaCalled](int*& i)
 			{
 				delete i;
 				i = nullptr;
@@ -708,7 +708,7 @@ TEST_METHOD(TestResourceWrapper)
 		Assert::AreEqual(*oWrapperInt, 10);
 		Assert::AreEqual(uLambdaCalled, 1);
 
-		auto oWrapperInt2 = Extensions::ResourceWrapper<int*>(new int(15), [&uLambdaCalled, &bCopyDestruction](int*& i)
+		auto oWrapperInt2 = extensions::resource_wrapper<int*>(new int(15), [&uLambdaCalled, &bCopyDestruction](int*& i)
 			{
 				if (bCopyDestruction)
 					return;
@@ -728,13 +728,13 @@ TEST_METHOD(TestResourceWrapper)
 	Assert::AreEqual(bCopyDestruction, true);
 
 	// std namespace test
-	auto oWrapperFile = Extensions::ResourceWrapper<std::fstream>(std::fstream("Test", std::ios::binary), [](std::fstream& i)
+	auto oWrapperFile = extensions::resource_wrapper<std::fstream>(std::fstream("Test", std::ios::binary), [](std::fstream& i)
 		{
 			i.close();
 		});
 	bool open		  = oWrapperFile->is_open();
 
-	oWrapperFile.Retrieve([](const std::fstream& fs)
+	oWrapperFile.retrieve([](const std::fstream& fs)
 		{
 			bool open = fs.is_open();
 		});
@@ -742,23 +742,23 @@ TEST_METHOD(TestResourceWrapper)
 	Assert::AreEqual(oWrapperFile->is_open(), false);
 
 	{ //Copy constructible
-		auto oWrapperInt = Extensions::ResourceWrapper<int*>(new int(5), [](int*& i)
+		auto oWrapperInt = extensions::resource_wrapper<int*>(new int(5), [](int*& i)
 			{
 				delete i;
 				i = nullptr;
 			});
 
-		auto oWrapperUniqueInt = Extensions::ResourceWrapper<std::unique_ptr<int>>(std::make_unique<int>(5), [](std::unique_ptr<int>& i)
+		auto oWrapperUniqueInt = extensions::resource_wrapper<std::unique_ptr<int>>(std::make_unique<int>(5), [](std::unique_ptr<int>& i)
 			{
 				i.release();
 			});
 
-		auto oWrapperString = Extensions::ResourceWrapper<std::string>("BLSA", [](std::string& i)
+		auto oWrapperString = extensions::resource_wrapper<std::string>("BLSA", [](std::string& i)
 			{
 				i.clear();
 			});
 
-		auto oWrapperString2 = Extensions::ResourceWrapper<std::string>("DRDF", [](std::string& i)
+		auto oWrapperString2 = extensions::resource_wrapper<std::string>("DRDF", [](std::string& i)
 			{
 				i.clear();
 			});
@@ -782,7 +782,7 @@ TEST_METHOD(TestResourceWrapper)
 	int uDestroyed = 0, uDestroyed2 = 0;
 	{ //Assigment operator reset
 		auto iTest				= new int(5);
-		auto oTestOperatorReset = Extensions::ResourceWrapper<int*>(iTest, [&](int*& i)
+		auto oTestOperatorReset = extensions::resource_wrapper<int*>(iTest, [&](int*& i)
 			{
 				if (*i == 5)
 					uDestroyed++;
@@ -792,7 +792,7 @@ TEST_METHOD(TestResourceWrapper)
 			});
 
 		auto iTest2				 = new int(10);
-		auto oTestOperatorReset2 = Extensions::ResourceWrapper<int*>(iTest2, [&](int*& i)
+		auto oTestOperatorReset2 = extensions::resource_wrapper<int*>(iTest2, [&](int*& i)
 			{
 				if (*i == 10)
 					uDestroyed2++;
@@ -816,7 +816,7 @@ TEST_METHOD(TestResourceWrapper)
 	//Wrapper shared ptr
 	{
 		auto pNumber		   = std::make_shared<std::string>("A");
-		auto oWrapperSharedPtr = Extensions::ResourceWrapper<std::shared_ptr<std::string>>(pNumber, [](std::shared_ptr<std::string>& ptr)
+		auto oWrapperSharedPtr = extensions::resource_wrapper<std::shared_ptr<std::string>>(pNumber, [](std::shared_ptr<std::string>& ptr)
 			{
 				ptr->append("B");
 			});
@@ -902,13 +902,13 @@ TEST_METHOD(TestGetterSetterWrapper)
 	}
 }
 
-TEST_METHOD(TestTupleExtensions)
+TEST_METHOD(TestTupleextensions)
 {
-	auto oHeterogeneousContainer = Extensions::Tuple::Unpack(std::make_tuple(1, 2, 3, "1", "10"));
-	Assert::AreEqual(oHeterogeneousContainer.Get<int>(), std::list<int>{ 1, 2, 3 });
-	Assert::AreEqual(oHeterogeneousContainer.Get<const char*>(), std::list<const char*>{ "1", "10" });
+	auto oHeterogeneousContainer = extensions::tuple::unpack(std::make_tuple(1, 2, 3, "1", "10"));
+	Assert::AreEqual(oHeterogeneousContainer.get<int>(), std::list<int>{ 1, 2, 3 });
+	Assert::AreEqual(oHeterogeneousContainer.get<const char*>(), std::list<const char*>{ "1", "10" });
 
-	auto oStream = Extensions::Tuple::Print(std::make_tuple(1, 2, 3, "1", "10"), std::string(", "));
+	auto oStream = extensions::tuple::print(std::make_tuple(1, 2, 3, "1", "10"), std::string(", "));
 	Assert::AreEqual(oStream.str(), "1, 2, 3, 1, 10, "s);
 
 	auto fnCallback = [](auto&&... oArgs) -> int
@@ -916,7 +916,7 @@ TEST_METHOD(TestTupleExtensions)
 		auto tt = std::forward_as_tuple(oArgs...);
 		return std::get<0>(tt);
 	};
-	auto oResultGenerator = Extensions::Tuple::Generate<10>(fnCallback);
+	auto oResultGenerator = extensions::tuple::generate<10>(fnCallback);
 	Assert::AreEqual(oResultGenerator, std::make_tuple(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
 }
 }

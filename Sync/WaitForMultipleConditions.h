@@ -1,13 +1,13 @@
 #pragma once
-#include "Framework/Extensions/Concurrent.h"
-#include "Framework/Extensions/Constraints.h"
-#include "Framework/Sync/AtomicConditionVariable.h"
+#include "Extensions/Concurrent.h"
+#include "Extensions/constraints.h"
+#include "Sync/AtomicConditionVariable.h"
 
 #include <atomic>
 #include <condition_variable>
 #include <unordered_set>
 
-template <class TCondition = std::condition_variable_any>
+template <class _Condition = std::condition_variable_any>
 class WaitForMultipleConditions
 {
 public:
@@ -24,15 +24,15 @@ public:
 		return _GetResult();
 	}
 
-	template <class TLock, class TPredicate>
-	[[nodiscard]] TResult wait(TLock& lock, TPredicate&& pred) const
+	template <class TLock, class _Predicate>
+	[[nodiscard]] TResult wait(TLock& lock, _Predicate&& pred) const
 	{
 		m_condition.wait(lock, std::move(pred));
 		return _GetResult();
 	}
 
-	template <class TLock, class TRep, class TPeriod, class TPredicate>
-	[[nodiscard]] TResult wait_for(TLock& lock, const std::chrono::duration<TRep, TPeriod>& rel_time, std::optional<TPredicate>&& pred = {}) const
+	template <class TLock, class TRep, class TPeriod, class _Predicate>
+	[[nodiscard]] TResult wait_for(TLock& lock, const std::chrono::duration<TRep, TPeriod>& rel_time, std::optional<_Predicate>&& pred = {}) const
 	{
 		if (pred)
 			return (m_condition.wait_for(lock, rel_time, std::move(*pred)) ? _GetResult() : std::nullopt);
@@ -40,8 +40,8 @@ public:
 		return (m_condition.wait_for(lock, rel_time) == std::cv_status::no_timeout ? _GetResult() : std::nullopt);
 	}
 
-	template <class TLock, class TClock, class TDuration, class TPredicate>
-	[[nodiscard]] TResult wait_until(TLock& lock, const std::chrono::time_point<TClock, TDuration>& timeout_time, std::optional<TPredicate>&& pred = {}) const
+	template <class TLock, class TClock, class TDuration, class _Predicate>
+	[[nodiscard]] TResult wait_until(TLock& lock, const std::chrono::time_point<TClock, TDuration>& timeout_time, std::optional<_Predicate>&& pred = {}) const
 	{
 		if (pred)
 			return (m_condition.wait_until(lock, timeout_time, std::move(*pred)) ? _GetResult() : std::nullopt);
@@ -51,23 +51,23 @@ public:
 
 	void notify_one(size_t uEvent) noexcept
 	{
-		m_oEvents.Exclusive()->emplace(uEvent);
+		m_oEvents.exclusive()->emplace(uEvent);
 		m_condition.notify_one();
 	}
 
 	void notify_all(size_t uEvent) noexcept
 	{
-		m_oEvents.Exclusive()->emplace(uEvent);
+		m_oEvents.exclusive()->emplace(uEvent);
 		m_condition.notify_all();
 	}
 
 private:
 	TResult _GetResult() const noexcept
 	{
-		return m_oEvents.Exclusive().Move();
+		return m_oEvents.exclusive().move();
 	}
 
 private:
-	mutable AtomicConditionVariable<TCondition> m_condition;
-	mutable Concurrent::UnorderedSet<size_t> m_oEvents;
+	mutable AtomicConditionVariable<_Condition> m_condition;
+	mutable concurrent::unordered_set<size_t> m_oEvents;
 };

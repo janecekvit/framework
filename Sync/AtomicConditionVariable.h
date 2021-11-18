@@ -1,15 +1,15 @@
 #pragma once
-#include "Framework/Extensions/Constraints.h"
-#include "Framework/Extensions/Finally.h"
+#include "Extensions/Finally.h"
+#include "Extensions/constraints.h"
 
 #include <atomic>
 #include <condition_variable>
 
-template <class TCondition = std::condition_variable_any>
+template <class _Condition = std::condition_variable_any>
 class AtomicConditionVariable
 {
 private:
-	using TPredicate = typename std::function<bool()>;
+	using _Predicate = typename std::function<bool()>;
 
 public:
 	AtomicConditionVariable()		   = default;
@@ -25,7 +25,7 @@ public:
 	}
 
 	template <class TLock>
-	void wait(TLock& lock, TPredicate&& pred) const
+	void wait(TLock& lock, _Predicate&& pred) const
 	{
 		m_condition.wait(lock, [this, x = std::move(pred)]()
 			{
@@ -34,7 +34,7 @@ public:
 	}
 
 	template <class TLock, class TRep, class TPeriod>
-	[[nodiscard]] bool wait_for(TLock& lock, const std::chrono::duration<TRep, TPeriod>& rel_time, std::optional<TPredicate>&& pred = {}) const
+	[[nodiscard]] bool wait_for(TLock& lock, const std::chrono::duration<TRep, TPeriod>& rel_time, std::optional<_Predicate>&& pred = {}) const
 	{
 		if (pred)
 		{
@@ -51,7 +51,7 @@ public:
 	}
 
 	template <class TLock, class TClock, class TDuration>
-	[[nodiscard]] bool wait_until(TLock& lock, const std::chrono::time_point<TClock, TDuration>& timeout_time, std::optional<TPredicate>&& pred = {}) const
+	[[nodiscard]] bool wait_until(TLock& lock, const std::chrono::time_point<TClock, TDuration>& timeout_time, std::optional<_Predicate>&& pred = {}) const
 	{
 		if (pred)
 		{
@@ -80,6 +80,6 @@ public:
 	}
 
 private:
-	mutable TCondition m_condition;
+	mutable _Condition m_condition;
 	mutable std::atomic<bool> m_bSignalized = false;
 };

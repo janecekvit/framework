@@ -1,29 +1,29 @@
 #pragma once
-#include "Framework/Extensions/Constraints.h"
+#include "Extensions/constraints.h"
 
 #include <functional>
 
-namespace Extensions
+namespace extensions
 {
 /// <summary>
-/// Finally class implements finally block in C++
+/// finally class implements finally block in C++
 /// </summary>
 
-template <class Func, class... Args>
-class Finally
+template <class _F, class... _Args>
+class finally
 {
 public:
-	template <std::enable_if_t<std::is_invocable_v<Func, Args...>, int> = 0>
-	Finally(Func&& fnCallback)
-		: m_fnCallback(std::move(fnCallback))
+	template <std::enable_if_t<std::is_invocable_v<_F, _Args...>, int> = 0>
+	finally(_F&& fnCallback)
+		: _callback(std::move(fnCallback))
 	{
 	}
 
-	virtual ~Finally()
+	virtual ~finally()
 	{
 		try
 		{
-			m_fnCallback();
+			_callback();
 		}
 		catch (const std::exception&)
 		{
@@ -31,7 +31,7 @@ public:
 	}
 
 private:
-	const Func m_fnCallback{};
+	const _F _callback{};
 };
 
-} //namespace Extensions
+} //namespace extensions

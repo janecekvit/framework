@@ -4,7 +4,7 @@
 Copyright (c) 2020 Vit janecek <mailto:janecekvit@outlook.com>.
 All rights reserved.
 
-ResourceWrapper.h
+resource_wrapper.h
 Purpose:	header file contains RAII pattern
 
 @author: Vit Janecek
@@ -12,259 +12,259 @@ Purpose:	header file contains RAII pattern
 @version 1.06 10/06/2021
 */
 
-#include "Framework/Extensions/Constraints.h"
-#include "Framework/Extensions/Extensions.h"
+#include "Extensions/constraints.h"
+#include "Extensions/extensions.h"
 
 #include <functional>
 
-namespace Extensions
+namespace extensions
 {
 /// <summary>
 /// The wrapper implemented own deleter that gains functionality to release all used resources correctly.
-/// Method derives from the GetterSetter class to using input resource with implicit conversions.
+/// Method derives from the getter_setter class to using input resource with implicit conversions.
 /// Ensure that deleter's body can be called multiple times to handle deallocations of the same resource in case of CopyConstructible methods of this wrapper are used.
-/// When TDestuctorThrowException is set to true, destructor can raise exception when TDeleter functor fails or isn't initialized.
+/// When _DestuctorThrowException is set to true, destructor can raise exception when deleter functor fails or isn't initialized.
 /// Throwing an exception out of a destructor is dangerous. If another exception is already propagating the application will terminate. Be careful with this.
 /// </summary>
 /// <example>
 /// <code>
-/// auto oWrapperFile = ResourceWrapper<std::fstream>(std::fstream("Test", std::ios::binary), [](std::fstream& i)
+/// auto oWrapperFile = resource_wrapper<std::fstream>(std::fstream("Test", std::ios::binary), [](std::fstream& i)
 /// {
 ///		i.close();
 /// });
 ///	bool open = oWrapperFile->is_open();
 /// </code>
 /// </example>
-template <class TResource, bool TDestuctorThrowException = false>
-class ResourceWrapper
+template <class _Resource, bool _DestuctorThrowException = false>
+class resource_wrapper
 {
 public:
-	class DeleterMissingException
+	class deleter_missing_exception
 		: public std::exception
 	{
 	public:
-		DeleterMissingException(const std::type_info& typeInfo) noexcept
+		deleter_missing_exception(const std::type_info& typeInfo) noexcept
 		{
 			using namespace std::string_literals;
-			m_sData = "ResourceWrapper: Deleter with specified type cannot be found: "s + typeInfo.name();
+			_text = "resource_wrapper: Deleter with specified type cannot be found: "s + typeInfo.name();
 		}
 		const char* what() const override
 		{
-			return m_sData.c_str();
+			return _text.data();
 		}
 
 	protected:
-		std::string m_sData;
+		std::string _text;
 	};
 
 public:
-	using TAccessor		 = typename std::function<void(TResource&)>;
-	using TConstAccessor = typename std::function<void(const TResource&)>;
-	using TDeleter		 = typename TAccessor;
+	using accessor		   = typename std::function<void(_Resource&)>;
+	using const_accessor   = typename std::function<void(const _Resource&)>;
+	using resource_deleter = typename accessor;
 
 public:
-	virtual ~ResourceWrapper() noexcept(!TDestuctorThrowException)
+	virtual ~resource_wrapper() noexcept(!_DestuctorThrowException)
 	{
-		m_pResource.reset();
-		if constexpr (TDestuctorThrowException == true)
+		_resource.reset();
+		if constexpr (_DestuctorThrowException == true)
 			_CheckDeleter();
 	}
 
-	constexpr ResourceWrapper() = delete;
+	constexpr resource_wrapper() = delete;
 
-	constexpr ResourceWrapper(TDeleter&& fnDeleter)
-		: m_pResource(_CreateResource(TResource{}, TDeleter(fnDeleter)))
-		, m_oDeleter(std::forward<TDeleter>(fnDeleter))
+	constexpr resource_wrapper(resource_deleter&& deleter)
+		: _resource(_CreateResource(_Resource{}, resource_deleter(deleter)))
+		, _deleter(std::forward<resource_deleter>(deleter))
 	{
 	}
 
-	template <class TFwdResource>
-	constexpr ResourceWrapper(TFwdResource&& oResource, TDeleter&& fnDeleter)
-		: m_pResource(_CreateResource(std::forward<TResource>(oResource), TDeleter(fnDeleter)))
-		, m_oDeleter(std::forward<TDeleter>(fnDeleter))
+	template <class _FwdResource>
+	constexpr resource_wrapper(_FwdResource&& resource, resource_deleter&& deleter)
+		: _resource(_CreateResource(std::forward<_Resource>(resource), resource_deleter(deleter)))
+		, _deleter(std::forward<resource_deleter>(deleter))
 	{
 	}
 
-	constexpr ResourceWrapper(const TResource& oResource, TDeleter&& fnDeleter)
-		: m_pResource(_CreateResource(oResource, TDeleter(fnDeleter)))
-		, m_oDeleter(std::forward<TDeleter>(fnDeleter))
+	constexpr resource_wrapper(const _Resource& resource, resource_deleter&& deleter)
+		: _resource(_CreateResource(resource, resource_deleter(deleter)))
+		, _deleter(std::forward<resource_deleter>(deleter))
 	{
 	}
 
-	constexpr ResourceWrapper(const ResourceWrapper& oOther) 
-		#if __cplusplus > __cpp_lib_concepts
-		requires std::is_copy_constructible_v<TResource>
-		#endif
-		: m_pResource(oOther.m_pResource)
-		, m_oDeleter(oOther.m_oDeleter)
+	constexpr resource_wrapper(const resource_wrapper& other)
+#if __cplusplus > __cpp_lib_concepts
+		requires std::is_copy_constructible_v<_Resource>
+#endif
+		: _resource(other._resource)
+		, _deleter(other._deleter)
 	{
 	}
 
-	#if __cplusplus > __cpp_lib_concepts
-	constexpr ResourceWrapper(const ResourceWrapper&) requires !std::is_copy_constructible_v<TResource> = delete;
-	#endif
+#if __cplusplus > __cpp_lib_concepts
+	constexpr resource_wrapper(const resource_wrapper&) requires !std::is_copy_constructible_v<_Resource> = delete;
+#endif
 
-	constexpr ResourceWrapper(ResourceWrapper&& oOther) noexcept
-		: m_pResource(std::move(oOther.m_pResource))
-		, m_oDeleter(std::move(oOther.m_oDeleter))
+	constexpr resource_wrapper(resource_wrapper&& other) noexcept
+		: _resource(std::move(other._resource))
+		, _deleter(std::move(other._deleter))
 	{
 	}
 
-	constexpr ResourceWrapper& operator=(const ResourceWrapper& oOther) 
-		#if __cplusplus > __cpp_lib_concepts
-		requires std::is_copy_constructible_v<TResource>
-		#endif
+	constexpr resource_wrapper& operator=(const resource_wrapper& other)
+#if __cplusplus > __cpp_lib_concepts
+		requires std::is_copy_constructible_v<_Resource>
+#endif
 	{
-		m_oDeleter	= oOther.m_oDeleter;
-		m_pResource = oOther.m_pResource;
+		_deleter  = other._deleter;
+		_resource = other._resource;
 		return *this;
 	}
 
-	#if __cplusplus > __cpp_lib_concepts
-	constexpr ResourceWrapper& operator=(const ResourceWrapper&) requires !std::is_copy_constructible_v<TResource> = delete;
-	#endif
+#if __cplusplus > __cpp_lib_concepts
+	constexpr resource_wrapper& operator=(const resource_wrapper&) requires !std::is_copy_constructible_v<_Resource> = delete;
+#endif
 
-	constexpr ResourceWrapper& operator=(ResourceWrapper&& oOther) noexcept
+	constexpr resource_wrapper& operator=(resource_wrapper&& other) noexcept
 	{
-		m_oDeleter	= std::move(oOther.m_oDeleter);
-		m_pResource = std::move(oOther.m_pResource);
+		_deleter  = std::move(other._deleter);
+		_resource = std::move(other._resource);
 		return *this;
 	}
 
-	constexpr ResourceWrapper& operator=(const TResource& oResource)
+	constexpr resource_wrapper& operator=(const _Resource& resource)
 	{
 		_CheckDeleter();
-		m_pResource = _CreateResource(oResource, TDeleter(m_oDeleter));
+		_resource = _CreateResource(resource, resource_deleter(_deleter));
 		return *this;
 	}
 
-	constexpr ResourceWrapper& operator=(TResource&& oResource)
+	constexpr resource_wrapper& operator=(_Resource&& resource)
 	{
 		_CheckDeleter();
-		m_pResource = _CreateResource(std::move(oResource), TDeleter(m_oDeleter));
+		_resource = _CreateResource(std::move(resource), resource_deleter(_deleter));
 		return *this;
 	}
 
-	constexpr void Reset()
+	constexpr void reset()
 	{
 		_CheckDeleter();
-		m_pResource = _CreateResource(nullptr, TDeleter(m_oDeleter));
+		_resource = _CreateResource(nullptr, resource_deleter(_deleter));
 	}
 
-	constexpr void Retrieve(TConstAccessor&& fnAccess) const
+	constexpr void retrieve(const_accessor&& fnAccess) const
 	{
-		fnAccess(*m_pResource);
+		fnAccess(*_resource);
 	}
 
-	constexpr void Update(TAccessor&& fnAccess)
+	constexpr void update(accessor&& fnAccess)
 	{
-		fnAccess(*m_pResource);
+		fnAccess(*_resource);
 	}
 
-	[[nodiscard]] constexpr operator const TResource&() const&
+	[[nodiscard]] constexpr operator const _Resource&() const&
 	{
-		return *m_pResource;
+		return *_resource;
 	}
 
-	[[nodiscard]] constexpr operator TResource&() &
+	[[nodiscard]] constexpr operator _Resource&() &
 	{
-		return *m_pResource;
+		return *_resource;
 	}
 
-	[[nodiscard]] constexpr operator TResource&&() &&
+	[[nodiscard]] constexpr operator _Resource&&() &&
 	{
-		return std::move(*m_pResource);
+		return std::move(*_resource);
 	}
 
-	template <class TQuantified = TResource, std::enable_if_t<Constraints::is_explicitly_convertible_v<TQuantified, bool>, int> = 0>
+	template <class _Quantified = _Resource, std::enable_if_t<constraints::is_explicitly_convertible_v<_Quantified, bool>, int> = 0>
 	[[nodiscard]] constexpr explicit operator bool() const noexcept
 	{
-		return static_cast<bool>(*m_pResource);
+		return static_cast<bool>(*_resource);
 	}
 
-	template <class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	template <class _Quantified = _Resource, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) begin() const noexcept
 	{
-		return m_pResource->begin();
+		return _resource->begin();
 	}
 
-	template <class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	template <class _Quantified = _Resource, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) end() const noexcept
 	{
-		return m_pResource->end();
+		return _resource->end();
 	}
 
-	template <class TQuantified = TResource, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	template <class _Quantified = _Resource, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) size() const noexcept
 	{
-		return m_pResource->size();
+		return _resource->size();
 	}
 
-	template <class TQuantified = TResource, std::enable_if_t<std::is_pointer_v<TQuantified>, int> = 0>
-	[[nodiscard]] constexpr auto operator->() & noexcept -> TResource&
+	template <class _Quantified = _Resource, std::enable_if_t<std::is_pointer_v<_Quantified>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() & noexcept -> _Resource&
 	{
-		return *m_pResource;
+		return *_resource;
 	}
 
-	template <class TQuantified = TResource, std::enable_if_t<std::is_pointer_v<TQuantified>, int> = 0>
-	[[nodiscard]] constexpr auto operator->() const& noexcept -> const TResource&
+	template <class _Quantified = _Resource, std::enable_if_t<std::is_pointer_v<_Quantified>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() const& noexcept -> const _Resource&
 	{
-		return *m_pResource;
+		return *_resource;
 	}
 
-	template <class TQuantified = TResource, std::enable_if_t<!std::is_pointer_v<TQuantified> && !Constraints::is_shared_ptr_v<TQuantified>, int> = 0>
-	[[nodiscard]] constexpr auto operator->() & noexcept -> TResource*
+	template <class _Quantified = _Resource, std::enable_if_t<!std::is_pointer_v<_Quantified> && !constraints::is_shared_ptr_v<_Quantified>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() & noexcept -> _Resource*
 	{
-		return std::addressof(*m_pResource);
+		return std::addressof(*_resource);
 	}
 
-	template <class TQuantified = TResource, std::enable_if_t<!std::is_pointer_v<TQuantified> && !Constraints::is_shared_ptr_v<TQuantified>, int> = 0>
-	[[nodiscard]] constexpr auto operator->() const& noexcept -> const TResource*
+	template <class _Quantified = _Resource, std::enable_if_t<!std::is_pointer_v<_Quantified> && !constraints::is_shared_ptr_v<_Quantified>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() const& noexcept -> const _Resource*
 	{
-		return std::addressof(*m_pResource);
+		return std::addressof(*_resource);
 	}
 
-	template <class TQuantified = TResource, std::enable_if_t<!std::is_pointer_v<TQuantified> && Constraints::is_shared_ptr_v<TQuantified>, int> = 0>
+	template <class _Quantified = _Resource, std::enable_if_t<!std::is_pointer_v<_Quantified> && constraints::is_shared_ptr_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) operator->() & noexcept
 	{
-		return *m_pResource;
+		return *_resource;
 	}
 
-	template <class TQuantified = TResource, std::enable_if_t<!std::is_pointer_v<TQuantified> && Constraints::is_shared_ptr_v<TQuantified>, int> = 0>
+	template <class _Quantified = _Resource, std::enable_if_t<!std::is_pointer_v<_Quantified> && constraints::is_shared_ptr_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) operator->() const& noexcept
 	{
-		return *m_pResource;
+		return *_resource;
 	}
 
-	[[nodiscard]] constexpr TResource* operator&()
+	[[nodiscard]] constexpr _Resource* operator&()
 	{
-		return std::addressof(*m_pResource);
+		return std::addressof(*_resource);
 	}
 
 protected:
-	[[nodiscard]] constexpr std::shared_ptr<TResource> _CreateResource(TResource&& oResource, TDeleter&& fnDeleter)
+	[[nodiscard]] constexpr std::shared_ptr<_Resource> _CreateResource(_Resource&& resource, resource_deleter&& deleter)
 	{
-		return std::shared_ptr<TResource>(new TResource(std::forward<TResource>(oResource)), [fnStoredDeleter = std::move(fnDeleter)](TResource* pResource)
+		return std::shared_ptr<_Resource>(new _Resource(std::forward<_Resource>(resource)), [storedDeleter = std::move(deleter)](_Resource* resource)
 			{
-				//Call inner resource deleter
-				if (fnStoredDeleter)
-					fnStoredDeleter(*pResource);
+				//call inner resource deleter
+				if (storedDeleter)
+					storedDeleter(*resource);
 
-				delete pResource;
-				pResource = nullptr;
+				delete resource;
+				resource = nullptr;
 			});
 	}
 
 protected:
 	void _CheckDeleter() const
 	{
-		if (!m_oDeleter)
-			throw DeleterMissingException(typeid(std::declval<TDeleter>()));
+		if (!_deleter)
+			throw deleter_missing_exception(typeid(std::declval<resource_deleter>()));
 	}
 
 protected:
-	std::shared_ptr<TResource> m_pResource{};
-	TDeleter m_oDeleter{};
+	std::shared_ptr<_Resource> _resource{};
+	resource_deleter _deleter{};
 };
 
-} //namespace Extensions
+} //namespace extensions

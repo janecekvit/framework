@@ -49,7 +49,7 @@ bool ThreadPoolDynamic::_IsDeallocationEnabled() const noexcept
 
 bool ThreadPoolDynamic::_IsDeallocationFinished() const
 {
-	return m_oDeallocatedWorkers.Concurrent().size() == 0; //TODO
+	return m_oDeallocatedWorkers.concurrent().size() == 0; //TODO
 }
 
 void ThreadPoolDynamic::_PoolController()
@@ -84,7 +84,7 @@ void ThreadPoolDynamic::_PoolController()
 			else if (eEvent == EConditionEvents::eDealloc)
 			{
 				_DeallocateWorkers();
-				m_oDeallocatedWorkers.Exclusive()->clear();
+				m_oDeallocatedWorkers.exclusive()->clear();
 			}
 		}
 	}
@@ -93,8 +93,8 @@ void ThreadPoolDynamic::_PoolController()
 void ThreadPoolDynamic::_DeallocateWorkers()
 {
 	//release workers
-	auto&& oScope		 = _Pool().Exclusive();
-	auto&& oDeallocation = m_oDeallocatedWorkers.Concurrent();
+	auto&& oScope		 = _Pool().exclusive();
+	auto&& oDeallocation = m_oDeallocatedWorkers.concurrent();
 	for (std::list<Worker>::iterator it = oScope->begin(); it != oScope->end();)
 	{
 		//Deallocated worker -> Join worker and release resources
@@ -115,7 +115,7 @@ bool ThreadPoolDynamic::_PoolCallback()
 
 	//Decrement reference counter and save thread id
 	m_uDeallocationPoolSize--;
-	m_oDeallocatedWorkers.Exclusive()->emplace(std::this_thread::get_id());
+	m_oDeallocatedWorkers.exclusive()->emplace(std::this_thread::get_id());
 
 	//If zero references
 	if (!_IsDeallocationEnabled())

@@ -66,5 +66,6 @@ SpaceInEmptyParentheses: false
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
+Standard: c++20
 TabWidth: 4
 UseTab: true

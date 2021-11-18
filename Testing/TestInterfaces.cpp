@@ -1,8 +1,8 @@
 #include "stdafx.h"
 
 #include "CppUnitTest.h"
-#include "Framework/Extensions/ResourceWrapper.h"
-#include "Framework/Interface/ICloneable.h"
+#include "Extensions/ResourceWrapper.h"
+#include "Interface/ICloneable.h"
 
 #include <fstream>
 #include <iostream>
@@ -82,7 +82,7 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-namespace FrameworkUT
+namespace FrameworkTesting
 {
 TEST_CLASS(TestInterfaces)
 {
@@ -113,4 +113,4 @@ public:
 		Assert::AreEqual(d2.j, 0);
 	};
 };
-} // namespace FrameworkUT
+} // namespace FrameworkTesting

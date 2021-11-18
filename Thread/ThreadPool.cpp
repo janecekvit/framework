@@ -55,7 +55,7 @@ ThreadPool::~ThreadPool()
 	//Finish thread pool and wait for
 	m_bEndFlag = true;
 	m_cvPoolEvent.notify_all();
-	m_oWorkers.Exclusive()->clear();
+	m_oWorkers.exclusive()->clear();
 }
 
 void ThreadPool::AddTask(Task&& fn) noexcept
@@ -64,14 +64,14 @@ void ThreadPool::AddTask(Task&& fn) noexcept
 		return;
 
 	//Add new task to queue and inform workers about it
-	m_queueTask.Exclusive()->emplace(std::move(fn));
+	m_queueTask.exclusive()->emplace(std::move(fn));
 	m_cvPoolEvent.notify_one();
 }
 
 void ThreadPool::WaitAll() const noexcept
 {
-	auto&& oScope = m_queueTask.Concurrent();
-	oScope.Wait(_WaitEvent(), [&oScope, this]()
+	auto&& oScope = m_queueTask.concurrent();
+	oScope.wait(_WaitEvent(), [&oScope, this]()
 		{
 			return oScope->empty() || _Exit();
 		});
@@ -79,19 +79,19 @@ void ThreadPool::WaitAll() const noexcept
 
 size_t ThreadPool::Size() const noexcept
 {
-	return m_queueTask.Concurrent()->size();
+	return m_queueTask.concurrent()->size();
 }
 
 size_t ThreadPool::PoolSize() const noexcept
 {
-	return m_oWorkers.Concurrent()->size();
+	return m_oWorkers.concurrent()->size();
 }
 
 std::optional<ThreadPool::Task> ThreadPool::_GetTask() noexcept
 {
 	// Wait for the signal and unblock queue until the signal will be received
-	auto&& oScope = m_queueTask.Exclusive();
-	oScope.Wait(_Event(), [&oScope, this]()
+	auto&& oScope = m_queueTask.exclusive();
+	oScope.wait(_Event(), [&oScope, this]()
 		{
 			if (oScope->empty())
 				m_cvWaitEvent.notify_all();
@@ -110,7 +110,7 @@ std::optional<ThreadPool::Task> ThreadPool::_GetTask() noexcept
 void ThreadPool::_AddWorkers(_In_ size_t uWorkerCount, std::optional<WorkerCallback>&& optTask) noexcept
 {
 	for (size_t uCount = 0; uCount < uWorkerCount; uCount++)
-		m_oWorkers.Exclusive()->emplace_back(*this, std::optional<WorkerCallback>(optTask));
+		m_oWorkers.exclusive()->emplace_back(*this, std::optional<WorkerCallback>(optTask));
 }
 
 void ThreadPool::_ErrorCallback(const std::exception& ex) noexcept
@@ -118,12 +118,12 @@ void ThreadPool::_ErrorCallback(const std::exception& ex) noexcept
 	m_fnErrorCallback(ex);
 }
 
-Concurrent::Queue<IThreadPool::Task>& ThreadPool::_Queue() noexcept
+concurrent::queue<IThreadPool::Task>& ThreadPool::_Queue() noexcept
 {
 	return m_queueTask;
 }
 
-Concurrent::List<ThreadPool::Worker>& ThreadPool::_Pool() noexcept
+concurrent::list<ThreadPool::Worker>& ThreadPool::_Pool() noexcept
 {
 	return m_oWorkers;
 }

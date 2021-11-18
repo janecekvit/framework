@@ -1,6 +1,6 @@
 #pragma once
-#include "Framework/Sync/WaitForMultipleConditions.h"
-#include "Framework/Thread/ThreadPool.h"
+#include "Sync/WaitForMultipleConditions.h"
+#include "Thread/ThreadPool.h"
 
 #include <atomic>
 #include <functional>
@@ -54,5 +54,5 @@ private:
 	std::thread m_oThread;
 	std::atomic<size_t> m_uDeallocationPoolSize = 0;
 	WaitForMultipleConditions<> m_cvDynamicPoolEvent;
-	Concurrent::UnorderedSet<std::thread::id> m_oDeallocatedWorkers;
+	concurrent::unordered_set<std::thread::id> m_oDeallocatedWorkers;
 };

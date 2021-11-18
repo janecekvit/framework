@@ -1,9 +1,9 @@
 #include "stdafx.h"
 
 #include "CppUnitTest.h"
-#include "Framework/Extensions/Concurrent.h"
-#include "Framework/Extensions/Extensions.h"
-#include "Framework/Extensions/ResourceWrapper.h"
+#include "Extensions/Concurrent.h"
+#include "Extensions/ResourceWrapper.h"
+#include "Extensions/extensions.h"
 
 #include <fstream>
 #include <future>
@@ -13,9 +13,9 @@
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
-namespace FrameworkUT
+namespace FrameworkTesting
 {
-template <template <class...> class TContainer, class TItem, std::enable_if_t<Constraints::is_container_v<TContainer<TItem>>, int> = 0>
+template <template <class...> class TContainer, class TItem, std::enable_if_t<constraints::is_container_v<TContainer<TItem>>, int> = 0>
 void ContainerTest(const TContainer<TItem>& oContainer)
 {
 	int i = 0;
@@ -25,84 +25,84 @@ void ContainerTest(const TContainer<TItem>& oContainer)
 	i *= 2;
 }
 
-template <template <class...> class TContainer, class TItem, std::enable_if_t<Constraints::is_concurrent_container_v<TContainer<TItem>>, int> = 0>
+template <template <class...> class TContainer, class TItem, std::enable_if_t<constraints::is_concurrent_container_v<TContainer<TItem>>, int> = 0>
 void ContainerTest(const TContainer<TItem>& oContainer)
 {
-	ContainerTest(oContainer.Concurrent().Get());
+	ContainerTest(oContainer.concurrent().get());
 }
 
 TEST_CLASS(TestConcurrent){
 	public:
 		TEST_METHOD(TestConccurentFunctors){
 			int iNumber = 0;
-Concurrent::Functor<void()> fnTest = std::function<void()>([&]()
+concurrent::functor<void()> fnTest = std::function<void()>([&]()
 	{
 		iNumber++;
 	});
 
-fnTest.Exclusive().Get()();
-fnTest.Exclusive().Get()();
-fnTest.Concurrent().Get()();
+fnTest.exclusive().get()();
+fnTest.exclusive().get()();
+fnTest.concurrent().get()();
 
-//fnTest.Concurrent().begin();
+//fnTest.concurrent().begin();
 
 Assert::AreEqual(iNumber, 3);
-} // namespace FrameworkUT
+} // namespace FrameworkTesting
 TEST_METHOD(TestConccurentOperations)
 {
 	std::cout << "Concurent Containers" << std::endl;
 
 	{
-		Concurrent::ResourceOwner<std::vector<int>> oVec = std::vector<int>{ 0, 1, 2, 5 };
-		oVec.Exclusive()->emplace_back(3);
-		oVec.Exclusive()->emplace_back(4);
+		concurrent::resource_owner<std::vector<int>> oVec = std::vector<int>{ 0, 1, 2, 5 };
+		oVec.exclusive()->emplace_back(3);
+		oVec.exclusive()->emplace_back(4);
 
-		Concurrent::ResourceOwner<std::unordered_map<int, int>> oMap;
+		concurrent::resource_owner<std::unordered_map<int, int>> oMap;
 
 		{
 			// No [[nodiscard]] attribute
-			// oMap.Exclusive();
-			// oMap.Concurrent();
+			// oMap.exclusive();
+			// oMap.concurrent();
 
-			auto it	   = oMap.Exclusive()->begin();
-			it		   = oMap.Exclusive()->end();
-			auto uSize = oMap.Exclusive()->size();
+			auto it	   = oMap.exclusive()->begin();
+			it		   = oMap.exclusive()->end();
+			auto uSize = oMap.exclusive()->size();
 
-			auto itConst = oMap.Concurrent()->begin();
-			itConst		 = oMap.Concurrent()->end();
-			uSize		 = oMap.Concurrent()->size();
+			auto itConst = oMap.concurrent()->begin();
+			itConst		 = oMap.concurrent()->end();
+			uSize		 = oMap.concurrent()->size();
 		}
 
-		// Exclusive access
-		oMap.Exclusive()->emplace(5, 5); // exclusive access with lifetime of one operation
+		// exclusive access
+		oMap.exclusive()->emplace(5, 5); // exclusive access with lifetime of one operation
 		{								 // exclusive access with extended lifetime for more that only one
-			auto oScope = oMap.Exclusive();
+			auto oScope = oMap.exclusive();
 			oScope->emplace(10, 10);
 		} // exclusive access ends
 
-		// Concurrent access
-		auto iResult = oMap.Concurrent()->at(5); // concurrent access with lifetime of one operation
+		// concurrent access
+		auto iResult = oMap.concurrent()->at(5); // concurrent access with lifetime of one operation
 
 		{ // exclusive access with extended lifetime for more that only one
-			auto oScope		  = oMap.Concurrent();
+			auto oScope		  = oMap.concurrent();
 			auto iResultScope = oScope->at(10);
-			auto oScope2	  = oMap.Concurrent();
-			auto oScope3	  = oMap.Concurrent();
+			auto oScope2	  = oMap.concurrent();
+			auto oScope3	  = oMap.concurrent();
 
 		} // concurrent access ends
 
-		{ //Exclusive add from scope
-			auto oScope = oMap.Exclusive();
+		{ //exclusive add from scope
+			auto oScope = oMap.exclusive();
 			oScope->emplace(15, 15);
 			oScope->emplace(20, 20);
 		}
 
 		{ // concurrent access with scope
-			auto oAccess = oMap.Concurrent();
-			Assert::AreEqual(oMap.Concurrent()->at(10), 10);
-			auto oAccess2 = oMap.Concurrent();
+			auto oAccess = oMap.concurrent();
+			Assert::AreEqual(oMap.concurrent()->at(10), 10);
+			auto oAccess2 = oMap.concurrent();
 
-			const int iNumber = Extensions::ContainerFind(oMap.Concurrent().Get(), 20, [&](const int& i)
+			const int iNumber = extensions::execute_on_container(oMap.concurrent().get(), 20, [&](const int& i)
 				{
 					return i;
 				});
@@ -117,7 +117,7 @@ TEST_METHOD(TestConccurentOperations)
 				{
 					con.notify_one();
 					int i = 5;
-					for (auto&& item : oMap.Exclusive())
+					for (auto&& item : oMap.exclusive())
 					{
 						Assert::AreEqual(item.second, i);
 						i += 5;
@@ -130,7 +130,7 @@ TEST_METHOD(TestConccurentOperations)
 			std::unique_lock<std::mutex> oLock(mutex);
 			con.wait(oLock);
 			int i = 6;
-			for (auto&& item : oMap.Exclusive())
+			for (auto&& item : oMap.exclusive())
 			{
 				Assert::AreEqual(item.second, i);
 				i += 5;
@@ -142,30 +142,30 @@ TEST_METHOD(TestConccurentOperations)
 
 		//Index operators on unordered map (cannot be const in concurrent access)
 		{
-			auto oScope = oMap.Exclusive();
+			auto oScope = oMap.exclusive();
 			oScope[25]	= 25;
 		}
 
 		{
-			auto oScope = oMap.Concurrent();
+			auto oScope = oMap.concurrent();
 			Assert::AreEqual(oScope->at(25), 25);
 		}
 
 		//Index operators on vector (can access in concurrent, cannot add new item)
 		{
-			auto oScope = oVec.Exclusive();
+			auto oScope = oVec.exclusive();
 			oScope[5]	= 5;
 		}
 
 		{
-			auto oScope = oVec.Concurrent();
+			auto oScope = oVec.concurrent();
 			Assert::AreEqual(oScope[5], 5);
 		}
 
 		//operator ()
 		{
-			auto oScope = oMap.Exclusive();
-			oScope.Get().emplace(30, 30);
+			auto oScope = oMap.exclusive();
+			oScope.get().emplace(30, 30);
 			oScope().emplace(35, 35);
 
 			Assert::AreEqual(oScope[30], 30);
@@ -173,62 +173,62 @@ TEST_METHOD(TestConccurentOperations)
 		}
 
 		{
-			auto oScope	 = oMap.Concurrent();
-			auto oScope2 = oMap.Concurrent();
+			auto oScope	 = oMap.concurrent();
+			auto oScope2 = oMap.concurrent();
 			Assert::AreEqual(oScope().at(30), 30);
 			Assert::AreEqual(oScope2().at(35), 35);
 		}
 
 		//Settter
 		std::unordered_map<int, int> oMap2;
-		oMap.Exclusive().Set(std::move(oMap2));
+		oMap.exclusive().set(std::move(oMap2));
 
 		//Release methods
 		try
 		{
-			auto oScope = oMap.Exclusive();
+			auto oScope = oMap.exclusive();
 			oScope->emplace(40, 40);
-			oScope.Release();
+			oScope.release();
 			oScope->emplace(45, 45);
 		}
 		catch (std::system_error&)
 		{
-			auto oScope = oMap.Exclusive();
+			auto oScope = oMap.exclusive();
 			Assert::AreEqual(oScope().at(40), 40);
 			Assert::AreEqual(oScope().count(45), static_cast<size_t>(0));
 		}
 
 		try
 		{
-			auto oScope = oMap.Concurrent();
+			auto oScope = oMap.concurrent();
 			Assert::AreEqual(oScope().at(40), 40);
-			oScope.Release();
+			oScope.release();
 			Assert::AreEqual(oScope().at(40), 40);
 		}
 		catch (std::system_error&)
 		{
-			auto oScope = oMap.Exclusive();
+			auto oScope = oMap.exclusive();
 			Assert::AreEqual(oScope().count(40), static_cast<size_t>(1));
 		}
 
 		//Move semantics
-		auto oOldValue = oMap.Exclusive().Move();
+		auto oOldValue = oMap.exclusive().move();
 
 		std::unordered_map<int, int> oMap3;
-		oMap.Exclusive().Set(std::move(oMap3));
+		oMap.exclusive().set(std::move(oMap3));
 
-		Assert::AreEqual(oMap.Exclusive().Get().size(), static_cast<size_t>(0));
+		Assert::AreEqual(oMap.exclusive().get().size(), static_cast<size_t>(0));
 		Assert::AreEqual(oOldValue.count(40), static_cast<size_t>(1));
 
 		//Swap semantics
 		oOldValue.emplace(50, 50);
-		oMap.Exclusive()->emplace(100, 100);
-		oMap.Exclusive().Swap(oOldValue);
+		oMap.exclusive()->emplace(100, 100);
+		oMap.exclusive().swap(oOldValue);
 
-		Assert::AreEqual(oMap.Exclusive().Get().size(), static_cast<size_t>(2));
-		Assert::AreEqual(oMap.Exclusive()->count(50), static_cast<size_t>(1));
-		Assert::AreEqual(oMap.Exclusive()->count(40), static_cast<size_t>(1));
-		Assert::AreEqual(oMap.Exclusive()->count(100), static_cast<size_t>(0));
+		Assert::AreEqual(oMap.exclusive().get().size(), static_cast<size_t>(2));
+		Assert::AreEqual(oMap.exclusive()->count(50), static_cast<size_t>(1));
+		Assert::AreEqual(oMap.exclusive()->count(40), static_cast<size_t>(1));
+		Assert::AreEqual(oMap.exclusive()->count(100), static_cast<size_t>(0));
 
 		Assert::AreEqual(oOldValue.size(), static_cast<size_t>(1));
 		Assert::AreEqual(oOldValue.count(100), static_cast<size_t>(1));
@@ -247,16 +247,16 @@ TEST_METHOD(TestConccurentOperations)
 			iCalls++;
 		};
 
-		testLambda(oMap.Exclusive());
-		testLambdaConst(oMap.Exclusive());
-		testLambdaConst(oMap.Concurrent());
+		testLambda(oMap.exclusive());
+		testLambdaConst(oMap.exclusive());
+		testLambdaConst(oMap.concurrent());
 
 		Assert::AreEqual(iCalls, 3);
 
 		//std::array
 		{
-			Concurrent::ResourceOwner<std::array<int, 4>> oArray;
-			auto uSize = oArray.Exclusive().size();
+			concurrent::resource_owner<std::array<int, 4>> oArray;
+			auto uSize = oArray.exclusive().size();
 		}
 
 		{ //test condition varaible
@@ -264,14 +264,14 @@ TEST_METHOD(TestConccurentOperations)
 			size_t uSize = 0;
 			auto oFuture = std::async(std::launch::async, [&uSize, &cv, &oMap]()
 				{
-					oMap.Exclusive().Wait(cv);
-					oMap.Exclusive().Wait(cv, [&uSize]()
+					oMap.exclusive().wait(cv);
+					oMap.exclusive().wait(cv, [&uSize]()
 						{
 							return ++uSize == 2;
 						});
 
-					oMap.Concurrent().Wait(cv);
-					oMap.Concurrent().Wait(cv, [&uSize]()
+					oMap.concurrent().wait(cv);
+					oMap.concurrent().wait(cv, [&uSize]()
 						{
 							return ++uSize == 4;
 						});
@@ -285,24 +285,24 @@ TEST_METHOD(TestConccurentOperations)
 		}
 
 		{ //re-assign
-			auto oScope(std::move(oMap.Exclusive()));
+			auto oScope(std::move(oMap.exclusive()));
 
-			oScope.Release();
-			oScope = oMap.Exclusive();
+			oScope.release();
+			oScope = oMap.exclusive();
 			Assert::AreEqual(oScope().at(40), 40);
-			oScope.Release();
+			oScope.release();
 
-			auto oScopeRead(std::move(oMap.Concurrent()));
-			oScopeRead.Release();
-			oScopeRead = oMap.Concurrent();
+			auto oScopeRead(std::move(oMap.concurrent()));
+			oScopeRead.release();
+			oScopeRead = oMap.concurrent();
 			Assert::AreEqual(oScopeRead().at(40), 40);
-			oScopeRead.Release();
+			oScopeRead.release();
 		}
 
 		{ //Acquire write
-			auto&& oScope = oMap.Exclusive();
+			auto&& oScope = oMap.exclusive();
 			Assert::AreEqual(oScope().at(40), 40);
-			oScope.Release();
+			oScope.release();
 
 			try
 			{
@@ -310,7 +310,7 @@ TEST_METHOD(TestConccurentOperations)
 			}
 			catch (std::system_error&)
 			{
-				oScope.Acquire();
+				oScope.acquire();
 				Assert::AreEqual(oScope().at(40), 40);
 				oScope->emplace(222, 222);
 			}
@@ -319,7 +319,7 @@ TEST_METHOD(TestConccurentOperations)
 
 			try
 			{
-				oScope.Acquire();
+				oScope.acquire();
 			}
 			catch (std::system_error&)
 			{
@@ -330,9 +330,9 @@ TEST_METHOD(TestConccurentOperations)
 		}
 
 		{ //Acquire read
-			auto&& oScope = oMap.Concurrent();
+			auto&& oScope = oMap.concurrent();
 			Assert::AreEqual(oScope().at(40), 40);
-			oScope.Release();
+			oScope.release();
 
 			try
 			{
@@ -340,27 +340,27 @@ TEST_METHOD(TestConccurentOperations)
 			}
 			catch (std::system_error&)
 			{
-				oScope.Acquire();
+				oScope.acquire();
 				Assert::AreEqual(oScope().at(40), 40);
-				oScope.Release();
-				oMap.Exclusive()->emplace(223, 223);
+				oScope.release();
+				oMap.exclusive()->emplace(223, 223);
 			}
 
-			oScope.Acquire();
+			oScope.acquire();
 			Assert::AreEqual(oScope().at(223), 223);
 		}
 
 		{ //begin const
 
-			// oMap.Concurrent()->begin()->second++;
-			oMap.Exclusive()->begin()->second++;
+			// oMap.concurrent()->begin()->second++;
+			oMap.exclusive()->begin()->second++;
 		}
 	}
 }
 
-TEST_METHOD(TestConccurentConstraints)
+TEST_METHOD(TestConccurentconstraints)
 {
-	Concurrent::List<int> listNumbers = std::list<int>{
+	concurrent::list<int> listNumbers = std::list<int>{
 		1,
 		2,
 		3,
@@ -372,4 +372,4 @@ TEST_METHOD(TestConccurentConstraints)
 }
 }
 ;
-} // namespace FrameworkUT
+} // namespace FrameworkTesting

@@ -1,20 +1,20 @@
 /*
-Copyright (c) 2019 Vit janecek <mailto:janecekvit@outlook.com>.
-All rights reserved.
+MIT License
+Copyright (c) 2021 Vit Janecek (mailto:janecekvit@outlook.com)
 
-Concurrent.h
+concurrent.h
 Purpose:	header file contains set of thread-safe concurrent containers,
 			also methods that implemented over basic stl containers and
-			thread-safe methods for every possiblle concurrent object
+			thread-safe methods for every possible concurrent object
 
 
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
-@version 1.05 17/03/2019
+@version 2.00 29/10/2021
 */
 
 #pragma once
-#include "Framework/Extensions/Constraints.h"
+#include "Extensions/constraints.h"
 
 #include <array>
 #include <cerrno>
@@ -32,348 +32,393 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 #include <vector>
 
 ///Namespace owns set of thread-safe concurrent containers and methods that implemented over basic stl containers
-/// and thread-safe methods for every possiblle concurrent object
-namespace Concurrent
+/// and thread-safe methods for every possible concurrent object
+namespace concurrent
 {
-template <class TObject>
-class ResourceOwner;
+template <class _Type>
+class resource_owner;
 
-template <class TObject>
+template <class _Type>
 class ResourceKeeper;
 
 /// <summary>
 /// Class implements wrapper for exclusive use of input resource.
-/// Input resource is locked for exclusive use, can be modified by one accessor.
+/// Input resource is locked for exclusive use, can be modified by one accessors.
 /// </summary>
-template <class TObject>
-class ExclusiveResourceHolder
+template <class _Type>
+class exclusive_resource_holder
 {
 public:
-	constexpr ExclusiveResourceHolder(const std::shared_ptr<ResourceKeeper<TObject>>& pKeeper, std::source_location&& srcl) noexcept
-		: m_pKeeper(pKeeper)
-		, m_oExclusiveLock(std::unique_lock<std::shared_mutex>(*pKeeper->GetMutex()))
-		, m_srcl(srcl)
+	constexpr exclusive_resource_holder(const std::shared_ptr<ResourceKeeper<_Type>>& keeper, std::source_location&& srcl) noexcept
+		: _keeper(keeper)
+		, _exclusiveLock(std::unique_lock<std::shared_mutex>(*keeper->get_mutex()))
+		, _srcl(srcl)
+	{
+		_keeper->push_exclusive_lock_information(std::move(srcl));
+	}
+
+	constexpr exclusive_resource_holder(const exclusive_resource_holder& other) noexcept = delete;
+
+	constexpr exclusive_resource_holder(exclusive_resource_holder&& other) noexcept
+		: _keeper(std::move(other._keeper))
+		, _exclusiveLock(std::move(other._exclusiveLock))
+		, _srcl(std::move(other._srcl))
 	{
 	}
 
-	constexpr ExclusiveResourceHolder(const ExclusiveResourceHolder& oOther) noexcept = delete;
-
-	constexpr ExclusiveResourceHolder(ExclusiveResourceHolder&& oOther) noexcept
-		: m_pKeeper(std::move(oOther.m_pKeeper))
-		, m_oExclusiveLock(std::move(oOther.m_oExclusiveLock))
-		, m_srcl(std::move(oOther.m_srcl))
+	virtual ~exclusive_resource_holder()
 	{
+		if (_keeper)
+			_keeper->pop_exclusive_lock_information();
 	}
 
-	virtual ~ExclusiveResourceHolder() = default;
+	constexpr exclusive_resource_holder& operator=(const exclusive_resource_holder& other) noexcept = delete;
 
-	constexpr ExclusiveResourceHolder& operator=(const ExclusiveResourceHolder& oOther) noexcept = delete;
-
-	constexpr ExclusiveResourceHolder& operator=(ExclusiveResourceHolder&& oOther) noexcept
+	constexpr exclusive_resource_holder& operator=(exclusive_resource_holder&& other) noexcept
 	{
-		m_pKeeper		 = std::move(oOther.m_pKeeper);
-		m_oExclusiveLock = std::move(oOther.m_oExclusiveLock);
+		_keeper		   = std::move(other._keeper);
+		_exclusiveLock = std::move(other._exclusiveLock);
+		_srcl		   = std::move(other._srcl);
 		return *this;
 	}
 
-	[[nodiscard]] constexpr operator TObject&() const
+	[[nodiscard]] constexpr operator _Type&() const
 	{
-		_CheckOwnership();
-		return *m_pKeeper->GetResource();
+		_check_ownership();
+		return *_keeper->get_resource();
 	}
 
-	[[nodiscard]] constexpr const std::shared_ptr<TObject> operator->() const
+	[[nodiscard]] constexpr const std::shared_ptr<_Type> operator->() const
 	{
-		_CheckOwnership();
-		return m_pKeeper->GetResource();
+		_check_ownership();
+		return _keeper->get_resource();
 	}
 
-	[[nodiscard]] constexpr TObject& Get() const
+	[[nodiscard]] constexpr _Type& get() const
 	{
-		_CheckOwnership();
-		return *m_pKeeper->GetResource();
+		_check_ownership();
+		return *_keeper->get_resource();
 	}
 
-	constexpr void Set(TObject&& oObject) const
+	constexpr void set(_Type&& object) const
 	{
-		_CheckOwnership();
-		m_pKeeper->SetResource(std::forward<TObject>(oObject));
+		_check_ownership();
+		_keeper->set_resource(std::forward<_Type>(object));
 	}
 
-	constexpr void Swap(TObject& oObject) const
+	constexpr void swap(_Type& object) const
 	{
-		_CheckOwnership();
-		m_pKeeper->SwapResource(oObject);
+		_check_ownership();
+		_keeper->swap_resource(object);
 	}
 
-	[[nodiscard]] constexpr TObject Move() const
+	[[nodiscard]] constexpr _Type move() const
 	{
-		_CheckOwnership();
-		return m_pKeeper->MoveResource();
+		_check_ownership();
+		return _keeper->move_resource();
 	}
 
-	[[nodiscard]] constexpr TObject& operator()() const
+	[[nodiscard]] constexpr _Type& operator()() const
 	{
-		_CheckOwnership();
-		return *m_pKeeper->GetResource();
+		_check_ownership();
+		return *_keeper->get_resource();
 	}
 
-	template <class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) begin() const
 	{
-		_CheckOwnership();
-		return m_pKeeper->GetResource()->begin();
+		_check_ownership();
+		return _keeper->get_resource()->begin();
 	}
 
-	template <class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) end() const
 	{
-		_CheckOwnership();
-		return m_pKeeper->GetResource()->end();
+		_check_ownership();
+		return _keeper->get_resource()->end();
 	}
 
-	template <class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) size() const
 	{
-		_CheckOwnership();
-		return m_pKeeper->GetResource()->size();
+		_check_ownership();
+		return _keeper->get_resource()->size();
 	}
 
-	template <class TKey>
-	[[nodiscard]] constexpr auto& operator[](const TKey& oKey)
+	template <class _Key>
+	[[nodiscard]] constexpr auto& operator[](const _Key& key)
 	{
-		_CheckOwnership();
-		return (*m_pKeeper->GetResource())[oKey];
+		_check_ownership();
+		return (*_keeper->get_resource())[key];
 	}
 
-	template <class TKey>
-	[[nodiscard]] constexpr const auto& operator[](const TKey& oKey) const
+	template <class _Key>
+	[[nodiscard]] constexpr const auto& operator[](const _Key& key) const
 	{
-		_CheckOwnership();
-		return (*m_pKeeper->GetResource())[oKey];
+		_check_ownership();
+		return (*_keeper->get_resource())[key];
 	}
 
-	constexpr void Release() const
+	constexpr void release() const
 	{
-		_CheckOwnership();
-		m_oExclusiveLock.unlock();
+		_check_ownership();
+		_exclusiveLock.unlock();
 	}
 
-	constexpr void Acquire() const
+	constexpr void acquire() const
 	{
-		if (m_oExclusiveLock.owns_lock())
-			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "ExclusiveResourceHolder already owns the resource!");
+		if (_exclusiveLock.owns_lock())
+			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "exclusive_resource_holder already owns the resource!");
 
-		m_oExclusiveLock.lock();
+		_exclusiveLock.lock();
 	}
 
-	template <class TCondition, class TPredicate>
-	//requires Constraints::condition_variable_pred<TCondition, std::unique_lock<std::shared_mutex>, TPredicate>
-	constexpr decltype(auto) Wait(TCondition& cv, TPredicate&& pred) const
+	template <class _Condition, class _Predicate>
+	//requires constraints::condition_variable_pred<_Condition, std::unique_lock<std::shared_mutex>, TPredicate>
+	constexpr decltype(auto) wait(_Condition& cv, _Predicate&& pred) const
 	{
-		_CheckOwnership();
-		return cv.wait(m_oExclusiveLock, std::move(pred));
+		_check_ownership();
+		return cv.wait(_exclusiveLock, std::move(pred));
 	}
 
-	template <class TCondition>
-	//requires Constraints::condition_variable<TCondition, std::unique_lock<std::shared_mutex>>
-	constexpr decltype(auto) Wait(TCondition& cv) const
+	template <class _Condition>
+	//requires constraints::condition_variable<_Condition, std::unique_lock<std::shared_mutex>>
+	constexpr decltype(auto) wait(_Condition& cv) const
 	{
-		_CheckOwnership();
-		return cv.wait(m_oExclusiveLock);
+		_check_ownership();
+		return cv.wait(_exclusiveLock);
 	}
 
 private:
-	constexpr void _CheckOwnership() const
+	constexpr void _check_ownership() const
 	{
-		if (!m_oExclusiveLock.owns_lock())
-			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "ExclusiveResourceHolder do not owns the resource!");
+		if (!_exclusiveLock.owns_lock())
+			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "exclusive_resource_holder do not owns the resource!");
 	}
 
 private:
-	const std::source_location m_srcl;
-	std::shared_ptr<ResourceKeeper<TObject>> m_pKeeper = nullptr;
-	mutable std::unique_lock<std::shared_mutex> m_oExclusiveLock;
+	std::source_location _srcl;
+	std::shared_ptr<ResourceKeeper<_Type>> _keeper = nullptr;
+	mutable std::unique_lock<std::shared_mutex> _exclusiveLock;
 };
 
 /// <summary>
 /// Class implements wrapper for concurrent use of input resource.
 /// Input resource is locked for concurrent use only. cannot be modified, but more accessors can read input resource.
 /// </summary>
-template <class TObject>
-class ConcurrentResourceHolder
+template <class _Type>
+class concurrent_resource_holder
 {
 public:
-	constexpr ConcurrentResourceHolder(const std::shared_ptr<const ResourceKeeper<TObject>>& pKeeper, std::source_location&& srcl) noexcept
-		: m_pKeeper(pKeeper)
-		, m_oConcurrentLock(std::shared_lock<std::shared_mutex>(*pKeeper->GetMutex()))
+	constexpr concurrent_resource_holder(const std::shared_ptr<const ResourceKeeper<_Type>>& keeper, std::source_location&& srcl) noexcept
+		: _keeper(keeper)
+		, _concurrentLock(std::shared_lock<std::shared_mutex>(*keeper->get_mutex()))
+		, _srcl(srcl)
+	{
+		_keeper->push_concurrent_lock_information(std::move(srcl));
+	}
+
+	constexpr concurrent_resource_holder(const concurrent_resource_holder& other) noexcept = delete;
+
+	constexpr concurrent_resource_holder(concurrent_resource_holder&& other) noexcept
+		: _keeper(std::move(other._keeper))
+		, _concurrentLock(std::move(other._concurrentLock))
+		, _srcl(other._srcl)
 	{
 	}
 
-	constexpr ConcurrentResourceHolder(const ConcurrentResourceHolder& oOther) noexcept = delete;
-
-	constexpr ConcurrentResourceHolder(ConcurrentResourceHolder&& oOther) noexcept
-		: m_pKeeper(std::move(oOther.m_pKeeper))
-		, m_oConcurrentLock(std::move(oOther.m_oConcurrentLock))
+	virtual ~concurrent_resource_holder()
 	{
+		if (_keeper)
+			_keeper->pop_concurrent_lock_information(std::move(_srcl));
 	}
 
-	virtual ~ConcurrentResourceHolder() = default;
+	constexpr concurrent_resource_holder& operator=(const concurrent_resource_holder& other) noexcept = delete;
 
-	constexpr ConcurrentResourceHolder& operator=(const ConcurrentResourceHolder& oOther) noexcept = delete;
-
-	constexpr ConcurrentResourceHolder& operator=(ConcurrentResourceHolder&& oOther) noexcept
+	constexpr concurrent_resource_holder& operator=(concurrent_resource_holder&& other) noexcept
 	{
-		m_pKeeper		  = std::move(oOther.m_pKeeper);
-		m_oConcurrentLock = std::move(oOther.m_oConcurrentLock);
+		_keeper			= std::move(other._keeper);
+		_concurrentLock = std::move(other._concurrentLock);
+		_srcl			= std::move(other._srcl);
 		return *this;
 	}
 
-	[[nodiscard]] constexpr operator const TObject&() const
+	[[nodiscard]] constexpr operator const _Type&() const
 	{
-		_CheckOwnership();
-		return *m_pKeeper->GetResource();
+		_check_ownership();
+		return *_keeper->get_resource();
 	}
 
-	[[nodiscard]] constexpr const std::shared_ptr<const TObject> operator->() const
+	[[nodiscard]] constexpr const std::shared_ptr<const _Type> operator->() const
 	{
-		_CheckOwnership();
-		return m_pKeeper->GetResource();
+		_check_ownership();
+		return _keeper->get_resource();
 	}
 
-	[[nodiscard]] constexpr const TObject& Get() const
+	[[nodiscard]] constexpr const _Type& get() const
 	{
-		_CheckOwnership();
-		return *m_pKeeper->GetResource();
+		_check_ownership();
+		return *_keeper->get_resource();
 	}
 
-	[[nodiscard]] constexpr const TObject& operator()() const
+	[[nodiscard]] constexpr const _Type& operator()() const
 	{
-		_CheckOwnership();
-		return *m_pKeeper->GetResource();
+		_check_ownership();
+		return *_keeper->get_resource();
 	}
 
-	template <class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) begin() const
 	{
-		_CheckOwnership();
-		return m_pKeeper->GetResource()->begin();
+		_check_ownership();
+		return _keeper->get_resource()->begin();
 	}
 
-	template <class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) end() const
 	{
-		_CheckOwnership();
-		return m_pKeeper->GetResource()->end();
+		_check_ownership();
+		return _keeper->get_resource()->end();
 	}
 
-	template <class TQuantified = TObject, std::enable_if_t<Constraints::is_container_v<TQuantified>, int> = 0>
+	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) size() const
 	{
-		_CheckOwnership();
-		return m_pKeeper->GetResource()->size();
+		_check_ownership();
+		return _keeper->get_resource()->size();
 	}
 
-	template <class TKey>
-	[[nodiscard]] constexpr const auto& operator[](const TKey& oKey) const
+	template <class _Key>
+	[[nodiscard]] constexpr const auto& operator[](const _Key& key) const
 	{
-		_CheckOwnership();
-		return (*m_pKeeper->GetResource())[oKey];
+		_check_ownership();
+		return (*_keeper->get_resource())[key];
 	}
 
-	constexpr void Release() const
+	constexpr void release() const
 	{
-		_CheckOwnership();
-		m_oConcurrentLock.unlock();
+		_check_ownership();
+		_concurrentLock.unlock();
 	}
 
-	constexpr void Acquire() const
+	constexpr void acquire() const
 	{
-		if (m_oConcurrentLock.owns_lock())
-			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "ExclusiveResourceHolder already owns the resource!");
+		if (_concurrentLock.owns_lock())
+			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "exclusive_resource_holder already owns the resource!");
 
-		m_oConcurrentLock.lock();
+		_concurrentLock.lock();
 	}
 
-	template <class TCondition, class TPredicate>
-	//requires Constraints::condition_variable_pred<TCondition, std::shared_lock<std::shared_mutex>, TPredicate>
-	constexpr decltype(auto) Wait(TCondition& cv, TPredicate&& pred) const
+	template <class _Condition, class _Predicate>
+	//requires constraints::condition_variable_pred<_Condition, std::shared_lock<std::shared_mutex>, TPredicate>
+	constexpr decltype(auto) wait(_Condition& cv, _Predicate&& pred) const
 	{
-		_CheckOwnership();
-		return cv.wait(m_oConcurrentLock, std::move(pred));
+		_check_ownership();
+		return cv.wait(_concurrentLock, std::move(pred));
 	}
 
-	template <class TCondition>
-	//requires Constraints::condition_variable<TCondition, std::shared_lock<std::shared_mutex>>
-	constexpr decltype(auto) Wait(TCondition& cv) const
+	template <class _Condition>
+	//requires constraints::condition_variable<_Condition, std::shared_lock<std::shared_mutex>>
+	constexpr decltype(auto) wait(_Condition& cv) const
 	{
-		_CheckOwnership();
-		return cv.wait(m_oConcurrentLock);
+		_check_ownership();
+		return cv.wait(_concurrentLock);
 	}
 
 private:
-	constexpr void _CheckOwnership() const
+	constexpr void _check_ownership() const
 	{
-		if (!m_oConcurrentLock.owns_lock())
-			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "ConcurrentResourceHolder do not owns the resource!");
+		if (!_concurrentLock.owns_lock())
+			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "concurrent_resource_holder do not owns the resource!");
 	}
 
 private:
-	std::shared_ptr<const ResourceKeeper<TObject>> m_pKeeper = nullptr;
-	mutable std::shared_lock<std::shared_mutex> m_oConcurrentLock;
+	std::source_location _srcl;
+	std::shared_ptr<const ResourceKeeper<_Type>> _keeper = nullptr;
+	mutable std::shared_lock<std::shared_mutex> _concurrentLock;
 };
 
 /// <summary>
 /// Class implements wrapper that keeps input resources to implement  thread-safe mechanism.
 /// Internal resources are saved in shared form to keep resources usable by mutliple threads until all references will be freed.
-/// Class is internal helper method for Concurrent::ResourceOwner, and can be used with this class only.
+/// Class is internal helper method for concurrent::resource_owner, and can be used with this class only.
 /// </summary>
-template <class TObject>
+template <class _Type>
 class ResourceKeeper
 {
 public:
 	constexpr ResourceKeeper() = default;
 
-	constexpr ResourceKeeper(TObject&& oObject) noexcept
-		: m_pResource(std::make_shared<TObject>(std::forward<TObject>(oObject)))
+	constexpr ResourceKeeper(_Type&& object) noexcept
+		: _resource(std::make_shared<_Type>(std::forward<_Type>(object)))
 	{
 	}
 
 	virtual ~ResourceKeeper() = default;
 
-	constexpr void SetResource(TObject&& oObject)
+	constexpr void set_resource(_Type&& object)
 	{
-		m_pResource = std::make_shared<TObject>(std::forward<TObject>(oObject));
+		_resource = std::make_shared<_Type>(std::forward<_Type>(object));
 	}
 
-	constexpr void SwapResource(TObject& oObject) noexcept
+	constexpr void swap_resource(_Type& object) noexcept
 	{
-		std::swap(oObject, *m_pResource);
+		std::swap(object, *_resource);
 	}
 
-	[[nodiscard]] constexpr TObject MoveResource() noexcept
+	[[nodiscard]] constexpr _Type move_resource() noexcept
 	{
-		return std::move(*m_pResource);
+		return std::move(*_resource);
 	}
 
-	[[nodiscard]] constexpr const std::shared_ptr<std::shared_mutex> GetMutex() const noexcept
+	[[nodiscard]] constexpr const std::shared_ptr<std::shared_mutex> get_mutex() const noexcept
 	{
-		return m_pMutex;
+		return _mutex;
 	}
 
-	[[nodiscard]] constexpr const std::shared_ptr<TObject> GetResource() noexcept
+	[[nodiscard]] constexpr const std::shared_ptr<_Type> get_resource() noexcept
 	{
-		return m_pResource;
+		return _resource;
 	}
 
-	[[nodiscard]] constexpr const std::shared_ptr<const TObject> GetResource() const noexcept
+	[[nodiscard]] constexpr const std::shared_ptr<const _Type> get_resource() const noexcept
 	{
-		return m_pResource;
+		return _resource;
+	}
+
+	void push_exclusive_lock_information(std::source_location&& srcl)
+	{
+		_exlusiveLockInformation = std::move(srcl);
+	}
+
+	void pop_exclusive_lock_information() noexcept
+	{
+		_exlusiveLockInformation.reset();
+	}
+
+	void push_concurrent_lock_information(std::source_location&& srcl) const
+	{
+		_concurrentLockInformation.emplace(std::move(srcl));
+	}
+
+	void pop_concurrent_lock_information(std::source_location&& srcl) const noexcept
+	{
+		_concurrentLockInformation.erase(srcl);
 	}
 
 private:
-	std::shared_ptr<TObject> m_pResource			  = std::make_shared<TObject>();
-	const std::shared_ptr<std::shared_mutex> m_pMutex = std::make_shared<std::shared_mutex>();
+	std::shared_ptr<_Type> _resource				= std::make_shared<_Type>();
+	const std::shared_ptr<std::shared_mutex> _mutex = std::make_shared<std::shared_mutex>();
+	std::optional<std::source_location> _exlusiveLockInformation;
+
+	struct souce_location_comparator
+	{
+		constexpr bool operator()(const std::source_location& lhs, const std::source_location& rhs) const noexcept
+		{
+			return std::addressof(lhs) < std::addressof(rhs);
+		}
+	};
+	mutable std::set<std::source_location, souce_location_comparator> _concurrentLockInformation;
 };
 
 /// <summary>
@@ -383,96 +428,96 @@ private:
 /// </summary>
 /// <example>
 /// <code>
-///  Concurrent::ResourceOwner<std::unordered_map<int, int>> oMap; //Can be Concurrent::UnorderedMap<int, int> oMap;
+///  concurrent::resource_owner<std::unordered_map<int, int>> oMap; //Can be concurrent::unordered_map<int, int> oMap;
 ///
 /// // exclusive access with lifetime of one operation
-/// oMap.Exclusive()->emplace(5, 3);
+/// oMap.exclusive()->emplace(5, 3);
 /// { // exclusive access with extended lifetime for more that only one
-///		auto oScope = oMap.Exclusive();
+///		auto oScope = oMap.exclusive();
 ///		oScope->emplace(6, 4);
 ///	} // exclusive access ends
 ///
-/// // Concurrent access with lifetime of one operation
-/// auto iResult = oMap.Concurrent()->at(5);
+/// // concurrent access with lifetime of one operation
+/// auto iResult = oMap.concurrent()->at(5);
 ///
 /// { // concurrent access with extended lifetime for more that only one
-///		auto oScope = oMap.Concurrent();
+///		auto oScope = oMap.concurrent();
 ///		auto iResultScope = oScope->at(6);
 ///	} // concurrent access ends
 /// </code>
 /// </example>
-template <class TObject>
-class ResourceOwner
+template <class _Type>
+class resource_owner
 {
 public:
-	constexpr ResourceOwner() = default;
+	constexpr resource_owner() = default;
 
-	constexpr ResourceOwner(TObject&& oContainer) noexcept
-		: m_pKeeper(std::make_shared<ResourceKeeper<TObject>>(std::forward<TObject>(oContainer)))
+	constexpr resource_owner(_Type&& object) noexcept
+		: _keeper(std::make_shared<ResourceKeeper<_Type>>(std::forward<_Type>(object)))
 	{
 	}
 
-	virtual ~ResourceOwner()
+	virtual ~resource_owner()
 	{
-		ExclusiveResourceHolder<TObject> oFinish(m_pKeeper, std::source_location::current());
+		exclusive_resource_holder<_Type> oFinish(_keeper, std::source_location::current());
 	}
 
-	[[nodiscard]] constexpr ExclusiveResourceHolder<TObject> Exclusive(std::source_location srcl = std::source_location::current()) noexcept
+	[[nodiscard]] constexpr exclusive_resource_holder<_Type> exclusive(std::source_location srcl = std::source_location::current()) noexcept
 	{
-		return ExclusiveResourceHolder<TObject>(m_pKeeper, std::move(srcl));
+		return exclusive_resource_holder<_Type>(_keeper, std::move(srcl));
 	}
 
-	[[nodiscard]] constexpr ConcurrentResourceHolder<TObject> Concurrent(std::source_location srcl = std::source_location::current()) const noexcept
+	[[nodiscard]] constexpr concurrent_resource_holder<_Type> concurrent(std::source_location srcl = std::source_location::current()) const noexcept
 	{
-		return ConcurrentResourceHolder<TObject>(m_pKeeper, std::move(srcl));
+		return concurrent_resource_holder<_Type>(_keeper, std::move(srcl));
 	}
 
 private:
-	mutable std::shared_ptr<ResourceKeeper<TObject>> m_pKeeper = std::make_shared<ResourceKeeper<TObject>>();
+	mutable std::shared_ptr<ResourceKeeper<_Type>> _keeper = std::make_shared<ResourceKeeper<_Type>>();
 };
 
 /// Pre-defined conversions ///
 
-template <class... Args>
-using List = ResourceOwner<std::list<Args...>>;
+template <class... _Args>
+using list = resource_owner<std::list<_Args...>>;
 
-template <class... Args>
-using Queue = ResourceOwner<std::queue<Args...>>;
+template <class... _Args>
+using queue = resource_owner<std::queue<_Args...>>;
 
-template <class... Args>
-using Stack = ResourceOwner<std::stack<Args...>>;
+template <class... _Args>
+using stack = resource_owner<std::stack<_Args...>>;
 
-template <class... Args>
-using Array = ResourceOwner<std::array<Args...>>;
+template <class... _Args>
+using array = resource_owner<std::array<_Args...>>;
 
-template <class... Args>
-using Vector = ResourceOwner<std::vector<Args...>>;
+template <class... _Args>
+using vector = resource_owner<std::vector<_Args...>>;
 
-template <class... Args>
-using Set = ResourceOwner<std::set<Args...>>;
+template <class... _Args>
+using set = resource_owner<std::set<_Args...>>;
 
-template <class... Args>
-using Map = ResourceOwner<std::map<Args...>>;
+template <class... _Args>
+using map = resource_owner<std::map<_Args...>>;
 
-template <class... Args>
-using MultiSet = ResourceOwner<std::multiset<Args...>>;
+template <class... _Args>
+using multiset = resource_owner<std::multiset<_Args...>>;
 
-template <class... Args>
-using MultiMap = ResourceOwner<std::multimap<Args...>>;
+template <class... _Args>
+using multimap = resource_owner<std::multimap<_Args...>>;
 
-template <class... Args>
-using UnorderedSet = ResourceOwner<std::unordered_set<Args...>>;
+template <class... _Args>
+using unordered_set = resource_owner<std::unordered_set<_Args...>>;
 
-template <class... Args>
-using UnorderedMap = ResourceOwner<std::unordered_map<Args...>>;
+template <class... _Args>
+using unordered_map = resource_owner<std::unordered_map<_Args...>>;
 
-template <class... Args>
-using UnorderedMultiSet = ResourceOwner<std::unordered_multiset<Args...>>;
+template <class... _Args>
+using unordered_multiset = resource_owner<std::unordered_multiset<_Args...>>;
 
-template <class... Args>
-using UnorderedMultiMap = ResourceOwner<std::unordered_multimap<Args...>>;
+template <class... _Args>
+using unordered_multimap = resource_owner<std::unordered_multimap<_Args...>>;
 
-template <class T>
-using Functor = ResourceOwner<std::function<T>>;
+template <class _Arg>
+using functor = resource_owner<std::function<_Arg>>;
 
-} // namespace Concurrent
+} // namespace concurrent
