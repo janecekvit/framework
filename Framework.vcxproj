@@ -19,28 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Common\Definitions.cpp" />
-    <ClCompile Include="Common\Utility.cpp" />
-    <ClCompile Include="Crypto\CertUtils.cpp" />
-    <ClCompile Include="Crypto\CryptoUtils.cpp" />
-    <ClCompile Include="Crypto\Schannel.cpp" />
-    <ClCompile Include="Crypto\SchannelUtils.cpp" />
-    <ClCompile Include="Socket\BaseSocket.cpp" />
-    <ClCompile Include="Socket\ClientSocket.cpp" />
-    <ClCompile Include="Socket\ServerSocket.cpp" />
-    <ClCompile Include="Socket\SocketTools.cpp" />
     <ClCompile Include="Thread\ThreadPool.cpp" />
     <ClCompile Include="Thread\ThreadPoolDynamic.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Common\BaseException.h" />
-    <ClInclude Include="Common\Definitions.h" />
-    <ClInclude Include="Common\Utility.h" />
-    <ClInclude Include="Common\WinInclude.h" />
-    <ClInclude Include="Crypto\CertUtils.h" />
-    <ClInclude Include="Crypto\CryptoUtils.h" />
-    <ClInclude Include="Crypto\Schannel.h" />
-    <ClInclude Include="Crypto\SchannelUtils.h" />
     <ClInclude Include="extensions\atomic_concurrent.h" />
     <ClInclude Include="extensions\concurrent.h" />
     <ClInclude Include="extensions\constraints.h" />
@@ -51,10 +33,6 @@
     <ClInclude Include="extensions\resource_wrapper.h" />
     <ClInclude Include="Interface\ICloneable.h" />
     <ClInclude Include="Interface\ICRTP.h" />
-    <ClInclude Include="Socket\BaseSocket.h" />
-    <ClInclude Include="Socket\ClientSocket.h" />
-    <ClInclude Include="Socket\ServerSocket.h" />
-    <ClInclude Include="Socket\SocketTools.h" />
     <ClInclude Include="Sync\AtomicConditionVariable.h" />
     <ClInclude Include="Sync\WaitForMultipleConditions.h" />
     <ClInclude Include="Thread\IThreadPool.h" />

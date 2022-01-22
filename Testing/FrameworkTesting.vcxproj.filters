@@ -9,9 +9,6 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Crypto">
-      <UniqueIdentifier>{af3d3050-6b77-45ed-9182-f63c34211b1e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Thread">
       <UniqueIdentifier>{cd8f1851-36c4-4b28-8ef5-584793d6c782}</UniqueIdentifier>
     </Filter>
@@ -34,9 +31,6 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="TestSchannel.cpp">
-      <Filter>Crypto</Filter>
-    </ClCompile>
     <ClCompile Include="TestThread.cpp">
       <Filter>Thread</Filter>
     </ClCompile>
@@ -45,9 +39,6 @@
     </ClCompile>
     <ClCompile Include="TestConcurrent.cpp">
       <Filter>Extensions</Filter>
-    </ClCompile>
-    <ClCompile Include="TestCertUtils.cpp">
-      <Filter>Crypto</Filter>
     </ClCompile>
     <ClCompile Include="test_atomic_concurrent.cpp">
       <Filter>Extensions</Filter>

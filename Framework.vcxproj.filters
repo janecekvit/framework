@@ -1,85 +1,25 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Socket\BaseSocket.cpp">
-      <Filter>socket</Filter>
-    </ClCompile>
-    <ClCompile Include="Socket\ClientSocket.cpp">
-      <Filter>socket</Filter>
-    </ClCompile>
-    <ClCompile Include="Socket\ServerSocket.cpp">
-      <Filter>socket</Filter>
-    </ClCompile>
-    <ClCompile Include="Socket\SocketTools.cpp">
-      <Filter>socket</Filter>
-    </ClCompile>
-    <ClCompile Include="Common\Utility.cpp">
-      <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="Crypto\CryptoUtils.cpp">
-      <Filter>crypto</Filter>
-    </ClCompile>
     <ClCompile Include="Thread\ThreadPoolDynamic.cpp">
       <Filter>thread</Filter>
     </ClCompile>
     <ClCompile Include="Thread\ThreadPool.cpp">
       <Filter>thread</Filter>
     </ClCompile>
-    <ClCompile Include="Common\Definitions.cpp">
-      <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="Crypto\SchannelUtils.cpp">
-      <Filter>crypto</Filter>
-    </ClCompile>
-    <ClCompile Include="Crypto\Schannel.cpp">
-      <Filter>crypto</Filter>
-    </ClCompile>
-    <ClCompile Include="Crypto\CertUtils.cpp">
-      <Filter>crypto</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Socket\BaseSocket.h">
-      <Filter>socket</Filter>
-    </ClInclude>
-    <ClInclude Include="Socket\ClientSocket.h">
-      <Filter>socket</Filter>
-    </ClInclude>
-    <ClInclude Include="Socket\ServerSocket.h">
-      <Filter>socket</Filter>
-    </ClInclude>
-    <ClInclude Include="Socket\SocketTools.h">
-      <Filter>socket</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\Utility.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\WinInclude.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="Crypto\CryptoUtils.h">
-      <Filter>crypto</Filter>
-    </ClInclude>
     <ClInclude Include="Thread\ThreadPoolDynamic.h">
       <Filter>thread</Filter>
     </ClInclude>
     <ClInclude Include="Thread\ThreadPool.h">
       <Filter>thread</Filter>
     </ClInclude>
-    <ClInclude Include="Common\BaseException.h">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="Common\Definitions.h">
-      <Filter>common</Filter>
-    </ClInclude>
     <ClInclude Include="Interface\ICloneable.h">
       <Filter>interfaces</Filter>
     </ClInclude>
     <ClInclude Include="Interface\ICRTP.h">
       <Filter>interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="Crypto\SchannelUtils.h">
-      <Filter>crypto</Filter>
     </ClInclude>
     <ClInclude Include="Thread\IThreadPool.h">
       <Filter>thread</Filter>
@@ -89,12 +29,6 @@
     </ClInclude>
     <ClInclude Include="Sync\WaitForMultipleConditions.h">
       <Filter>sync</Filter>
-    </ClInclude>
-    <ClInclude Include="Crypto\Schannel.h">
-      <Filter>crypto</Filter>
-    </ClInclude>
-    <ClInclude Include="Crypto\CertUtils.h">
-      <Filter>crypto</Filter>
     </ClInclude>
     <ClInclude Include="extensions\concurrent.h">
       <Filter>extensions</Filter>
@@ -125,20 +59,11 @@
     <Filter Include="extensions">
       <UniqueIdentifier>{c09bfaf6-95d3-4ee2-a44b-f00e9bc24467}</UniqueIdentifier>
     </Filter>
-    <Filter Include="crypto">
-      <UniqueIdentifier>{a86cd86d-e4dc-4751-ad87-f0bfe3400450}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="common">
-      <UniqueIdentifier>{521e21fd-da11-460f-a567-9b9fbdbcc82b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="async">
       <UniqueIdentifier>{43f65235-46de-4866-a395-5f1c5f8d5a17}</UniqueIdentifier>
     </Filter>
     <Filter Include="interfaces">
       <UniqueIdentifier>{b0478a21-ddee-4d8b-93a1-e2f0686d6e5d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="socket">
-      <UniqueIdentifier>{e3edec66-ed8d-44f3-95b7-94229e1ca630}</UniqueIdentifier>
     </Filter>
     <Filter Include="sync">
       <UniqueIdentifier>{453cea18-ecff-4211-94a0-9a68cbddcce0}</UniqueIdentifier>

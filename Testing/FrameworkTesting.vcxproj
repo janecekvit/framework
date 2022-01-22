@@ -180,10 +180,8 @@
     </ClCompile>
     <ClCompile Include="test_atomic_concurrent.cpp" />
     <ClCompile Include="TestConcurrent.cpp" />
-    <ClCompile Include="TestCertUtils.cpp" />
     <ClCompile Include="TestInterfaces.cpp" />
     <ClCompile Include="TestExtensions.cpp" />
-    <ClCompile Include="TestSchannel.cpp" />
     <ClCompile Include="TestThread.cpp" />
   </ItemGroup>
   <ItemGroup>
