@@ -1,7 +1,7 @@
 #pragma once
-#include "Extensions/Concurrent.h"
-#include "Extensions/constraints.h"
 #include "Sync/AtomicConditionVariable.h"
+#include "extensions/concurrent.h"
+#include "extensions/constraints.h"
 
 #include <atomic>
 #include <condition_variable>
@@ -69,5 +69,5 @@ private:
 
 private:
 	mutable AtomicConditionVariable<_Condition> m_condition;
-	mutable concurrent::unordered_set<size_t> m_oEvents;
+	mutable janecekvit::concurrent::unordered_set<size_t> m_oEvents;
 };

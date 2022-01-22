@@ -95,7 +95,7 @@ void ThreadPoolDynamic::_DeallocateWorkers()
 	//release workers
 	auto&& oScope		 = _Pool().exclusive();
 	auto&& oDeallocation = m_oDeallocatedWorkers.concurrent();
-	for (std::list<Worker>::iterator it = oScope->begin(); it != oScope->end();)
+	for (auto&& it = oScope->begin(); it != oScope->end();)
 	{
 		//Deallocated worker -> Join worker and release resources
 		if (oDeallocation->find(it->Id()) != oDeallocation->end())

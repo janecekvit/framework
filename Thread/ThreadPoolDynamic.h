@@ -54,5 +54,5 @@ private:
 	std::thread m_oThread;
 	std::atomic<size_t> m_uDeallocationPoolSize = 0;
 	WaitForMultipleConditions<> m_cvDynamicPoolEvent;
-	concurrent::unordered_set<std::thread::id> m_oDeallocatedWorkers;
+	janecekvit::concurrent::unordered_set<std::thread::id> m_oDeallocatedWorkers;
 };

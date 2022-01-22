@@ -4,7 +4,7 @@
 	<PropertyGroup Label="UserMacros" />
 	<PropertyGroup>
 		<CharacterSet>Unicode</CharacterSet>
-		<PlatformToolSet>v142</PlatformToolSet>
+		<PlatformToolSet>v143</PlatformToolSet>
 	</PropertyGroup>
 	<ItemDefinitionGroup>
 		<ClCompile>

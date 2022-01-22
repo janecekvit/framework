@@ -1,8 +1,8 @@
 #include "stdafx.h"
 
 #include "CppUnitTest.h"
-#include "Extensions/ResourceWrapper.h"
 #include "Interface/ICloneable.h"
+#include "extensions/resource_wrapper.h"
 
 #include <fstream>
 #include <iostream>

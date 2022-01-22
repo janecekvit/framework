@@ -49,5 +49,8 @@
     <ClCompile Include="TestCertUtils.cpp">
       <Filter>Crypto</Filter>
     </ClCompile>
+    <ClCompile Include="test_atomic_concurrent.cpp">
+      <Filter>Extensions</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

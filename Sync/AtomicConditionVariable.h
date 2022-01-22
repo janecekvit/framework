@@ -1,6 +1,6 @@
 #pragma once
-#include "Extensions/Finally.h"
-#include "Extensions/constraints.h"
+#include "extensions/constraints.h"
+#include "extensions/finally.h"
 
 #include <atomic>
 #include <condition_variable>

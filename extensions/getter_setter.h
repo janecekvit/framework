@@ -12,9 +12,9 @@ Purpose:	header file contains Getter/Setter mechanism
 @version 1.09 01/06/2020
 */
 
-#include "Extensions/constraints.h"
+#include "extensions/constraints.h"
 
-namespace extensions
+namespace janecekvit::extensions
 {
 /// <summary>
 /// Default setter that says that getter_setter wrapper is public.
@@ -383,4 +383,4 @@ protected:
 	_Resource _resource = {};
 };
 
-} //namespace extensions
+} // namespace janecekvit::extensions

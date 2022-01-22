@@ -118,12 +118,12 @@ void ThreadPool::_ErrorCallback(const std::exception& ex) noexcept
 	m_fnErrorCallback(ex);
 }
 
-concurrent::queue<IThreadPool::Task>& ThreadPool::_Queue() noexcept
+janecekvit::concurrent::queue<IThreadPool::Task>& ThreadPool::_Queue() noexcept
 {
 	return m_queueTask;
 }
 
-concurrent::list<ThreadPool::Worker>& ThreadPool::_Pool() noexcept
+janecekvit::concurrent::list<ThreadPool::Worker>& ThreadPool::_Pool() noexcept
 {
 	return m_oWorkers;
 }

@@ -12,12 +12,12 @@ Purpose:	header file contains RAII pattern
 @version 1.06 10/06/2021
 */
 
-#include "Extensions/constraints.h"
-#include "Extensions/extensions.h"
+#include "extensions/constraints.h"
+#include "extensions/extensions.h"
 
 #include <functional>
 
-namespace extensions
+namespace janecekvit::extensions
 {
 /// <summary>
 /// The wrapper implemented own deleter that gains functionality to release all used resources correctly.
@@ -267,4 +267,4 @@ protected:
 	resource_deleter _deleter{};
 };
 
-} //namespace extensions
+} // namespace janecekvit::extensions

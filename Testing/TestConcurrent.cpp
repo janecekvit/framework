@@ -1,9 +1,9 @@
 #include "stdafx.h"
 
 #include "CppUnitTest.h"
-#include "Extensions/Concurrent.h"
-#include "Extensions/ResourceWrapper.h"
 #include "Extensions/extensions.h"
+#include "extensions/concurrent.h"
+#include "extensions/resource_wrapper.h"
 
 #include <fstream>
 #include <future>
@@ -12,6 +12,7 @@
 #include <thread>
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
+using namespace janecekvit;
 
 namespace FrameworkTesting
 {
@@ -31,345 +32,710 @@ void ContainerTest(const TContainer<TItem>& oContainer)
 	ContainerTest(oContainer.concurrent().get());
 }
 
-TEST_CLASS(TestConcurrent){
-	public:
-		TEST_METHOD(TestConccurentFunctors){
-			int iNumber = 0;
-concurrent::functor<void()> fnTest = std::function<void()>([&]()
-	{
-		iNumber++;
-	});
+constexpr size_t IterationCount = 500000;
 
-fnTest.exclusive().get()();
-fnTest.exclusive().get()();
-fnTest.concurrent().get()();
-
-//fnTest.concurrent().begin();
-
-Assert::AreEqual(iNumber, 3);
-} // namespace FrameworkTesting
-TEST_METHOD(TestConccurentOperations)
+ONLY_USED_AT_NAMESPACE_SCOPE class TestConcurrent : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<TestConcurrent> // expanded TEST_CLASS() macro due wrong formatting of clangformat
 {
-	std::cout << "Concurent Containers" << std::endl;
-
+	[[no_discard]] static concurrent::unordered_map<int, int> _prepare_testing_data()
 	{
-		concurrent::resource_owner<std::vector<int>> oVec = std::vector<int>{ 0, 1, 2, 5 };
-		oVec.exclusive()->emplace_back(3);
-		oVec.exclusive()->emplace_back(4);
+		concurrent::unordered_map<int, int> container;
+		container.exclusive()->emplace(5, 5); // exclusive access with lifetime of one operation
 
-		concurrent::resource_owner<std::unordered_map<int, int>> oMap;
+		// exclusive access with extended lifetime for more that only one
+		auto scope = container.exclusive();
+		scope->emplace(10, 10);
+		scope->emplace(15, 15);
 
-		{
-			// No [[nodiscard]] attribute
-			// oMap.exclusive();
-			// oMap.concurrent();
+		return container;
+	}
 
-			auto it	   = oMap.exclusive()->begin();
-			it		   = oMap.exclusive()->end();
-			auto uSize = oMap.exclusive()->size();
+	[[no_discard]] static concurrent::resource_owner<int> _prepare_testing_data_perf_test()
+	{
+		concurrent::resource_owner<int> container;
+		container.exclusive()--; // exclusive access with lifetime of one operation
 
-			auto itConst = oMap.concurrent()->begin();
-			itConst		 = oMap.concurrent()->end();
-			uSize		 = oMap.concurrent()->size();
-		}
+		// exclusive access with extended lifetime for more that only one
+		auto scope = container.exclusive();
+		scope++;
+		scope++;
 
-		// exclusive access
-		oMap.exclusive()->emplace(5, 5); // exclusive access with lifetime of one operation
-		{								 // exclusive access with extended lifetime for more that only one
-			auto oScope = oMap.exclusive();
-			oScope->emplace(10, 10);
-		} // exclusive access ends
+		return container;
+	}
 
-		// concurrent access
-		auto iResult = oMap.concurrent()->at(5); // concurrent access with lifetime of one operation
+public:
+	TEST_METHOD(TestContainerAliases)
+	{
+		auto uset	   = concurrent::unordered_set<int>();
+		auto umultiset = concurrent::unordered_multiset<int>();
+		auto umap	   = concurrent::unordered_map<int, int>();
+		auto umultimap = concurrent::unordered_multimap<int, int>();
+		auto set	   = concurrent::set<int>();
+		auto multiset  = concurrent::multiset<int>();
+		auto map	   = concurrent::map<int, int>();
+		auto multimap  = concurrent::multimap<int, int>();
+		auto list	   = concurrent::list<int>();
+		auto vector	   = concurrent::vector<int>();
+		auto stack	   = concurrent::stack<int>();
+		auto queue	   = concurrent::queue<int>();
+		//auto array	   = concurrent::array<int, 4>();
+		auto functor = concurrent::functor<int()>();
 
-		{ // exclusive access with extended lifetime for more that only one
-			auto oScope		  = oMap.concurrent();
-			auto iResultScope = oScope->at(10);
-			auto oScope2	  = oMap.concurrent();
-			auto oScope3	  = oMap.concurrent();
+		concurrent::resource_owner<std::array<int, 4>> oArray;
+		auto size = oArray.exclusive().size();
+		Assert::AreEqual<int>(size, 4);
+	}
 
-		} // concurrent access ends
+	TEST_METHOD(TestExclusiveAccessDirect)
+	{
+		concurrent::unordered_map<int, int> container;
+		container.exclusive()->emplace(5, 5); // exclusive access with lifetime of one operation
+		Assert::AreEqual(container.exclusive()->at(5), 5);
+	}
 
-		{ //exclusive add from scope
-			auto oScope = oMap.exclusive();
-			oScope->emplace(15, 15);
-			oScope->emplace(20, 20);
-		}
+	TEST_METHOD(TestExclusiveAccessScope)
+	{
+		auto container = _prepare_testing_data();
+
+		auto scope = container.exclusive();
+		Assert::AreEqual(scope->at(5), 5);
+		Assert::AreEqual(scope->at(10), 10);
+		Assert::AreEqual(scope->at(15), 15);
+		Assert::ExpectException<std::out_of_range>([&]()
+			{
+				scope->at(20);
+			});
+	}
+
+	TEST_METHOD(TestExclusiveAccessMultipleThreads)
+	{
+		auto&& container = _prepare_testing_data_perf_test();
+
+		Assert::AreEqual((int) container.exclusive(), 1);
+		auto thread1 = std::jthread([&](std::stop_token token)
+			{
+				for (size_t i = 0; i < IterationCount; i++)
+				{
+					auto&& writer = container.exclusive();
+					writer++;
+				}
+			});
+
+		auto thread2 = std::jthread([&](std::stop_token token)
+			{
+				for (size_t i = 0; i < IterationCount; i++)
+				{
+					auto&& writer = container.exclusive();
+					writer++;
+				}
+			});
+
+		thread1.join();
+		thread2.join();
+		Assert::AreEqual((int) container.exclusive(), (int) IterationCount * 2 + 1);
+	}
+
+	TEST_METHOD(TestConcurrentAccessDirect)
+	{
+		auto container = _prepare_testing_data();
+
+		Assert::AreEqual(container.concurrent()->at(5), 5); // concurrent access with lifetime of one operation
+		Assert::AreEqual(container.concurrent()->at(10), 10);
+	}
+
+	TEST_METHOD(TestConcurrentAccessScope)
+	{
+		auto container = _prepare_testing_data();
+		{ // concurrent access with extended lifetime for more operations that can be done simultaneously
+			auto scope	= container.concurrent();
+			auto scope2 = container.concurrent();
+			auto scope3 = container.concurrent();
+
+			Assert::AreEqual(scope->at(5), 5);
+			Assert::AreEqual(scope->at(10), 10);
+			Assert::AreEqual(scope->at(15), 15);
+			Assert::ExpectException<std::out_of_range>([&]()
+				{
+					scope->at(20);
+				});
+
+			Assert::AreEqual(scope2->at(5), 5);
+			Assert::AreEqual(scope2->at(10), 10);
+			Assert::AreEqual(scope2->at(15), 15);
+			Assert::ExpectException<std::out_of_range>([&]()
+				{
+					scope2->at(20);
+				});
+			Assert::AreEqual(scope3->at(5), 5);
+			Assert::AreEqual(scope3->at(10), 10);
+			Assert::AreEqual(scope3->at(15), 15);
+			Assert::ExpectException<std::out_of_range>([&]()
+				{
+					scope3->at(20);
+				});
+
+			const int number = extensions::execute_on_container(container.concurrent().get(), 10, [&](const int& number)
+				{
+					return number;
+				});
+
+			Assert::AreEqual(number, 10);
+
+		} // concurrent access ends, release all scopes
 
 		{ // concurrent access with scope
-			auto oAccess = oMap.concurrent();
-			Assert::AreEqual(oMap.concurrent()->at(10), 10);
-			auto oAccess2 = oMap.concurrent();
-
-			const int iNumber = extensions::execute_on_container(oMap.concurrent().get(), 20, [&](const int& i)
-				{
-					return i;
-				});
-
-			Assert::AreEqual(iNumber, 20);
+			auto oAccess = container.concurrent();
+			Assert::AreEqual(container.concurrent()->at(10), 10);
+			auto oAccess2 = container.concurrent();
 		}
+	}
+
+	TEST_METHOD(TestConcurrentAccessMultipleThreads)
+	{
+		auto&& container = _prepare_testing_data_perf_test();
+		Assert::AreEqual((int) container.concurrent(), 1);
+		auto thread1 = std::jthread([&](std::stop_token token)
+			{
+				for (size_t i = 0; i < IterationCount; i++)
+				{
+					auto&& scope			 = container.concurrent();
+					[[maybe_unused]] int val = scope;
+				}
+			});
+
+		auto thread2 = std::jthread([&](std::stop_token token)
+			{
+				for (size_t i = 0; i < IterationCount; i++)
+				{
+					auto&& scope			 = container.concurrent();
+					[[maybe_unused]] int val = scope;
+				}
+			});
+
+		thread1.join();
+		thread2.join();
+		Assert::AreEqual((int) container.concurrent(), 1);
+	}
+
+	TEST_METHOD(TestIterators)
+	{
+		// No [[nodiscard]] attribute
+		// container.exclusive();
+		// container.concurrent();
 
 		//Test iterators
-		{
-			std::condition_variable con;
-			auto future = std::async(std::launch::async, [&]()
-				{
-					con.notify_one();
-					int i = 5;
-					for (auto&& item : oMap.exclusive())
-					{
-						Assert::AreEqual(item.second, i);
-						i += 5;
+		auto container = _prepare_testing_data();
+		auto begin	   = container.exclusive()->begin();
+		auto end	   = container.exclusive()->end();
+		auto size	   = container.exclusive()->size();
 
-						item.second += 1;
-					}
-				});
+		Assert::AreEqual<size_t>(size, 3);
+		Assert::IsFalse(begin == end);
+		container.exclusive()->emplace(20, 20);
 
-			std::mutex mutex;
-			std::unique_lock<std::mutex> oLock(mutex);
-			con.wait(oLock);
-			int i = 6;
-			for (auto&& item : oMap.exclusive())
-			{
-				Assert::AreEqual(item.second, i);
-				i += 5;
-				item.second -= 1;
-			}
-
-			future.get();
-		}
-
-		//Index operators on unordered map (cannot be const in concurrent access)
-		{
-			auto oScope = oMap.exclusive();
-			oScope[25]	= 25;
-		}
-
-		{
-			auto oScope = oMap.concurrent();
-			Assert::AreEqual(oScope->at(25), 25);
-		}
-
-		//Index operators on vector (can access in concurrent, cannot add new item)
-		{
-			auto oScope = oVec.exclusive();
-			oScope[5]	= 5;
-		}
-
-		{
-			auto oScope = oVec.concurrent();
-			Assert::AreEqual(oScope[5], 5);
-		}
-
-		//operator ()
-		{
-			auto oScope = oMap.exclusive();
-			oScope.get().emplace(30, 30);
-			oScope().emplace(35, 35);
-
-			Assert::AreEqual(oScope[30], 30);
-			Assert::AreEqual(oScope[35], 35);
-		}
-
-		{
-			auto oScope	 = oMap.concurrent();
-			auto oScope2 = oMap.concurrent();
-			Assert::AreEqual(oScope().at(30), 30);
-			Assert::AreEqual(oScope2().at(35), 35);
-		}
-
-		//Settter
-		std::unordered_map<int, int> oMap2;
-		oMap.exclusive().set(std::move(oMap2));
-
-		//Release methods
-		try
-		{
-			auto oScope = oMap.exclusive();
-			oScope->emplace(40, 40);
-			oScope.release();
-			oScope->emplace(45, 45);
-		}
-		catch (std::system_error&)
-		{
-			auto oScope = oMap.exclusive();
-			Assert::AreEqual(oScope().at(40), 40);
-			Assert::AreEqual(oScope().count(45), static_cast<size_t>(0));
-		}
-
-		try
-		{
-			auto oScope = oMap.concurrent();
-			Assert::AreEqual(oScope().at(40), 40);
-			oScope.release();
-			Assert::AreEqual(oScope().at(40), 40);
-		}
-		catch (std::system_error&)
-		{
-			auto oScope = oMap.exclusive();
-			Assert::AreEqual(oScope().count(40), static_cast<size_t>(1));
-		}
-
-		//Move semantics
-		auto oOldValue = oMap.exclusive().move();
-
-		std::unordered_map<int, int> oMap3;
-		oMap.exclusive().set(std::move(oMap3));
-
-		Assert::AreEqual(oMap.exclusive().get().size(), static_cast<size_t>(0));
-		Assert::AreEqual(oOldValue.count(40), static_cast<size_t>(1));
-
-		//Swap semantics
-		oOldValue.emplace(50, 50);
-		oMap.exclusive()->emplace(100, 100);
-		oMap.exclusive().swap(oOldValue);
-
-		Assert::AreEqual(oMap.exclusive().get().size(), static_cast<size_t>(2));
-		Assert::AreEqual(oMap.exclusive()->count(50), static_cast<size_t>(1));
-		Assert::AreEqual(oMap.exclusive()->count(40), static_cast<size_t>(1));
-		Assert::AreEqual(oMap.exclusive()->count(100), static_cast<size_t>(0));
-
-		Assert::AreEqual(oOldValue.size(), static_cast<size_t>(1));
-		Assert::AreEqual(oOldValue.count(100), static_cast<size_t>(1));
-		Assert::AreEqual(oOldValue.count(50), static_cast<size_t>(0));
-		Assert::AreEqual(oOldValue.count(40), static_cast<size_t>(0));
-
-		//user-defined conversion
-		int iCalls		= 0;
-		auto testLambda = [&](std::unordered_map<int, int>& oMap)
-		{
-			iCalls++;
-		};
-
-		auto testLambdaConst = [&](const std::unordered_map<int, int>& oMap)
-		{
-			iCalls++;
-		};
-
-		testLambda(oMap.exclusive());
-		testLambdaConst(oMap.exclusive());
-		testLambdaConst(oMap.concurrent());
-
-		Assert::AreEqual(iCalls, 3);
-
-		//std::array
-		{
-			concurrent::resource_owner<std::array<int, 4>> oArray;
-			auto uSize = oArray.exclusive().size();
-		}
-
-		{ //test condition varaible
-			std::condition_variable_any cv;
-			size_t uSize = 0;
-			auto oFuture = std::async(std::launch::async, [&uSize, &cv, &oMap]()
-				{
-					oMap.exclusive().wait(cv);
-					oMap.exclusive().wait(cv, [&uSize]()
-						{
-							return ++uSize == 2;
-						});
-
-					oMap.concurrent().wait(cv);
-					oMap.concurrent().wait(cv, [&uSize]()
-						{
-							return ++uSize == 4;
-						});
-				});
-
-			for (; oFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready;)
-				cv.notify_one();
-
-			oFuture.get();
-			Assert::AreEqual(uSize, static_cast<size_t>(4));
-		}
-
-		{ //re-assign
-			auto oScope(std::move(oMap.exclusive()));
-
-			oScope.release();
-			oScope = oMap.exclusive();
-			Assert::AreEqual(oScope().at(40), 40);
-			oScope.release();
-
-			auto oScopeRead(std::move(oMap.concurrent()));
-			oScopeRead.release();
-			oScopeRead = oMap.concurrent();
-			Assert::AreEqual(oScopeRead().at(40), 40);
-			oScopeRead.release();
-		}
-
-		{ //Acquire write
-			auto&& oScope = oMap.exclusive();
-			Assert::AreEqual(oScope().at(40), 40);
-			oScope.release();
-
-			try
-			{
-				Assert::AreEqual(oScope().at(40), 40);
-			}
-			catch (std::system_error&)
-			{
-				oScope.acquire();
-				Assert::AreEqual(oScope().at(40), 40);
-				oScope->emplace(222, 222);
-			}
-
-			Assert::AreEqual(oScope().at(222), 222);
-
-			try
-			{
-				oScope.acquire();
-			}
-			catch (std::system_error&)
-			{
-				oScope->emplace(226, 226);
-			}
-
-			Assert::AreEqual(oScope().at(226), 226);
-		}
-
-		{ //Acquire read
-			auto&& oScope = oMap.concurrent();
-			Assert::AreEqual(oScope().at(40), 40);
-			oScope.release();
-
-			try
-			{
-				Assert::AreEqual(oScope().at(40), 40);
-			}
-			catch (std::system_error&)
-			{
-				oScope.acquire();
-				Assert::AreEqual(oScope().at(40), 40);
-				oScope.release();
-				oMap.exclusive()->emplace(223, 223);
-			}
-
-			oScope.acquire();
-			Assert::AreEqual(oScope().at(223), 223);
-		}
+		auto beginConst = container.concurrent()->begin();
+		auto endConst	= container.concurrent()->end();
+		size			= container.concurrent()->size();
+		Assert::IsFalse(beginConst == endConst);
+		Assert::AreEqual<size_t>(size, 4);
 
 		{ //begin const
 
-			// oMap.concurrent()->begin()->second++;
-			oMap.exclusive()->begin()->second++;
+			auto begin = container.exclusive()->begin();
+
+			//beginConst->second++; //concurrent
+			begin->second++; //exclusive
+			Assert::AreEqual<int>(begin->second, 6);
 		}
 	}
-}
 
-TEST_METHOD(TestConccurentconstraints)
-{
-	concurrent::list<int> listNumbers = std::list<int>{
-		1,
-		2,
-		3,
-		4,
-		5
-	};
+	TEST_METHOD(TestRangeLoop)
+	{
+		int result	   = 0;
+		auto container = _prepare_testing_data();
 
-	//ContainerTest(listNumbers);
-}
-}
-;
+		for (auto&& item : container.exclusive())
+		{
+			result += 5;
+			Assert::AreEqual(item.first, result);
+		}
+
+		result = 0;
+		for (auto&& item : container.concurrent())
+		{
+			result += 5;
+			Assert::AreEqual(item.first, result);
+		}
+	}
+
+	TEST_METHOD(TestExclusiveAccessSynchroAsync)
+	{
+		auto container = _prepare_testing_data();
+
+		std::condition_variable con;
+		auto future = std::async(std::launch::async, [&]()
+			{
+				int i = 5;
+				for (auto&& item : container.exclusive())
+				{
+					Assert::AreEqual(item.second, i);
+					i += 5;
+
+					item.second += 1;
+				}
+				con.notify_one();
+			});
+
+		std::mutex mutex;
+		std::unique_lock<std::mutex> oLock(mutex);
+		con.wait(oLock);
+		int i = 6;
+		for (auto&& item : container.exclusive())
+		{
+			Assert::AreEqual(item.second, i);
+			i += 5;
+			item.second -= 1;
+		}
+
+		future.get();
+	}
+
+	TEST_METHOD(TestIndexOperator)
+	{
+		auto container = concurrent::vector<int>();
+
+		//Index operators on unordered map
+		{
+			auto scope = container.exclusive();
+			Assert::ExpectException<std::out_of_range>([&]()
+				{
+					[[maybe_unused]] auto result = scope->at(20);
+				});
+
+			scope->resize(5);
+			scope[0] = 25;
+		}
+
+		{
+			auto scope = container.concurrent();
+			Assert::AreEqual<const int&>(scope[0], 25);
+		}
+	}
+
+	TEST_METHOD(TestFunctionCallOperator)
+	{
+		auto container = _prepare_testing_data();
+		{
+			auto scope = container.exclusive();
+			scope().emplace(30, 30);
+			scope().emplace(35, 35);
+
+			Assert::AreEqual(scope[30], 30);
+			Assert::AreEqual(scope[35], 35);
+		}
+
+		{
+			auto scope	= container.concurrent();
+			auto scope2 = container.concurrent();
+			Assert::AreEqual(scope().at(30), 30);
+			Assert::AreEqual(scope2().at(35), 35);
+		}
+	}
+
+	TEST_METHOD(TestSwapSemantics)
+	{
+		auto container = _prepare_testing_data();
+
+		std::unordered_map<int, int> tmpContainer;
+		tmpContainer.emplace(30, 30);
+		tmpContainer.emplace(35, 35);
+
+		auto scope = container.exclusive();
+		scope.swap(tmpContainer);
+
+		Assert::ExpectException<std::out_of_range>([&]()
+			{
+				[[maybe_unused]] auto result = scope->at(5);
+			});
+		Assert::ExpectException<std::out_of_range>([&]()
+			{
+				[[maybe_unused]] auto result = scope->at(10);
+			});
+		Assert::ExpectException<std::out_of_range>([&]()
+			{
+				[[maybe_unused]] auto result = scope->at(15);
+			});
+		Assert::AreEqual(scope[30], 30);
+		Assert::AreEqual(scope[35], 35);
+
+		Assert::AreEqual(tmpContainer[5], 5);
+		Assert::AreEqual(tmpContainer[10], 10);
+		Assert::AreEqual(tmpContainer[15], 15);
+		Assert::ExpectException<std::out_of_range>([&]()
+			{
+				[[maybe_unused]] auto result = tmpContainer.at(30);
+			});
+		Assert::ExpectException<std::out_of_range>([&]()
+			{
+				[[maybe_unused]] auto result = tmpContainer.at(35);
+			});
+	}
+
+	TEST_METHOD(TestMoveSemantics)
+	{
+		auto container	  = _prepare_testing_data();
+		auto&& scope	  = container.exclusive();
+		auto tmpContainer = scope.move();
+
+		Assert::AreEqual<int>(scope.size(), 0);
+		Assert::AreEqual<int>(tmpContainer[5], 5);
+		Assert::AreEqual<int>(tmpContainer[10], 10);
+		Assert::AreEqual<int>(tmpContainer[15], 15);
+	}
+
+	TEST_METHOD(TestSetSemantics)
+	{
+		auto container = _prepare_testing_data();
+
+		std::unordered_map<int, int> tmpContainer;
+		tmpContainer.emplace(30, 30);
+		tmpContainer.emplace(35, 35);
+
+		auto scope = container.exclusive();
+		scope.set(std::move(tmpContainer));
+
+		Assert::AreEqual(scope[30], 30);
+		Assert::AreEqual(scope[35], 35);
+
+		Assert::ExpectException<std::out_of_range>([&]()
+			{
+				[[maybe_unused]] auto result = scope->at(5);
+			});
+		Assert::ExpectException<std::out_of_range>([&]()
+			{
+				[[maybe_unused]] auto result = scope->at(10);
+			});
+		Assert::ExpectException<std::out_of_range>([&]()
+			{
+				[[maybe_unused]] auto result = scope->at(15);
+			});
+
+		Assert::AreEqual<size_t>(tmpContainer.size(), 0);
+	}
+
+	TEST_METHOD(TestGetSemantics)
+	{
+		auto container = _prepare_testing_data();
+		{
+			auto scope = container.exclusive();
+			scope.get().emplace(30, 30);
+			scope.get().emplace(35, 35);
+
+			Assert::AreEqual(scope[30], 30);
+			Assert::AreEqual(scope[35], 35);
+		}
+
+		{
+			auto scope	= container.concurrent();
+			auto scope2 = container.concurrent();
+			Assert::AreEqual(scope.get().at(30), 30);
+			Assert::AreEqual(scope2.get().at(35), 35);
+		}
+	}
+
+	TEST_METHOD(TestUserDefinedConversion)
+	{
+		int iCalls		= 0;
+		auto container	= _prepare_testing_data();
+		auto testLambda = [&](std::unordered_map<int, int>& container)
+		{
+			iCalls++;
+		};
+
+		auto testLambdaConst = [&](const std::unordered_map<int, int>& container)
+		{
+			iCalls++;
+		};
+
+		testLambda(container.exclusive());
+		testLambdaConst(container.exclusive());
+		//testLambda(container.concurrent()); -> cannot be done due constless
+		testLambdaConst(container.concurrent());
+
+		Assert::AreEqual(iCalls, 3);
+	}
+
+	TEST_METHOD(TestSynchronisationSemantics)
+	{
+		size_t size			 = 0;
+		size_t notifications = 0;
+		std::condition_variable_any cv;
+		auto container = _prepare_testing_data();
+		auto oFuture   = std::async(std::launch::async, [&size, &cv, &container]()
+			  {
+				  container.exclusive().wait(cv);
+				  container.exclusive().wait(cv, [&size]()
+					  {
+						  return ++size == 2;
+					  });
+
+				  container.concurrent().wait(cv);
+				  container.concurrent().wait(cv, [&size]()
+					  {
+						  return ++size == 4;
+					  });
+			  });
+
+		for (; oFuture.wait_for(std::chrono::seconds(0)) != std::future_status::ready;)
+			cv.notify_one();
+
+		oFuture.get();
+		Assert::AreEqual<size_t>(size, 4);
+	}
+
+	TEST_METHOD(TestUnlockSemantics)
+	{
+		auto container = _prepare_testing_data();
+		{
+			auto scope = container.exclusive();
+			Assert::IsTrue(scope().contains(15));
+			scope.unlock();
+
+			Assert::ExpectException<std::system_error>([&]()
+				{
+					[[maybe_unused]] auto result = scope->at(15);
+				});
+		}
+
+		auto scope = container.concurrent();
+		Assert::AreEqual(scope().at(15), 15);
+		scope.unlock();
+		Assert::ExpectException<std::system_error>([&]()
+			{
+				[[maybe_unused]] auto result = scope->at(15);
+			});
+		Assert::ExpectException<std::system_error>([&]
+			{
+				scope.unlock();
+			});
+	}
+
+	TEST_METHOD(TestLockSemantics)
+	{
+		auto container = _prepare_testing_data();
+		{ //lock write
+			auto&& scope = container.exclusive();
+			scope->emplace(40, 40);
+			Assert::AreEqual(scope().at(40), 40);
+			scope.unlock();
+			Assert::ExpectException<std::system_error>([&]()
+				{
+					[[maybe_unused]] auto result = scope->at(40);
+				});
+			scope.lock();
+			Assert::AreEqual(scope().at(40), 40);
+			scope->emplace(222, 222);
+			Assert::AreEqual(scope().at(222), 222);
+
+			Assert::ExpectException<std::system_error>([&]
+				{
+					scope.lock();
+				});
+
+			scope->emplace(226, 226);
+			Assert::AreEqual(scope().at(226), 226);
+		}
+
+		{ //Acquire read
+			auto&& scope = container.concurrent();
+			Assert::AreEqual(scope().at(40), 40);
+			scope.unlock();
+
+			Assert::ExpectException<std::system_error>([&]()
+				{
+					scope->at(40);
+				});
+			scope.lock();
+			Assert::AreEqual(scope().at(40), 40);
+			scope.unlock();
+			container.exclusive()->emplace(223, 223);
+
+			scope.lock();
+			Assert::AreEqual(scope().at(223), 223);
+		}
+	}
+
+	TEST_METHOD(TestReassign)
+	{
+		auto container = _prepare_testing_data();
+		//exclusive
+		auto scope(std::move(container.exclusive()));
+		Assert::ExpectException<std::system_error>([&]
+			{
+				scope.lock();
+			});
+
+		Assert::AreEqual(scope().at(15), 15);
+		scope.unlock();
+		Assert::ExpectException<std::system_error>([&]
+			{
+				scope.unlock();
+			});
+
+		scope = container.exclusive();
+		Assert::ExpectException<std::system_error>([&]
+			{
+				scope.lock();
+			});
+
+		Assert::AreEqual(scope().at(15), 15);
+		scope.unlock();
+		Assert::ExpectException<std::system_error>([&]
+			{
+				scope.unlock();
+			});
+
+		//concurrent
+		auto scopeRead(std::move(container.concurrent()));
+		Assert::ExpectException<std::system_error>([&]
+			{
+				scopeRead.lock();
+			});
+		Assert::AreEqual(scopeRead().at(15), 15);
+		scopeRead.unlock();
+		Assert::ExpectException<std::system_error>([&]
+			{
+				scopeRead.unlock();
+			});
+
+		scopeRead = container.concurrent();
+		Assert::ExpectException<std::system_error>([&]
+			{
+				scopeRead.lock();
+			});
+		Assert::AreEqual(scopeRead().at(15), 15);
+		scopeRead.unlock();
+		Assert::ExpectException<std::system_error>([&]
+			{
+				scopeRead.unlock();
+			});
+	}
+
+	TEST_METHOD(TestContainerCopy)
+	{
+		{ //exclusive
+			std::optional<concurrent::unordered_map<int, int>::exclusive_holder_type> scope;
+			concurrent::unordered_map<int, int> container2;
+			Assert::IsFalse(scope.has_value());
+
+			{
+				auto container = _prepare_testing_data();
+				scope		   = container.exclusive();
+				Assert::IsTrue(scope.has_value());
+				Assert::AreEqual(scope.value()->at(15), 15);
+				scope->unlock();
+				container2 = container;
+			}
+			scope = container2.exclusive();
+			Assert::IsTrue(scope.has_value());
+			Assert::AreEqual(scope.value()->at(15), 15);
+
+			scope->unlock();
+			scope->lock();
+
+			Assert::AreEqual(scope.value()->at(15), 15);
+			scope.reset();
+		}
+
+		{ //concurrent
+			std::optional<concurrent::unordered_map<int, int>::concurrent_holder_type> scope;
+			concurrent::unordered_map<int, int> container2;
+			Assert::IsFalse(scope.has_value());
+
+			{
+				auto container = _prepare_testing_data();
+				scope		   = container.concurrent();
+				Assert::IsTrue(scope.has_value());
+				Assert::AreEqual(scope.value()->at(15), 15);
+				scope->unlock();
+				container2 = container;
+			}
+
+			scope = container2.concurrent();
+			Assert::IsTrue(scope.has_value());
+			Assert::AreEqual(scope.value()->at(15), 15);
+
+			scope->unlock();
+			scope->lock();
+
+			Assert::AreEqual(scope.value()->at(15), 15);
+			scope.reset();
+		}
+	}
+
+	TEST_METHOD(TestDebugLocksInformation)
+	{
+		concurrent::resource_owner_debug<std::unordered_set<int>> container;
+		{ //exclusive
+			Assert::IsFalse(container.get_exclusive_lock_information().has_value());
+			{
+				auto&& oScope = container.exclusive();
+				Assert::IsTrue(container.get_exclusive_lock_information().has_value());
+			}
+
+			Assert::IsFalse(container.get_exclusive_lock_information().has_value());
+			auto&& oScope = container.exclusive();
+			Assert::IsTrue(container.get_exclusive_lock_information().has_value());
+			oScope.unlock();
+			Assert::IsFalse(container.get_exclusive_lock_information().has_value());
+			oScope.lock();
+			Assert::IsTrue(container.get_exclusive_lock_information().has_value());
+		}
+
+		{ //concurrent
+			Assert::IsTrue(container.get_concurrent_lock_information().empty());
+			{
+				auto&& oScope  = container.concurrent();
+				auto&& oScope2 = container.concurrent();
+
+				Assert::AreEqual((size_t) 2, container.get_concurrent_lock_information().size());
+			}
+
+			Assert::IsTrue(container.get_concurrent_lock_information().empty());
+			auto&& oScope = container.concurrent();
+			Assert::IsFalse(container.get_concurrent_lock_information().empty());
+			oScope.unlock();
+			Assert::IsTrue(container.get_concurrent_lock_information().empty());
+			oScope.lock();
+			Assert::IsFalse(container.get_concurrent_lock_information().empty());
+		}
+	}
+
+	//TEST_METHOD(TestFunctor)
+	//{
+	//	int iNumber						   = 0;
+	//	concurrent::functor<void()> fnTest = std::function<void()>([&]()
+	//		{
+	//			iNumber++;
+	//		});
+
+	//	fnTest.exclusive().get()();
+	//	fnTest.exclusive().get()();
+	//	fnTest.concurrent().get()();
+
+	//	Assert::AreEqual(3, iNumber);
+	//}
+
+	//TEST_METHOD(TestConccurentConstraints)
+	//{
+	//	concurrent::list<int> listNumbers = std::list<int>{
+	//		1,
+	//		2,
+	//		3,
+	//		4,
+	//		5
+	//	};
+
+	//	//ContainerTest(listNumbers);
+	//}
+};
 } // namespace FrameworkTesting

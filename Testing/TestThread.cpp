@@ -8,9 +8,9 @@
 
 #define TEST_SIZE 8
 
-#include "Extensions/constraints.h"
 #include "Thread\ThreadPool.h"
 #include "Thread\ThreadPoolDynamic.h"
+#include "extensions/constraints.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -187,45 +187,45 @@ void SyncThreadStructuresDynamic()
 	Assert::AreEqual(static_cast<size_t>(828), m_uSyncTasks.load());
 }
 
-TEST_CLASS(TestThread){
-	public:
+ONLY_USED_AT_NAMESPACE_SCOPE class TestThread : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<TestThread>
+{
+public:
+	TEST_METHOD(TestSyncThread)
+	{
+		SyncThreadStructures();
+		//system("pause");
+	} // namespace FrameworkTesting
 
-		TEST_METHOD(TestSyncThread){
-			SyncThreadStructures();
-//system("pause");
+	TEST_METHOD(TestSyncThreadDynamic)
+	{
+		SyncThreadStructuresDynamic();
+		//system("pause");
+	}
+
+	TEST_METHOD(TestConditionVariable)
+	{
+		std::condition_variable_any conv;
+		auto oAsync = std::async(std::launch::async, [&conv]()
+			{
+				using namespace std::chrono_literals;
+				std::this_thread::sleep_for(200ms);
+				conv.notify_one();
+				std::this_thread::sleep_for(200ms);
+				conv.notify_one();
+				std::this_thread::sleep_for(200ms);
+				conv.notify_one();
+			});
+
+		//Create Unique Lock which owns Mutex object and lock it until wait or block end
+		std::mutex mtx;
+		std::unique_lock<std::mutex> mtxQueueLock(mtx);
+		size_t uTest = 0;
+		conv.wait(mtxQueueLock, [&uTest]()
+			{
+				return ++uTest == 3;
+			});
+
+		oAsync.get();
+	}
+};
 } // namespace FrameworkTesting
-
-TEST_METHOD(TestSyncThreadDynamic)
-{
-	SyncThreadStructuresDynamic();
-	//system("pause");
-}
-
-TEST_METHOD(TestConditionVariable)
-{
-	std::condition_variable_any conv;
-	auto oAsync = std::async(std::launch::async, [&conv]()
-		{
-			using namespace std::chrono_literals;
-			std::this_thread::sleep_for(200ms);
-			conv.notify_one();
-			std::this_thread::sleep_for(200ms);
-			conv.notify_one();
-			std::this_thread::sleep_for(200ms);
-			conv.notify_one();
-		});
-
-	//Create Unique Lock which owns Mutex object and lock it until wait or block end
-	std::mutex mtx;
-	std::unique_lock<std::mutex> mtxQueueLock(mtx);
-	size_t uTest = 0;
-	conv.wait(mtxQueueLock, [&uTest]()
-		{
-			return ++uTest == 3;
-		});
-
-	oAsync.get();
-}
-}
-;
-}

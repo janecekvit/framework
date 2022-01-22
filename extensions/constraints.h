@@ -25,7 +25,7 @@ Purpose:	header file contains set of extended constraints to describe stl contai
 #include <typeindex>
 
 ///Namespace owns set of extended constraints to describe stl containers
-namespace constraints
+namespace janecekvit::constraints
 {
 /// <summary>
 /// Helper structures to determine if template type <_T> is std::shared_ptr
@@ -197,4 +197,4 @@ concept condition_variable_pred = condition_variable<_Condition, _Lock> && requi
 
 #endif
 
-} //namespace constraints
+} // namespace janecekvit::constraints
