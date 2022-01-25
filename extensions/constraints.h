@@ -195,6 +195,8 @@ concept condition_variable_pred = condition_variable<_Condition, _Lock> && requi
 	};
 };
 
+template <class _Fmt>
+concept format_view = std::is_constructible_v<std::string_view, _Fmt> || std::is_constructible_v<std::wstring_view, _Fmt>;
 #endif
 
 } // namespace janecekvit::constraints

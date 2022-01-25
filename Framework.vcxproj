@@ -23,6 +23,7 @@
     <ClCompile Include="Thread\ThreadPoolDynamic.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="exception\exception.h" />
     <ClInclude Include="extensions\atomic_concurrent.h" />
     <ClInclude Include="extensions\concurrent.h" />
     <ClInclude Include="extensions\constraints.h" />

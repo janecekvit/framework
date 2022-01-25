@@ -54,6 +54,9 @@
     <ClInclude Include="extensions\lazy.h">
       <Filter>extensions</Filter>
     </ClInclude>
+    <ClInclude Include="exception\exception.h">
+      <Filter>exception</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="extensions">
@@ -70,6 +73,9 @@
     </Filter>
     <Filter Include="thread">
       <UniqueIdentifier>{923f8c59-8e66-4d38-bfb1-2a88a7762837}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="exception">
+      <UniqueIdentifier>{b2f4cc89-0787-4874-b559-da1a99dbfa4f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
