@@ -14,7 +14,7 @@ namespace janecekvit::exception
 class exception : public std::exception
 {
 public:
-	template <class _Fmt, class... _Args>
+	template <janecekvit::constraints::format_view _Fmt, class... _Args>
 	exception(_Fmt&& format, std::tuple<_Args...> arguments, std::source_location&& srcl = std::source_location::current())
 		: std::exception()
 		, _srcl(std::move(srcl))
@@ -26,7 +26,7 @@ public:
 		std::apply(callback, arguments);
 	}
 
-	template <class _Fmt, class... _Args>
+	template <janecekvit::constraints::format_view _Fmt, class... _Args>
 	exception(std::source_location&& srcl, _Fmt&& format, _Args&&... arguments)
 		: std::exception()
 		, _srcl(std::move(srcl))
@@ -49,7 +49,7 @@ public:
 	}
 
 private:
-	template <class _Fmt, class... _Args>
+	template <janecekvit::constraints::format_view _Fmt, class... _Args>
 	void _inner_processing(std::source_location&& srcl, _Fmt&& format, _Args&&... arguments)
 	{
 		_error = _format_source_location();
@@ -87,7 +87,7 @@ private:
 	std::source_location _srcl;
 };
 
-template <class _Exception, class _Fmt, class... _Args>
+template <class _Exception, janecekvit::constraints::format_view _Fmt, class... _Args>
 class throw_exception
 {
 public:
@@ -97,10 +97,7 @@ public:
 	}
 };
 
-template <class _Fmt, class... _Args>
+template <janecekvit::constraints::format_view _Fmt, class... _Args>
 throw_exception(_Fmt&&, _Args&&...) -> throw_exception<exception, _Fmt, _Args...>;
-
-template <class _Exception, class _Fmt, class... _Args>
-throw_exception(_Fmt&&, _Args&&...) -> throw_exception<_Exception, _Fmt, _Args...>;
 
 } // namespace janecekvit::exception
