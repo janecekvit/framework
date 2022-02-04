@@ -15,17 +15,78 @@ public:
 	{
 		try
 		{
-			throw exception::exception("Ano: {}, Ne: {}.", { true, false });
+			throw exception::exception("Ano: {}, Ne: {}.", std::make_tuple(true, false));
 		}
-		catch (const exception::exception&)
+		catch (const std::exception& ex)
 		{
+			Assert::AreEqual(ex.what(), R"(File: C:\Users\DeWitt\Source\Repos\Framework\Testing\test_exception.cpp(18:30) 'TestSimpleTextException'. Ano: true, Ne: false.)");
 		}
-		//Assert::AreEqual<int>(size, 4);
+
+		try
+		{
+			throw exception::exception(std::source_location::current(), "Ano: {}, Ne: {}.", true, false);
+		}
+		catch (const std::exception& ex)
+		{
+			Assert::AreEqual(ex.what(), R"(File: C:\Users\DeWitt\Source\Repos\Framework\Testing\test_exception.cpp(27:53) 'TestSimpleTextException'. Ano: true, Ne: false.)");
+		}
+
+		try
+		{
+			throw exception::exception();
+		}
+		catch (const std::exception& ex)
+		{
+			Assert::AreEqual(ex.what(), R"(File: C:\Users\DeWitt\Source\Repos\Framework\Testing\test_exception.cpp(36:30) 'TestSimpleTextException'. )");
+		}
+
+		try
+		{
+			exception::throw_exception("Ano: {}, Ne: {}.", true, false);
+		}
+		catch (const std::exception& ex)
+		{
+			Assert::AreEqual(ex.what(), R"(File: C:\Users\DeWitt\Source\Repos\Framework\Testing\test_exception.cpp(45:30) 'TestSimpleTextException'. Ano: true, Ne: false.)");
+		}
 	}
 
 	TEST_METHOD(TestWideTextException)
 	{
-		//Assert::AreEqual<int>(size, 4);
+		try
+		{
+			throw exception::exception(L"Ano: {}, Ne: {}.", std::make_tuple(true, false));
+		}
+		catch (const std::exception& ex)
+		{
+			Assert::AreEqual(ex.what(), R"(File: C:\Users\DeWitt\Source\Repos\Framework\Testing\test_exception.cpp(57:30) 'TestWideTextException'. Ano: true, Ne: false.)");
+		}
+
+		try
+		{
+			throw exception::exception(std::source_location::current(), L"Ano: {}, Ne: {}.", true, false);
+		}
+		catch (const std::exception& ex)
+		{
+			Assert::AreEqual(ex.what(), R"(File: C:\Users\DeWitt\Source\Repos\Framework\Testing\test_exception.cpp(66:53) 'TestWideTextException'. Ano: true, Ne: false.)");
+		}
+
+		try
+		{
+			throw exception::exception();
+		}
+		catch (const std::exception& ex)
+		{
+			Assert::AreEqual(ex.what(), R"(File: C:\Users\DeWitt\Source\Repos\Framework\Testing\test_exception.cpp(75:30) 'TestWideTextException'. )");
+		}
+
+		try
+		{
+			exception::throw_exception(L"Ano: {}, Ne: {}.", true, false);
+		}
+		catch (const std::exception& ex)
+		{
+			Assert::AreEqual(ex.what(), R"(File: C:\Users\DeWitt\Source\Repos\Framework\Testing\test_exception.cpp(84:30) 'TestWideTextException'. Ano: true, Ne: false.)");
+		}
 	}
 };
 } // namespace FrameworkTesting

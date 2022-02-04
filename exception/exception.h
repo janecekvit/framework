@@ -11,43 +11,34 @@
 
 namespace janecekvit::exception
 {
-template <class... _Args>
-class builder
-{
-	builder(_Args&... args)
-		: _args(std::forward<_Args>(args)...)
-	{
-	}
-
-private:
-	std::tuple<_Args...> _args;
-};
-
 class exception : public std::exception
 {
 public:
 	template <class _Fmt, class... _Args>
-	exception(_Fmt&& format, std::tuple<_Args...>&& arguments, std::source_location&& srcl = std::source_location::current())
+	exception(_Fmt&& format, std::tuple<_Args...> arguments, std::source_location&& srcl = std::source_location::current())
 		: std::exception()
 		, _srcl(std::move(srcl))
 	{
-		_error = std::format("File: {}({}:{}) '{}'. ", _srcl.file_name(), _srcl.line(), _srcl.column(), _srcl.function_name());
+		auto callback = [&](auto&&... args)
+		{
+			return _inner_processing(std::move(srcl), std::forward<_Fmt>(format), std::forward<decltype(args)>(args)...);
+		};
+		std::apply(callback, arguments);
+	}
 
-		try
-		{
-			if constexpr (std::is_same_v<_Fmt, std::wstring>)
-			{
-				std::wstring _error_wide = std::format(format, arguments);
-				_error += std::string{ std::begin(format), std::end(format) };
-			}
-			else
-				_error += std::format(format, std::forward<_Args>(arguments)...);
-		}
-		catch (const std::exception& ex)
-		{
-			using namespace std::string_literals;
-			_error += "Unexpected exception: "s + ex.what();
-		}
+	template <class _Fmt, class... _Args>
+	exception(std::source_location&& srcl, _Fmt&& format, _Args&&... arguments)
+		: std::exception()
+		, _srcl(std::move(srcl))
+	{
+		_inner_processing(std::move(srcl), std::forward<_Fmt>(format), std::forward<_Args>(arguments)...);
+	}
+
+	exception(std::source_location&& srcl = std::source_location::current())
+		: std::exception()
+		, _srcl(std::move(srcl))
+	{
+		_inner_processing(std::move(srcl), "");
 	}
 
 	virtual ~exception() = default;
@@ -58,7 +49,58 @@ public:
 	}
 
 private:
+	template <class _Fmt, class... _Args>
+	void _inner_processing(std::source_location&& srcl, _Fmt&& format, _Args&&... arguments)
+	{
+		_error = _format_source_location();
+
+		auto callback = [&](auto&&... args)
+		{
+			return std::format(format, std::forward<decltype(args)>(args)...);
+		};
+
+		try
+		{
+			if constexpr (std::is_constructible_v<std::wstring_view, _Fmt>)
+			{
+				std::wstring _error_wide = std::invoke(callback, arguments...);
+				_error += std::string{ std::begin(_error_wide), std::end(_error_wide) };
+			}
+			else
+				_error += std::invoke(callback, arguments...);
+		}
+		catch (const std::exception& ex)
+		{
+			using namespace std::string_literals;
+			_error += "Unexpected exception: "s + ex.what();
+		}
+	}
+
+private:
+	std::string _format_source_location() const
+	{
+		return std::format("File: {}({}:{}) '{}'. ", _srcl.file_name(), _srcl.line(), _srcl.column(), _srcl.function_name());
+	}
+
+private:
 	std::string _error;
 	std::source_location _srcl;
 };
+
+template <class _Exception, class _Fmt, class... _Args>
+class throw_exception
+{
+public:
+	constexpr throw_exception(_Fmt&& format = {}, _Args&&... arguments, std::source_location&& srcl = std::source_location::current())
+	{
+		throw _Exception(format, std::forward_as_tuple(arguments...), std::move(srcl));
+	}
+};
+
+template <class _Fmt, class... _Args>
+throw_exception(_Fmt&&, _Args&&...) -> throw_exception<exception, _Fmt, _Args...>;
+
+template <class _Exception, class _Fmt, class... _Args>
+throw_exception(_Fmt&&, _Args&&...) -> throw_exception<_Exception, _Fmt, _Args...>;
+
 } // namespace janecekvit::exception
