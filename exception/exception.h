@@ -1,13 +1,13 @@
 #pragma once
+#include "extensions/constraints.h"
+#include "utility/conversions.h"
+
 #include <exception>
 #include <format>
 #include <iostream>
 #include <memory>
 #include <source_location>
 #include <string>
-
-//C++20
-#include "extensions/constraints.h"
 
 namespace janecekvit::exception
 {
@@ -64,7 +64,7 @@ private:
 			if constexpr (std::is_constructible_v<std::wstring_view, _Fmt>)
 			{
 				std::wstring _error_wide = std::invoke(callback, arguments...);
-				_error += std::string{ std::begin(_error_wide), std::end(_error_wide) };
+				_error += conversions::to_string(_error_wide);
 			}
 			else
 				_error += std::invoke(callback, arguments...);

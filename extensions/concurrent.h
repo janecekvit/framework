@@ -192,7 +192,9 @@ public:
 	}
 
 	template <class _Condition, class _Predicate>
-	//requires constraints::condition_variable_pred<_Condition, std::unique_lock<std::shared_mutex>, TPredicate>
+#if defined(__cpp_lib_concepts)
+	requires constraints::condition_variable_pred<_Condition, std::unique_lock<std::shared_mutex>, _Predicate>
+#endif
 	constexpr decltype(auto) wait(_Condition& cv, _Predicate&& pred) const
 	{
 		_check_ownership();
@@ -200,7 +202,9 @@ public:
 	}
 
 	template <class _Condition>
-	//requires constraints::condition_variable<_Condition, std::unique_lock<std::shared_mutex>>
+#if defined(__cpp_lib_concepts)
+	requires constraints::condition_variable<_Condition, std::unique_lock<std::shared_mutex>>
+#endif
 	constexpr decltype(auto) wait(_Condition& cv) const
 	{
 		_check_ownership();
@@ -361,7 +365,9 @@ public:
 	}
 
 	template <class _Condition, class _Predicate>
-	//requires constraints::condition_variable_pred<_Condition, std::shared_lock<std::shared_mutex>, TPredicate>
+#if defined(__cpp_lib_concepts)
+	requires constraints::condition_variable_pred<_Condition, std::shared_lock<std::shared_mutex>, _Predicate>
+#endif
 	constexpr decltype(auto) wait(_Condition& cv, _Predicate&& pred) const
 	{
 		_check_ownership();
@@ -369,7 +375,9 @@ public:
 	}
 
 	template <class _Condition>
-	//requires constraints::condition_variable<_Condition, std::shared_lock<std::shared_mutex>>
+#if defined(__cpp_lib_concepts)
+	requires constraints::condition_variable<_Condition, std::shared_lock<std::shared_mutex>>
+#endif
 	constexpr decltype(auto) wait(_Condition& cv) const
 	{
 		_check_ownership();

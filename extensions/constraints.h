@@ -196,7 +196,23 @@ concept condition_variable_pred = condition_variable<_Condition, _Lock> && requi
 };
 
 template <class _Fmt>
-concept format_view = std::is_constructible_v<std::string_view, _Fmt> || std::is_constructible_v<std::wstring_view, _Fmt>;
+concept format_string_view = std::is_constructible_v<std::string_view, _Fmt>;
+
+template <class _Fmt>
+concept format_wstring_view = std::is_constructible_v<std::wstring_view, _Fmt>;
+
+template <class _Fmt>
+concept format_view = format_string_view<_Fmt> || format_wstring_view<_Fmt>;
+
+template <class _String>
+concept format_outout = std::is_same_v<_String, std::string> || std::is_same_v<_String, std::wstring>;
+
+template <class _Enum>
+concept enum_type = std::is_enum_v<_Enum>;
+
+template <class _String>
+concept string_type = std::is_same_v<_String, std::string> || std::is_same_v<_String, std::wstring> || std::is_same_v<_String, std::u8string> || std::is_same_v<_String, std::u16string> || std::is_same_v<_String, std::u32string>;
+
 #endif
 
 } // namespace janecekvit::constraints

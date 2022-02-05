@@ -184,6 +184,7 @@
     <ClCompile Include="TestExtensions.cpp" />
     <ClCompile Include="TestThread.cpp" />
     <ClCompile Include="test_exception.cpp" />
+    <ClCompile Include="test_trace.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Framework.vcxproj">
