@@ -20,9 +20,10 @@ public:
 	{
 		tracing::trace<std::wstring, test> trace;
 
-		tracing::trace_event e{ test::yes, std::this_thread::get_id(), L"yes" };
+		tracing::trace_event e{ test::yes, L"ANO: {}", true };
 
-		//trace.create(tracing::trace_event{ test::yes, std::this_thread::get_id(), L"yes" });
+		trace.create(tracing::trace_event{ test::yes, L"ANO: {}", true });
+		//trace.create(test::yes, std::this_thread::get_id(), L"yes");
 	}
 };
 } // namespace FrameworkTesting

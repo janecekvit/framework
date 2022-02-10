@@ -1,5 +1,6 @@
 #pragma once
 #include "extensions/constraints.h"
+#include "utility/conversions.h"
 
 #include <source_location>
 #include <thread>
@@ -10,7 +11,7 @@ template <constraints::format_outout _FmtOutput, constraints::enum_type _Enum, c
 class trace_event
 {
 public:
-	trace_event(_Enum priority, std::thread::id&& thread, _Fmt&& format, _Args&&... args, std::source_location&& srcl = std::source_location::current())
+	trace_event(_Enum priority, _Fmt&& format, _Args&&... args, std::source_location&& srcl = std::source_location::current(), std::thread::id&& thread = std::this_thread::get_id())
 		: _priority(std::move(priority))
 		, _thread(std::move(thread))
 		, _srcl(std::move(srcl))
@@ -22,12 +23,56 @@ public:
 		}
 		catch (const std::exception& ex)
 		{
-			/*using namespace std::string_literals;
-			auto indexes = std::type_index(typeid(_Args));
-			_data += L"Unexpected exception: "s + ex.what();*/
+			using namespace std::string_literals;
+			const std::vector<std::string> indexes = { std::type_index(typeid(_Args)).name()... };
+			//TODO:
+
+			if constexpr (constraints::format_wstring_view<_FmtOutput>)
+			{
+				_data += L"Unexpected exception: "s + conversions::to_wstring(ex.what());
+			}
+			else
+			{
+				_data += "Unexpected exception: "s + ex.what();
+			}
 		}
 	}
 	virtual ~trace_event() = default;
+
+	constexpr operator _Enum() const
+	{
+		return _priority;
+	}
+
+	constexpr operator const std::thread::id&() const&
+	{
+		return _thread;
+	}
+
+	constexpr operator std::thread::id&&() &&
+	{
+		return _thread;
+	}
+
+	constexpr operator const std::source_location&() const&
+	{
+		return _srcl;
+	}
+
+	constexpr operator std::source_location&&() &&
+	{
+		return std::move(_srcl);
+	}
+
+	constexpr operator const _FmtOutput&() const&
+	{
+		return _data;
+	}
+
+	constexpr operator _FmtOutput&&() &&
+	{
+		return std::move(_data);
+	}
 
 private:
 	const _Enum _priority;
@@ -38,12 +83,12 @@ private:
 
 template <constraints::enum_type _Enum, constraints::format_view _Fmt, class... _Args>
 requires constraints::format_string_view<_Fmt>
-trace_event(_Enum, std::thread::id&&, _Fmt&&, _Args&&...)
+trace_event(_Enum, _Fmt&&, _Args&&...)
 ->trace_event<std::string, _Enum, _Fmt, _Args...>;
 
 template <constraints::enum_type _Enum, constraints::format_view _Fmt, class... _Args>
 requires constraints::format_wstring_view<_Fmt>
-trace_event(_Enum, std::thread::id&&, _Fmt&&, _Args&&...)
+trace_event(_Enum, _Fmt&&, _Args&&...)
 ->trace_event<std::wstring, _Enum, _Fmt, _Args...>;
 
 template <constraints::format_outout _Data, constraints::enum_type _Enum>
@@ -53,9 +98,12 @@ class trace
 	{
 	public:
 		template <constraints::format_view _Fmt, class... _Args>
-		event(trace_event<_Enum, _Fmt, _Args...>&& e)
+		event(trace_event<_Data, _Enum, _Fmt, _Args...>&& e)
 		{
-			//e.
+			_priority = e;
+			_thread	  = e;
+			_srcl	  = e;
+			_data	  = e;
 		}
 
 	private:
@@ -69,7 +117,7 @@ public:
 	virtual ~trace() = default;
 
 	template <constraints::format_view _Fmt, class... _Args>
-	void create(trace_event<_Enum, _Fmt, _Args...>&& value)
+	void create(trace_event<_Data, _Enum, _Fmt, _Args...>&& value)
 	{
 		event e(std::move(value));
 	}
