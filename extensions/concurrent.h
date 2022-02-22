@@ -18,6 +18,7 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 
 #include <array>
 #include <cerrno>
+#include <deque>
 #include <exception>
 #include <list>
 #include <map>
@@ -588,6 +589,9 @@ using result_resource_owner = resource_owner_debug<_Type>;
 /// Pre-defined conversions ///
 template <class... _Args>
 using list = result_resource_owner<std::list<_Args...>>;
+
+template <class... _Args>
+using deque = result_resource_owner<std::deque<_Args...>>;
 
 template <class... _Args>
 using queue = result_resource_owner<std::queue<_Args...>>;

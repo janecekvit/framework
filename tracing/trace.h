@@ -1,4 +1,5 @@
 #pragma once
+#include "extensions/concurrent.h"
 #include "extensions/constraints.h"
 #include "utility/conversions.h"
 
@@ -25,15 +26,15 @@ public:
 		{
 			using namespace std::string_literals;
 			const std::vector<std::string> indexes = { std::type_index(typeid(_Args)).name()... };
-			//TODO:
+			auto&& index_serialized				   = conversions::to_string<std::string>(indexes);
 
 			if constexpr (constraints::format_wstring_view<_FmtOutput>)
 			{
-				_data += L"Unexpected exception: "s + conversions::to_wstring(ex.what());
+				_data += L"Unexpected exception: "s + conversions::to_wstring(ex.what()) + L"\n"s + conversions::to_wstring(index_serialized);
 			}
 			else
 			{
-				_data += "Unexpected exception: "s + ex.what();
+				_data += "Unexpected exception: "s + ex.what() + "\n"s + index_serialized;
 			}
 		}
 	}
@@ -120,12 +121,35 @@ public:
 	void create(trace_event<_Data, _Enum, _Fmt, _Args...>&& value)
 	{
 		event e(std::move(value));
+		process(std::move(e));
+	}
+
+	virtual event next_trace()
+	{
+		auto&& scope = _traceQueue.exclusive();
+		auto&& e	 = scope->front();
+		scope->pop_front();
+		return e;
+	}
+
+	virtual size_t size()
+	{
+		return _traceQueue.concurrent()->size();
+	}
+
+	virtual void flush()
+	{
+		_traceQueue.exclusive()->clear();
 	}
 
 protected:
-	//virtual void process(event&& event) = 0;
+	virtual void process(event&& e)
+	{
+		_traceQueue.exclusive()->emplace_back(std::move(e));
+	}
 
 protected:
+	concurrent::deque<event> _traceQueue;
 };
 
 } // namespace janecekvit::tracing
