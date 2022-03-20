@@ -107,6 +107,61 @@ class trace
 			_data	  = e;
 		}
 
+		constexpr _Enum priority() const
+		{
+			return _priority;
+		}
+
+		constexpr const std::thread::id& thread_id() const&
+		{
+			return _thread;
+		}
+
+		constexpr const std::source_location& source_location() const&
+		{
+			return _srcl;
+		}
+
+		constexpr const _Data& data() const&
+		{
+			return _data;
+		}
+
+		constexpr operator _Enum() const
+		{
+			return _priority;
+		}
+
+		constexpr operator const std::thread::id&() const&
+		{
+			return _thread;
+		}
+
+		constexpr operator std::thread::id&&() &&
+		{
+			return _thread;
+		}
+
+		constexpr operator const std::source_location&() const&
+		{
+			return _srcl;
+		}
+
+		constexpr operator std::source_location&&() &&
+		{
+			return std::move(_srcl);
+		}
+
+		constexpr operator const _Data&() const&
+		{
+			return _data;
+		}
+
+		constexpr operator _Data&&() &&
+		{
+			return std::move(_data);
+		}
+
 	private:
 		_Enum _priority;
 		std::thread::id _thread;
@@ -120,14 +175,13 @@ public:
 	template <constraints::format_view _Fmt, class... _Args>
 	void create(trace_event<_Data, _Enum, _Fmt, _Args...>&& value)
 	{
-		event e(std::move(value));
-		process(std::move(e));
+		process(event(std::move(value)));
 	}
 
 	virtual event next_trace()
 	{
 		auto&& scope = _traceQueue.exclusive();
-		auto&& e	 = scope->front();
+		auto e		 = scope->front();
 		scope->pop_front();
 		return e;
 	}
