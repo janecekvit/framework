@@ -15,6 +15,12 @@
     <Filter Include="Interfaces">
       <UniqueIdentifier>{6507df63-8067-49fb-b648-8fc9561fdb4a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="exception">
+      <UniqueIdentifier>{70603568-4c33-415f-a44d-f9d32489d6a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="trace">
+      <UniqueIdentifier>{a93d0fef-e9d4-448c-a12b-e4ce1bc489b6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -42,6 +48,12 @@
     </ClCompile>
     <ClCompile Include="test_atomic_concurrent.cpp">
       <Filter>Extensions</Filter>
+    </ClCompile>
+    <ClCompile Include="test_exception.cpp">
+      <Filter>exception</Filter>
+    </ClCompile>
+    <ClCompile Include="test_trace.cpp">
+      <Filter>trace</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -53,7 +53,7 @@ public:
 		const auto&& oldType = _owner->_get_value();
 		_resource			 = std::make_shared<_Type>(*oldType);
 
-		//_resource->push_exclusive_lock_information(std::move(srcl));
+		//_resource->push_exclusive_lock_details(std::move(srcl));
 	}
 
 	constexpr resource_writer(const resource_writer& other) noexcept = delete;
@@ -70,7 +70,7 @@ public:
 		if (_resource && _owner)
 			_owner->_update_value(std::move(_resource));
 		/*if (_resource)
-			_resource->pop_exclusive_lock_information();*/
+			_resource->pop_exclusive_lock_details();*/
 	}
 
 	constexpr resource_writer& operator=(const resource_writer& other) noexcept = delete;
@@ -167,7 +167,7 @@ public:
 		, _owner(owner)
 		, _srcl(srcl)
 	{
-		//_resource->push_concurrent_lock_information(std::move(srcl));
+		//_resource->push_concurrent_lock_details(std::move(srcl));
 	}
 
 	constexpr resource_reader(const resource_reader& other) noexcept = delete;
@@ -182,7 +182,7 @@ public:
 	virtual ~resource_reader()
 	{
 		/*if (_resource)
-			_resource->pop_concurrent_lock_information(std::move(_srcl));*/
+			_resource->pop_concurrent_lock_details(std::move(_srcl));*/
 	}
 
 	constexpr resource_reader& operator=(const resource_reader& other) noexcept = delete;

@@ -21,8 +21,10 @@
   <ItemGroup>
     <ClCompile Include="Thread\ThreadPool.cpp" />
     <ClCompile Include="Thread\ThreadPoolDynamic.cpp" />
+    <ClCompile Include="utility\conversions.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="exception\exception.h" />
     <ClInclude Include="extensions\atomic_concurrent.h" />
     <ClInclude Include="extensions\concurrent.h" />
     <ClInclude Include="extensions\constraints.h" />
@@ -38,6 +40,8 @@
     <ClInclude Include="Thread\IThreadPool.h" />
     <ClInclude Include="Thread\ThreadPool.h" />
     <ClInclude Include="Thread\ThreadPoolDynamic.h" />
+    <ClInclude Include="tracing\trace.h" />
+    <ClInclude Include="utility\conversions.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

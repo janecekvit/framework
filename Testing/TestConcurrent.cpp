@@ -676,37 +676,37 @@ public:
 	{
 		concurrent::resource_owner_debug<std::unordered_set<int>> container;
 		{ //exclusive
-			Assert::IsFalse(container.get_exclusive_lock_information().has_value());
+			Assert::IsFalse(container.get_exclusive_lock_details().has_value());
 			{
 				auto&& oScope = container.exclusive();
-				Assert::IsTrue(container.get_exclusive_lock_information().has_value());
+				Assert::IsTrue(container.get_exclusive_lock_details().has_value());
 			}
 
-			Assert::IsFalse(container.get_exclusive_lock_information().has_value());
+			Assert::IsFalse(container.get_exclusive_lock_details().has_value());
 			auto&& oScope = container.exclusive();
-			Assert::IsTrue(container.get_exclusive_lock_information().has_value());
+			Assert::IsTrue(container.get_exclusive_lock_details().has_value());
 			oScope.unlock();
-			Assert::IsFalse(container.get_exclusive_lock_information().has_value());
+			Assert::IsFalse(container.get_exclusive_lock_details().has_value());
 			oScope.lock();
-			Assert::IsTrue(container.get_exclusive_lock_information().has_value());
+			Assert::IsTrue(container.get_exclusive_lock_details().has_value());
 		}
 
 		{ //concurrent
-			Assert::IsTrue(container.get_concurrent_lock_information().empty());
+			Assert::IsTrue(container.get_concurrent_lock_details().empty());
 			{
 				auto&& oScope  = container.concurrent();
 				auto&& oScope2 = container.concurrent();
 
-				Assert::AreEqual((size_t) 2, container.get_concurrent_lock_information().size());
+				Assert::AreEqual((size_t) 2, container.get_concurrent_lock_details().size());
 			}
 
-			Assert::IsTrue(container.get_concurrent_lock_information().empty());
+			Assert::IsTrue(container.get_concurrent_lock_details().empty());
 			auto&& oScope = container.concurrent();
-			Assert::IsFalse(container.get_concurrent_lock_information().empty());
+			Assert::IsFalse(container.get_concurrent_lock_details().empty());
 			oScope.unlock();
-			Assert::IsTrue(container.get_concurrent_lock_information().empty());
+			Assert::IsTrue(container.get_concurrent_lock_details().empty());
 			oScope.lock();
-			Assert::IsFalse(container.get_concurrent_lock_information().empty());
+			Assert::IsFalse(container.get_concurrent_lock_details().empty());
 		}
 	}
 
