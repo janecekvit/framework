@@ -54,20 +54,15 @@ private:
 	{
 		_error = _format_source_location();
 
-		auto callback = [&](auto&&... args)
-		{
-			return std::format(format, std::forward<decltype(args)>(args)...);
-		};
-
 		try
 		{
 			if constexpr (std::is_constructible_v<std::wstring_view, _Fmt>)
 			{
-				std::wstring _error_wide = std::invoke(callback, arguments...);
+				std::wstring _error_wide = std::vformat(format, std::make_wformat_args(arguments...));
 				_error += conversions::to_string(_error_wide);
 			}
 			else
-				_error += std::invoke(callback, arguments...);
+				_error += std::vformat(format, std::make_format_args(arguments...));
 		}
 		catch (const std::exception& ex)
 		{

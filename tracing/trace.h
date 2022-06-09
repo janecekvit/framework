@@ -20,7 +20,10 @@ public:
 	{
 		try
 		{
-			_data = std::format(format, std::forward<_Args>(args)...);
+			if constexpr (constraints::format_wstring_view<_FmtOutput>)
+				_data = std::vformat(format, std::make_wformat_args(args...));
+			else
+				_data = std::vformat(format, std::make_format_args(args...));
 		}
 		catch (const std::exception& ex)
 		{
@@ -38,6 +41,7 @@ public:
 			}
 		}
 	}
+
 	virtual ~trace_event() = default;
 
 	constexpr operator _Enum() const
