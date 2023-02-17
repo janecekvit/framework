@@ -3,6 +3,7 @@
 #include "extensions/constraints.h"
 #include "utility/conversions.h"
 
+#include <format>
 #include <source_location>
 #include <thread>
 
@@ -87,14 +88,14 @@ private:
 };
 
 template <constraints::enum_type _Enum, constraints::format_view _Fmt, class... _Args>
-requires constraints::format_string_view<_Fmt>
+	requires constraints::format_string_view<_Fmt>
 trace_event(_Enum, _Fmt&&, _Args&&...)
-->trace_event<std::string, _Enum, _Fmt, _Args...>;
+	-> trace_event<std::string, _Enum, _Fmt, _Args...>;
 
 template <constraints::enum_type _Enum, constraints::format_view _Fmt, class... _Args>
-requires constraints::format_wstring_view<_Fmt>
+	requires constraints::format_wstring_view<_Fmt>
 trace_event(_Enum, _Fmt&&, _Args&&...)
-->trace_event<std::wstring, _Enum, _Fmt, _Args...>;
+	-> trace_event<std::wstring, _Enum, _Fmt, _Args...>;
 
 template <constraints::format_outout _Data, constraints::enum_type _Enum>
 class trace

@@ -34,7 +34,7 @@ void ContainerTest(const TContainer<TItem>& oContainer)
 
 constexpr size_t IterationCount = 500000;
 
-ONLY_USED_AT_NAMESPACE_SCOPE class TestConcurrent : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<TestConcurrent> // expanded TEST_CLASS() macro due wrong formatting of clangformat
+ONLY_USED_AT_NAMESPACE_SCOPE class test_concurrent : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_concurrent> // expanded TEST_CLASS() macro due wrong formatting of clangformat
 {
 	[[no_discard]] static concurrent::unordered_map<int, int> _prepare_testing_data()
 	{
@@ -77,7 +77,7 @@ public:
 		auto vector	   = concurrent::vector<int>();
 		auto stack	   = concurrent::stack<int>();
 		auto queue	   = concurrent::queue<int>();
-		//auto array	   = concurrent::array<int, 4>();
+		// auto array	   = concurrent::array<int, 4>();
 		auto functor = concurrent::functor<int()>();
 
 		concurrent::resource_owner<std::array<int, 4>> oArray;
@@ -222,7 +222,7 @@ public:
 		// container.exclusive();
 		// container.concurrent();
 
-		//Test iterators
+		// Test iterators
 		auto container = _prepare_testing_data();
 		auto begin	   = container.exclusive()->begin();
 		auto end	   = container.exclusive()->end();
@@ -238,12 +238,12 @@ public:
 		Assert::IsFalse(beginConst == endConst);
 		Assert::AreEqual<size_t>(size, 4);
 
-		{ //begin const
+		{ // begin const
 
 			auto begin = container.exclusive()->begin();
 
-			//beginConst->second++; //concurrent
-			begin->second++; //exclusive
+			// beginConst->second++; //concurrent
+			begin->second++; // exclusive
 			Assert::AreEqual<int>(begin->second, 6);
 		}
 	}
@@ -303,7 +303,7 @@ public:
 	{
 		auto container = concurrent::vector<int>();
 
-		//Index operators on unordered map
+		// Index operators on unordered map
 		{
 			auto scope = container.exclusive();
 			Assert::ExpectException<std::out_of_range>([&]()
@@ -458,7 +458,7 @@ public:
 
 		testLambda(container.exclusive());
 		testLambdaConst(container.exclusive());
-		//testLambda(container.concurrent()); -> cannot be done due constless
+		// testLambda(container.concurrent()); -> cannot be done due constless
 		testLambdaConst(container.concurrent());
 
 		Assert::AreEqual(iCalls, 3);
@@ -522,7 +522,7 @@ public:
 	TEST_METHOD(TestLockSemantics)
 	{
 		auto container = _prepare_testing_data();
-		{ //lock write
+		{ // lock write
 			auto&& scope = container.exclusive();
 			scope->emplace(40, 40);
 			Assert::AreEqual(scope().at(40), 40);
@@ -545,7 +545,7 @@ public:
 			Assert::AreEqual(scope().at(226), 226);
 		}
 
-		{ //Acquire read
+		{ // Acquire read
 			auto&& scope = container.concurrent();
 			Assert::AreEqual(scope().at(40), 40);
 			scope.unlock();
@@ -567,7 +567,7 @@ public:
 	TEST_METHOD(TestReassign)
 	{
 		auto container = _prepare_testing_data();
-		//exclusive
+		// exclusive
 		auto scope(std::move(container.exclusive()));
 		Assert::ExpectException<std::system_error>([&]
 			{
@@ -594,7 +594,7 @@ public:
 				scope.unlock();
 			});
 
-		//concurrent
+		// concurrent
 		auto scopeRead(std::move(container.concurrent()));
 		Assert::ExpectException<std::system_error>([&]
 			{
@@ -622,7 +622,7 @@ public:
 
 	TEST_METHOD(TestContainerCopy)
 	{
-		{ //exclusive
+		{ // exclusive
 			std::optional<concurrent::unordered_map<int, int>::exclusive_holder_type> scope;
 			concurrent::unordered_map<int, int> container2;
 			Assert::IsFalse(scope.has_value());
@@ -646,7 +646,7 @@ public:
 			scope.reset();
 		}
 
-		{ //concurrent
+		{ // concurrent
 			std::optional<concurrent::unordered_map<int, int>::concurrent_holder_type> scope;
 			concurrent::unordered_map<int, int> container2;
 			Assert::IsFalse(scope.has_value());
@@ -675,7 +675,7 @@ public:
 	TEST_METHOD(TestDebugLocksInformation)
 	{
 		concurrent::resource_owner_debug<std::unordered_set<int>> container;
-		{ //exclusive
+		{ // exclusive
 			Assert::IsFalse(container.get_exclusive_lock_details().has_value());
 			{
 				auto&& oScope = container.exclusive();
@@ -691,7 +691,7 @@ public:
 			Assert::IsTrue(container.get_exclusive_lock_details().has_value());
 		}
 
-		{ //concurrent
+		{ // concurrent
 			Assert::IsTrue(container.get_concurrent_lock_details().empty());
 			{
 				auto&& oScope  = container.concurrent();
@@ -710,7 +710,7 @@ public:
 		}
 	}
 
-	//TEST_METHOD(TestFunctor)
+	// TEST_METHOD(TestFunctor)
 	//{
 	//	int iNumber						   = 0;
 	//	concurrent::functor<void()> fnTest = std::function<void()>([&]()
@@ -725,7 +725,7 @@ public:
 	//	Assert::AreEqual(3, iNumber);
 	//}
 
-	//TEST_METHOD(TestConccurentConstraints)
+	// TEST_METHOD(TestConccurentConstraints)
 	//{
 	//	concurrent::list<int> listNumbers = std::list<int>{
 	//		1,

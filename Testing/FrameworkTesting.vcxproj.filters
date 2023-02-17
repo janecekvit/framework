@@ -31,7 +31,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="TestExtensions.cpp">
+    <ClCompile Include="test_extensions.cpp">
       <Filter>Extensions</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
@@ -43,7 +43,7 @@
     <ClCompile Include="TestInterfaces.cpp">
       <Filter>Interfaces</Filter>
     </ClCompile>
-    <ClCompile Include="TestConcurrent.cpp">
+    <ClCompile Include="test_concurrent.cpp">
       <Filter>Extensions</Filter>
     </ClCompile>
     <ClCompile Include="test_atomic_concurrent.cpp">
@@ -54,6 +54,12 @@
     </ClCompile>
     <ClCompile Include="test_trace.cpp">
       <Filter>trace</Filter>
+    </ClCompile>
+    <ClCompile Include="test_lazy.cpp">
+      <Filter>Extensions</Filter>
+    </ClCompile>
+    <ClCompile Include="test_finally.cpp">
+      <Filter>Extensions</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

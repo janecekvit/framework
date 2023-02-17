@@ -21,7 +21,7 @@ namespace VisualStudio
 {
 namespace CppUnitTestFramework
 {
-//TypeDefs
+// TypeDefs
 template <>
 static std::wstring ToString<std::tuple<int, int, int, int, int, int, int, int, int, int>>(const std::tuple<int, int, int, int, int, int, int, int, int, int>& t)
 {
@@ -46,7 +46,7 @@ static std::wstring ToString<std::list<const char*>>(const std::list<const char*
 
 using namespace std::string_literals;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
-//https://docs.microsoft.com/cs-cz/visualstudio/test/microsoft-visualstudio-testtools-cppunittestframework-api-reference?view=vs-2019
+// https://docs.microsoft.com/cs-cz/visualstudio/test/microsoft-visualstudio-testtools-cppunittestframework-api-reference?view=vs-2019
 
 class IInterface
 {
@@ -86,7 +86,7 @@ public:
 		std::shared_ptr<int> d = nullptr;*/
 		CInterface* pInt = nullptr;
 
-		//Use unpack by output parameters
+		// Use unpack by output parameters
 		oPack.get_pack(a, b, c, d, pInt);
 		Assert::AreEqual(a, 25);
 		Assert::AreEqual(b, 333);
@@ -94,7 +94,7 @@ public:
 		Assert::AreEqual(*d, 777);
 		Assert::AreEqual(pInt->Do(), 1111);
 
-		//Use unpack by return tuple
+		// Use unpack by return tuple
 		auto [iNumber1, iNumber2, pNumber, pShared, pInterface] = oPack.get_pack<int, int, int*, std::shared_ptr<int>, CInterface*>();
 
 		Assert::AreEqual(iNumber1, 25);
@@ -125,7 +125,7 @@ public:
 	virtual ~CParamTest2() = default;
 	virtual void Run(_In_ extensions::Storage::parameter_pack&& oPack) override
 	{
-		//Use unpack by return tuple
+		// Use unpack by return tuple
 		auto [iNumber1, iNumber2, pNumber, pShared, pInterface] = oPack.get_pack<int, int, int*, std::shared_ptr<int>, CInterface*>();
 
 		Assert::AreEqual(iNumber1, 25);
@@ -226,15 +226,15 @@ struct MyContainer
 	}
 };
 
-//different notation
-//template <class Other>
-//typename std::enable_if_t<constraints::is_container_v<Other>>
-//Test(const Other& other)
+// different notation
+// template <class Other>
+// typename std::enable_if_t<constraints::is_container_v<Other>>
+// Test(const Other& other)
 //{
 //	int i = 0;
 //	/*for (const auto& item : other)
 //		std::cout << item;*/
-//}
+// }
 
 template <class Other, typename std::enable_if_t<constraints::is_container_v<Other>, int> = 0>
 auto Test(const Other& other)
@@ -247,19 +247,19 @@ auto Test(const Other& other)
 void Test(const int& other)
 {
 	int i = 0;
-	//std::cout << other;
+	// std::cout << other;
 }
 
 void Test(const WithoutEnd& other)
 {
 	int i = 0;
-	//std::cout << other;
+	// std::cout << other;
 }
 
 void Test(const WithoutBegin& other)
 {
 	int i = 0;
-	//std::cout << other;
+	// std::cout << other;
 }
 
 } // namespace TestContainerTraits
@@ -488,7 +488,7 @@ public:
 			return s;
 		};
 
-		//Test Get and First methods
+		// Test Get and First methods
 		extensions::Storage::heterogeneous_container oContainer(25, 331, 1.1, "string"s, "kase"s, std::make_tuple(25, 333), fnCallbackInt, fnCallbackInt2, fnCallbackString, fnCallbackString2);
 		auto oResult	= oContainer.get<std::string>();
 		auto oResultInt = oContainer.get<int>();
@@ -512,7 +512,7 @@ public:
 		Assert::AreEqual(oContainer.get<std::string>(1), "kase"s);
 		Assert::AreEqual(oContainer.first<std::string>(), "string"s);
 
-		//Test visit methods
+		// Test visit methods
 		oContainer.visit<int>([&](int& i)
 			{
 				i += 100;
@@ -529,7 +529,7 @@ public:
 		Assert::AreEqual(*oResultIntNew.begin(), 125);
 		Assert::AreEqual(*++oResultIntNew.begin(), 431);
 
-		//Test call methods
+		// Test call methods
 		int iCallable = 5;
 		oContainer.call_first<std::function<void(int&)>>(iCallable);
 		Assert::AreEqual(15, iCallable);
@@ -560,14 +560,14 @@ public:
 		Assert::AreEqual("Test 123"s, *listResults.begin());
 		Assert::AreEqual("Test 456"s, *std::next(listResults.begin(), 1));
 
-		//Test size and reset (1)
+		// Test size and reset (1)
 		Assert::AreEqual(oContainer.size<std::function<void(int&)>>(), size_t(2));
 		Assert::AreEqual(oContainer.contains<std::function<void(int&)>>(), true);
 
 		Assert::AreEqual(oContainer.size<std::function<std::string(std::string &&)>>(), size_t(2));
 		Assert::AreEqual(oContainer.contains<std::function<std::string(std::string &&)>>(), true);
 
-		//Test size and reset (2)
+		// Test size and reset (2)
 		oContainer.reset<std::function<void(int&)>>();
 
 		Assert::AreEqual(oContainer.size<std::function<void(int&)>>(), size_t(0));
@@ -576,7 +576,7 @@ public:
 		Assert::AreEqual(oContainer.size<std::function<std::string(std::string &&)>>(), size_t(2));
 		Assert::AreEqual(oContainer.contains<std::function<std::string(std::string &&)>>(), true);
 
-		//Test size and reset (3)
+		// Test size and reset (3)
 		oContainer.reset();
 
 		Assert::AreEqual(oContainer.size<std::function<void(int&)>>(), size_t(0));
@@ -585,7 +585,7 @@ public:
 		Assert::AreEqual(oContainer.size<std::function<std::string(std::string &&)>>(), size_t(0));
 		Assert::AreEqual(oContainer.contains<std::function<std::string(std::string &&)>>(), false);
 
-		//Test container in nested class
+		// Test container in nested class
 		TestHeterogeneousContainer::TestHeterogeneousContainer oTestContainer;
 		Assert::AreEqual(10, oTestContainer.call());
 	}
@@ -652,7 +652,7 @@ public:
 
 		std::vector<int> vecPok = { 1, 4, 6 };
 		auto iVecRes			= extensions::execute_on_container(vecPok, 4, [](_In_ const int& oResult) -> int
-			   {
+					   {
 				   return oResult;
 			   });
 
@@ -745,7 +745,7 @@ public:
 
 		Assert::AreEqual(oWrapperFile->is_open(), false);
 
-		{ //Copy constructible
+		{ // Copy constructible
 			auto oWrapperInt = janecekvit::extensions::resource_wrapper<int*>(new int(5), [](int*& i)
 				{
 					delete i;
@@ -771,7 +771,7 @@ public:
 			oWrapperString2		 = oWrapperString;
 			auto oWrapperString4 = oWrapperString;
 
-			//auto oWrapperUniqueInt2 = oWrapperUniqueInt; // cannot do that -> unique_ptr has deleted copy constuctor, so wrapper has deleted copy constructor too
+			// auto oWrapperUniqueInt2 = oWrapperUniqueInt; // cannot do that -> unique_ptr has deleted copy constuctor, so wrapper has deleted copy constructor too
 
 			int i = 1;
 
@@ -784,7 +784,7 @@ public:
 		}
 
 		int uDestroyed = 0, uDestroyed2 = 0;
-		{ //Assigment operator reset
+		{ // Assigment operator reset
 			auto iTest				= new int(5);
 			auto oTestOperatorReset = janecekvit::extensions::resource_wrapper<int*>(iTest, [&](int*& i)
 				{
@@ -817,7 +817,7 @@ public:
 		Assert::AreEqual(uDestroyed, 1);
 		Assert::AreEqual(uDestroyed2, 1);
 
-		//Wrapper shared ptr
+		// Wrapper shared ptr
 		{
 			auto pNumber		   = std::make_shared<std::string>("A");
 			auto oWrapperSharedPtr = janecekvit::extensions::resource_wrapper<std::shared_ptr<std::string>>(pNumber, [](std::shared_ptr<std::string>& ptr)
@@ -840,7 +840,7 @@ public:
 			// o.k.emplace_back(5); -> private
 
 			const NoGetterSetter u = o;
-			//u.i.emplace_back(5); -> access error, const on modifiable value
+			// u.i.emplace_back(5); -> access error, const on modifiable value
 			Assert::AreEqual(u.i.size(), (size_t) 1);
 			// u.j.emplace_back(5); -> protected
 			// u.k.emplace_back(5); -> private
@@ -856,7 +856,7 @@ public:
 			// check getter setter visibility
 			const GetterSetterTesting y = x;
 			Assert::AreEqual(y.i.size(), (size_t) 1);
-			//y.i->emplace_back(5); ->access error, const on modifiable value
+			// y.i->emplace_back(5); ->access error, const on modifiable value
 		}
 
 		TestGetterSetter visibility;
@@ -864,13 +864,13 @@ public:
 
 		{ // int test scope
 			visibility.Int = 5;
-			//visibility.IntSetterPrivate = 6; //   -> private set
-			//visibility.IntBothPrivate = 6; //  -> private set and get
+			// visibility.IntSetterPrivate = 6; //   -> private set
+			// visibility.IntBothPrivate = 6; //  -> private set and get
 
 			int i1 = visibility.Int;
 			int i2 = visibility.IntSetterPrivate; //   -> private set
 
-			//int i3 = visibility.IntBothPrivate; // -> private get and set
+			// int i3 = visibility.IntBothPrivate; // -> private get and set
 
 			int& ilv1 = visibility.Int;
 			// int& ilv2 = visibility.IntSetterPrivate; //   -> private set
@@ -895,14 +895,14 @@ public:
 			Assert::AreEqual(iCondition, 4);
 		}
 
-		{ //container tests
+		{ // container tests
 			auto beg1 = visibility.Vec.begin();
 			auto beg2 = visibility.VecSetterPrivate.begin();
 			// visibility.VecBothPrivate.begin(); -> private get
 
 			visibility.Vec->emplace_back(5);
-			//visibility.VecSetterPrivate->emplace_back(5);  -> private set
-			//visibility.VecBothPrivate->emplace_back(5);  -> private set
+			// visibility.VecSetterPrivate->emplace_back(5);  -> private set
+			// visibility.VecBothPrivate->emplace_back(5);  -> private set
 		}
 	}
 
@@ -922,86 +922,6 @@ public:
 		};
 		auto oResultGenerator = extensions::tuple::generate<10>(fnCallback);
 		Assert::AreEqual(oResultGenerator, std::make_tuple(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
-	}
-
-	TEST_METHOD(TestLazyAction)
-	{
-		int result		 = 0;
-		auto lazy_action = extensions::lazy_action<void>([&]()
-			{
-				result = 5;
-			});
-
-		Assert::AreEqual(result, 0);
-		lazy_action();
-		Assert::AreEqual(result, 5);
-
-		//return value
-		result		= 0;
-		auto lambda = [&]()
-		{
-			return result;
-		};
-		auto lazy_action2 = extensions::lazy_action<int>(std::move(lambda));
-		Assert::AreEqual(result, 0);
-		result = 5;
-		Assert::AreEqual(lazy_action2(), 5);
-
-		//default parameter value
-		auto lambda3 = [&](int i, int j)
-		{
-			return i + j;
-		};
-		auto lazy_action3 = extensions::lazy_action<int, int, int>(std::move(lambda3), 5, 6);
-		Assert::AreEqual(lazy_action3(), 11);
-
-		//default parameter value
-		auto lambda4 = [&](int i, int j)
-		{
-			return i + j;
-		};
-		auto lazy_action4 = extensions::lazy_action<int, int, int>(std::move(lambda4), 5, 6);
-		Assert::AreEqual(lazy_action4(5, 9), 14);
-	}
-
-	TEST_METHOD(TestLazyMethodCall)
-	{
-		int result		 = 0;
-		auto lazy_action = extensions::lazy([&]()
-			{
-				result = 5;
-			});
-
-		Assert::AreEqual(result, 0);
-		lazy_action();
-		Assert::AreEqual(result, 5);
-
-		//return value
-		result		= 0;
-		auto lambda = [&]()
-		{
-			return result;
-		};
-		auto lazy_action2 = extensions::lazy(std::move(lambda));
-		Assert::AreEqual(result, 0);
-		result = 5;
-		Assert::AreEqual(lazy_action2(), 5);
-
-		//default parameter value
-		auto lambda3 = [&](int i, int j)
-		{
-			return i + j;
-		};
-		auto lazy_action3 = extensions::lazy(std::move(lambda3), 5, 6);
-		Assert::AreEqual(lazy_action3(), 11);
-
-		//parameter value
-		auto lambda4 = [&](int i, int j)
-		{
-			return i + j;
-		};
-		auto lazy_action4 = extensions::lazy(std::move(lambda4), 5, 6);
-		Assert::AreEqual(lazy_action4(5, 9), 14);
 	}
 };
 } // namespace FrameworkTesting
