@@ -61,5 +61,8 @@
     <ClCompile Include="test_finally.cpp">
       <Filter>Extensions</Filter>
     </ClCompile>
+    <ClCompile Include="test_resource_wrapper.cpp">
+      <Filter>Extensions</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

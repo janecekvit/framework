@@ -186,6 +186,7 @@
     <ClCompile Include="test_exception.cpp" />
     <ClCompile Include="test_finally.cpp" />
     <ClCompile Include="test_lazy.cpp" />
+    <ClCompile Include="test_resource_wrapper.cpp" />
     <ClCompile Include="test_trace.cpp" />
   </ItemGroup>
   <ItemGroup>
