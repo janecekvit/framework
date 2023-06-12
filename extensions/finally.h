@@ -6,16 +6,13 @@
 namespace janecekvit::extensions
 {
 
-class default_exception_callback
-{
-};
-
-#if defined(__cpp_lib_concepts)
+#if (__cplusplus > __cpp_lib_concepts)
 /// <summary>
 /// final_action implements finally semantics in C++.
 /// Use it to release correctly resource when scope ends.
+/// When custom exception callback is set, exceptions can be cached during object's destruction
 /// </summary>
-template <std::invocable _F, class _E = default_exception_callback>
+template <std::invocable _F, class _E = constraints::default_exception_callback>
 class final_action
 {
 public:
@@ -39,7 +36,7 @@ public:
 		}
 		catch (const std::exception& ex)
 		{
-			if constexpr (!std::is_same_v<_E, default_exception_callback>)
+			if constexpr (!std::is_same_v<_E, constraints::default_exception_callback>)
 				_exceptionCallback(ex);
 		}
 	}
@@ -51,7 +48,7 @@ private:
 
 template <std::invocable _F>
 final_action(_F&&)
-	-> final_action<_F, default_exception_callback>;
+	-> final_action<_F, constraints::default_exception_callback>;
 
 template <std::invocable _F, std::invocable _E>
 final_action(_F&&, _E&&)

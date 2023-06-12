@@ -35,7 +35,11 @@ namespace janecekvit::extensions
 ///	bool open = oWrapperFile->is_open();
 /// </code>
 /// </example>
-template <class _Resource, bool _DestuctorThrowException = false>
+#if (__cplusplus > __cpp_lib_concepts)
+template <class _Resource, class _E = constraints::default_exception_callback>
+#else
+template <class _Resource>
+#endif
 class resource_wrapper
 {
 public:
@@ -63,11 +67,22 @@ public:
 	using resource_deleter = typename accessor;
 
 public:
-	virtual ~resource_wrapper() noexcept(!_DestuctorThrowException)
+	virtual ~resource_wrapper() noexcept
 	{
 		_resource.reset();
-		if constexpr (_DestuctorThrowException == true)
+#if (__cplusplus > __cpp_lib_concepts)
+
+		try
+		{
 			_CheckDeleter();
+		}
+		catch (const std::exception& ex)
+		{
+			if constexpr (!std::is_same_v<_E, constraints::default_exception_callback>)
+				_exceptionCallback(ex);
+		}
+
+#endif
 	}
 
 	constexpr resource_wrapper() = delete;
@@ -101,7 +116,9 @@ public:
 	}
 
 #if __cplusplus > __cpp_lib_concepts
-	constexpr resource_wrapper(const resource_wrapper&) requires !std::is_copy_constructible_v<_Resource> = delete;
+	constexpr resource_wrapper(const resource_wrapper&)
+		requires !
+				 std::is_copy_constructible_v<_Resource> = delete;
 #endif
 
 	constexpr resource_wrapper(resource_wrapper&& other) noexcept
@@ -121,7 +138,9 @@ public:
 	}
 
 #if __cplusplus > __cpp_lib_concepts
-	constexpr resource_wrapper& operator=(const resource_wrapper&) requires !std::is_copy_constructible_v<_Resource> = delete;
+	constexpr resource_wrapper& operator=(const resource_wrapper&)
+		requires !
+				 std::is_copy_constructible_v<_Resource> = delete;
 #endif
 
 	constexpr resource_wrapper& operator=(resource_wrapper&& other) noexcept
@@ -246,7 +265,7 @@ protected:
 	{
 		return std::shared_ptr<_Resource>(new _Resource(std::forward<_Resource>(resource)), [storedDeleter = std::move(deleter)](_Resource* resource)
 			{
-				//call inner resource deleter
+				// call inner resource deleter
 				if (storedDeleter)
 					storedDeleter(*resource);
 

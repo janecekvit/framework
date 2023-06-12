@@ -12,8 +12,9 @@ namespace FrameworkTesting
 ONLY_USED_AT_NAMESPACE_SCOPE class test_trace : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_trace> // expanded TEST_CLASS() macro due wrong formatting of clangformat
 {
 public:
-	enum class test
-	{
+#if (__cplusplus > __cpp_lib_concepts)
+
+	enum class test{
 		Warning,
 		Verbose
 	};
@@ -51,5 +52,10 @@ public:
 		Assert::AreEqual(t2.source_location().line(), static_cast<uint_least32_t>(28));
 		Assert::AreEqual(t2.data(), L"NE: false"s);
 	}
+#else
+	TEST_METHOD(TestTraceNotSupportedConcepts)
+	{
+	}
+#endif
 };
 } // namespace FrameworkTesting

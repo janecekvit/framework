@@ -130,7 +130,7 @@ public:
 					i.clear();
 				});
 
-			Assert::AreEqual(size_t{ 2 }, oWrapperList->size());
+			Assert::AreEqual(size_t{ 3 }, oWrapperList->size());
 
 			// No [[nodiscard]] attribute
 			auto&& it  = oWrapperList.begin();

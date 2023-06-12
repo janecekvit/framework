@@ -7,8 +7,11 @@
 #include <source_location>
 #include <thread>
 
+#if (__cplusplus > __cpp_lib_concepts)
+
 namespace janecekvit::tracing
 {
+
 template <constraints::format_outout _FmtOutput, constraints::enum_type _Enum, constraints::format_view _Fmt, class... _Args>
 class trace_event
 {
@@ -212,3 +215,5 @@ protected:
 };
 
 } // namespace janecekvit::tracing
+
+#endif

@@ -24,9 +24,14 @@ Purpose:	header file contains set of extended constraints to describe stl contai
 #include <type_traits>
 #include <typeindex>
 
-///Namespace owns set of extended constraints to describe stl containers
+/// Namespace owns set of extended constraints to describe stl containers
 namespace janecekvit::constraints
 {
+
+class default_exception_callback
+{
+};
+
 /// <summary>
 /// Helper structures to determine if template type <_T> is std::shared_ptr
 /// </summary>
@@ -167,33 +172,29 @@ constexpr bool is_explicitly_convertible_v = is_explicitly_convertible<_T, _U>::
 /// <summary>
 /// Helper concept to determine if template type <_T> is condition variable
 /// </summary>
-#if defined(__cpp_lib_concepts)
+#if (__cplusplus > __cpp_lib_concepts) // __cplusplus > __cpp_lib_concepts
 template <class _Condition, class _Lock>
-concept condition_variable = requires(_Condition& cv, _Lock& lock)
-{
-	{
-		cv.notify_one()
-	}
-	noexcept;
-	{
-		cv.notify_all()
-	}
-	noexcept;
-	{
-		cv.wait(lock)
-	};
-};
+concept condition_variable = requires(_Condition& cv, _Lock& lock) {
+								 {
+									 cv.notify_one()
+								 } noexcept;
+								 {
+									 cv.notify_all()
+								 } noexcept;
+								 {
+									 cv.wait(lock)
+								 };
+							 };
 
 /// <summary>
 /// Helper concept to determine if template type <_T> is condition variable with pred
 /// </summary>
 template <class _Condition, class _Lock, class _Predicate>
-concept condition_variable_pred = condition_variable<_Condition, _Lock> && requires(_Condition& cv, _Lock& lock, _Predicate&& pred)
-{
-	{
-		cv.wait(lock, std::move(pred))
-	};
-};
+concept condition_variable_pred = condition_variable<_Condition, _Lock> && requires(_Condition& cv, _Lock& lock, _Predicate&& pred) {
+																			   {
+																				   cv.wait(lock, std::move(pred))
+																			   };
+																		   };
 
 template <class _Fmt>
 concept format_string_view = std::is_constructible_v<std::string_view, _Fmt>;

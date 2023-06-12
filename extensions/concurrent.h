@@ -32,8 +32,8 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 #include <unordered_set>
 #include <vector>
 
-///Namespace owns set of thread-safe concurrent containers and methods that implemented over basic stl containers
-/// and thread-safe methods for every possible concurrent object
+/// Namespace owns set of thread-safe concurrent containers and methods that implemented over basic stl containers
+///  and thread-safe methods for every possible concurrent object
 namespace janecekvit::concurrent
 {
 template <class _Type, bool = true>
@@ -193,8 +193,8 @@ public:
 	}
 
 	template <class _Condition, class _Predicate>
-#if defined(__cpp_lib_concepts)
-	requires constraints::condition_variable_pred<_Condition, std::unique_lock<std::shared_mutex>, _Predicate>
+#if (__cplusplus > __cpp_lib_concepts)
+		requires constraints::condition_variable_pred<_Condition, std::unique_lock<std::shared_mutex>, _Predicate>
 #endif
 	constexpr decltype(auto) wait(_Condition& cv, _Predicate&& pred) const
 	{
@@ -203,8 +203,8 @@ public:
 	}
 
 	template <class _Condition>
-#if defined(__cpp_lib_concepts)
-	requires constraints::condition_variable<_Condition, std::unique_lock<std::shared_mutex>>
+#if (__cplusplus > __cpp_lib_concepts)
+		requires constraints::condition_variable<_Condition, std::unique_lock<std::shared_mutex>>
 #endif
 	constexpr decltype(auto) wait(_Condition& cv) const
 	{
@@ -366,8 +366,8 @@ public:
 	}
 
 	template <class _Condition, class _Predicate>
-#if defined(__cpp_lib_concepts)
-	requires constraints::condition_variable_pred<_Condition, std::shared_lock<std::shared_mutex>, _Predicate>
+#if (__cplusplus > __cpp_lib_concepts)
+		requires constraints::condition_variable_pred<_Condition, std::shared_lock<std::shared_mutex>, _Predicate>
 #endif
 	constexpr decltype(auto) wait(_Condition& cv, _Predicate&& pred) const
 	{
@@ -376,8 +376,8 @@ public:
 	}
 
 	template <class _Condition>
-#if defined(__cpp_lib_concepts)
-	requires constraints::condition_variable<_Condition, std::shared_lock<std::shared_mutex>>
+#if (__cplusplus > __cpp_lib_concepts)
+		requires constraints::condition_variable<_Condition, std::shared_lock<std::shared_mutex>>
 #endif
 	constexpr decltype(auto) wait(_Condition& cv) const
 	{
@@ -508,33 +508,38 @@ public:
 	{
 		if constexpr (!_Release)
 		{
-			//ensure that no operations are running on resource while destruction is in the process
+			// ensure that no operations are running on resource while destruction is in the process
 			//->prevent this undefined behavior create deadlock in debugging mode
 			exclusive_resource_holder<_Type, _Release> clean_up(this, std::source_location::current());
 		}
 	}
 
-	[[nodiscard]] constexpr exclusive_resource_holder<_Type, true> exclusive() noexcept requires(_Release)
+	[[nodiscard]] constexpr exclusive_resource_holder<_Type, true> exclusive() noexcept
+		requires(_Release)
 	{
 		return exclusive_resource_holder<_Type, true>(this);
 	}
 
-	[[nodiscard]] constexpr concurrent_resource_holder<_Type, true> concurrent() const noexcept requires(_Release)
+	[[nodiscard]] constexpr concurrent_resource_holder<_Type, true> concurrent() const noexcept
+		requires(_Release)
 	{
 		return concurrent_resource_holder<_Type, true>(this);
 	}
 
-	[[nodiscard]] constexpr exclusive_resource_holder<_Type, false> exclusive(std::source_location srcl = std::source_location::current()) noexcept requires(!_Release)
+	[[nodiscard]] constexpr exclusive_resource_holder<_Type, false> exclusive(std::source_location srcl = std::source_location::current()) noexcept
+		requires(!_Release)
 	{
 		return exclusive_resource_holder<_Type, false>(this, std::move(srcl));
 	}
 
-	[[nodiscard]] constexpr concurrent_resource_holder<_Type, false> concurrent(std::source_location srcl = std::source_location::current()) const noexcept requires(!_Release)
+	[[nodiscard]] constexpr concurrent_resource_holder<_Type, false> concurrent(std::source_location srcl = std::source_location::current()) const noexcept
+		requires(!_Release)
 	{
 		return concurrent_resource_holder<_Type, false>(this, std::move(srcl));
 	}
 
-private:;
+private:
+	;
 	constexpr void _set_resource(_Type&& object)
 	{
 		_resource = std::make_shared<_Type>(std::forward<_Type>(object));

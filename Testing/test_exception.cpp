@@ -11,6 +11,7 @@ namespace FrameworkTesting
 ONLY_USED_AT_NAMESPACE_SCOPE class test_exception : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_exception> // expanded TEST_CLASS() macro due wrong formatting of clangformat
 {
 public:
+#if (__cplusplus > __cpp_lib_concepts)
 	TEST_METHOD(TestSimpleTextException)
 	{
 		try
@@ -88,5 +89,10 @@ public:
 			Assert::AreEqual(ex.what(), R"(File: C:\Users\DeWitt\Source\Repos\Framework\Testing\test_exception.cpp(84:30) 'TestWideTextException'. Ano: true, Ne: false.)");
 		}
 	}
+#else
+	TEST_METHOD(TestExceptionNotSupportedConcepts)
+	{
+	}
+#endif
 };
 } // namespace FrameworkTesting
