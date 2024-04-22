@@ -172,7 +172,7 @@ constexpr bool is_explicitly_convertible_v = is_explicitly_convertible<_T, _U>::
 /// <summary>
 /// Helper concept to determine if template type <_T> is condition variable
 /// </summary>
-#if (__cplusplus > __cpp_lib_concepts) // __cplusplus > __cpp_lib_concepts
+#if (__cplusplus >= __cpp_lib_concepts) // __cplusplus > __cpp_lib_concepts
 template <class _Condition, class _Lock>
 concept condition_variable = requires(_Condition& cv, _Lock& lock) {
 								 {

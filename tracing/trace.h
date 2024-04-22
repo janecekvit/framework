@@ -7,7 +7,7 @@
 #include <source_location>
 #include <thread>
 
-#if (__cplusplus > __cpp_lib_concepts)
+#if __cplusplus >= __cpp_lib_concepts
 
 namespace janecekvit::tracing
 {

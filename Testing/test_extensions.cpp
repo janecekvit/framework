@@ -10,6 +10,14 @@
 #include <string>
 #include <thread>
 
+#if _WIN32 || _WIN64
+#if _WIN64
+#define ENVIRONMENT_64
+#else
+#define ENVIRONMENT_32
+#endif
+#endif
+
 using namespace janecekvit;
 
 namespace Microsoft
@@ -660,7 +668,12 @@ public:
 		std::string s("ano");
 		int i		 = 5;
 		size_t uHash = extensions::hash::combine(s, i);
+
+#if defined ENVIRONMENT_64
+		Assert::AreEqual(uHash, static_cast<size_t>(8002369318281051212));
+#elif defined ENVIRONMENT_32
 		Assert::AreEqual(uHash, static_cast<size_t>(730160148));
+#endif
 	}
 
 	TEST_METHOD(TestGetterSetterWrapper)
