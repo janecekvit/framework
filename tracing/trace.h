@@ -90,11 +90,17 @@ private:
 	_FmtOutput _data;
 };
 
+/// <summary>
+/// User-defined deduction guide CTAD for trace_event using std::string as input format.
+/// </summary>
 template <constraints::enum_type _Enum, constraints::format_view _Fmt, class... _Args>
 	requires constraints::format_string_view<_Fmt>
 trace_event(_Enum, _Fmt&&, _Args&&...)
 	-> trace_event<std::string, _Enum, _Fmt, _Args...>;
 
+/// <summary>
+/// User-defined deduction guide CTAD for trace_event using std::wstring as input format.
+/// </summary>
 template <constraints::enum_type _Enum, constraints::format_view _Fmt, class... _Args>
 	requires constraints::format_wstring_view<_Fmt>
 trace_event(_Enum, _Fmt&&, _Args&&...)

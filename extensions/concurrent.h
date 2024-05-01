@@ -193,7 +193,7 @@ public:
 	}
 
 	template <class _Condition, class _Predicate>
-#if (__cplusplus >= __cpp_lib_concepts)
+#if __cplusplus >= __cpp_lib_concepts
 		requires constraints::condition_variable_pred<_Condition, std::unique_lock<std::shared_mutex>, _Predicate>
 #endif
 	constexpr decltype(auto) wait(_Condition& cv, _Predicate&& pred) const
@@ -203,7 +203,7 @@ public:
 	}
 
 	template <class _Condition>
-#if (__cplusplus >= __cpp_lib_concepts)
+#if __cplusplus >= __cpp_lib_concepts
 		requires constraints::condition_variable<_Condition, std::unique_lock<std::shared_mutex>>
 #endif
 	constexpr decltype(auto) wait(_Condition& cv) const
@@ -366,7 +366,7 @@ public:
 	}
 
 	template <class _Condition, class _Predicate>
-#if (__cplusplus >= __cpp_lib_concepts)
+#if __cplusplus >= __cpp_lib_concepts
 		requires constraints::condition_variable_pred<_Condition, std::shared_lock<std::shared_mutex>, _Predicate>
 #endif
 	constexpr decltype(auto) wait(_Condition& cv, _Predicate&& pred) const
@@ -376,7 +376,7 @@ public:
 	}
 
 	template <class _Condition>
-#if (__cplusplus >= __cpp_lib_concepts)
+#if __cplusplus >= __cpp_lib_concepts
 		requires constraints::condition_variable<_Condition, std::shared_lock<std::shared_mutex>>
 #endif
 	constexpr decltype(auto) wait(_Condition& cv) const

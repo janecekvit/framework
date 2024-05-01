@@ -6,7 +6,7 @@
 namespace janecekvit::extensions
 {
 
-#if (__cplusplus >= __cpp_lib_concepts)
+#if __cplusplus >= __cpp_lib_concepts
 /// <summary>
 /// final_action implements finally semantics in C++.
 /// Use it to release correctly resource when scope ends.
@@ -46,10 +46,16 @@ private:
 	const _E _exceptionCallback{};
 };
 
+///// <summary>
+///// User defined deduction guide CTAD for final_action using default exception callback
+///// </summary>
 template <std::invocable _F>
 final_action(_F&&)
 	-> final_action<_F, constraints::default_exception_callback>;
 
+///// <summary>
+///// User-defined deduction guide CTAD for final_action using custom exception callback
+///// </summary>
 template <std::invocable _F, std::invocable _E>
 final_action(_F&&, _E&&)
 	-> final_action<_F, _E>;

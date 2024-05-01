@@ -65,4 +65,7 @@
       <Filter>Extensions</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\done.txt" />
+  </ItemGroup>
 </Project>

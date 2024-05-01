@@ -31,6 +31,7 @@ public:
 
 			iValueChecker = oWrapperInt;
 			Assert::IsNotNull(iValueChecker);
+			Assert::AreEqual(*oWrapperInt, 5);
 		}
 
 		Assert::IsNull(iValueChecker);
@@ -125,7 +126,10 @@ public:
 	TEST_METHOD(TestContainers)
 	{
 		{ // Copy constructible
-			auto oWrapperList = janecekvit::extensions::resource_wrapper<std::list<int>>(std::list<int>{ 10, 20, 30 }, [](std::list<int>& i)
+			auto list = std::list<int>{
+				10, 20, 30
+			};
+			auto oWrapperList = janecekvit::extensions::resource_wrapper<std::list<int>>(std::move(list), [](std::list<int>& i)
 				{
 					i.clear();
 				});
@@ -133,26 +137,26 @@ public:
 			Assert::AreEqual(size_t{ 3 }, oWrapperList->size());
 
 			// No [[nodiscard]] attribute
-			auto&& it  = oWrapperList.begin();
-			auto&& it2 = oWrapperList.end();
+			auto it	 = oWrapperList.begin();
+			auto it2 = --oWrapperList.end();
 
 			Assert::AreEqual(10, *it);
 			Assert::AreEqual(30, *it2);
 
-			Assert::AreEqual(size_t{ 30 }, oWrapperList->size());
+			Assert::AreEqual(size_t{ 3 }, oWrapperList->size());
 		}
 	}
 
 	TEST_METHOD(TestReassignment)
 	{
-		int uLambdaCalled = 0;
+		int uDeleterCalled = 0;
 
 		{ // wrapper scope -> copy constructor by assignment operator
-			auto oWrapperInt = janecekvit::extensions::resource_wrapper<int*>(new int(5), [&uLambdaCalled](int*& i)
+			auto oWrapperInt = janecekvit::extensions::resource_wrapper<int*>(new int(5), [&uDeleterCalled](int*& i)
 				{
 					delete i;
 					i = nullptr;
-					uLambdaCalled++;
+					uDeleterCalled++;
 				});
 
 			Assert::AreEqual(5, *oWrapperInt);
@@ -160,57 +164,96 @@ public:
 			// assignment
 			oWrapperInt = new int(10);
 			Assert::AreEqual(10, *oWrapperInt);
-			Assert::AreEqual(1, uLambdaCalled);
+			Assert::AreEqual(1, uDeleterCalled);
 		}
 
-		Assert::AreEqual(2, uLambdaCalled);
+		Assert::AreEqual(2, uDeleterCalled);
 	}
 
 	TEST_METHOD(TestMoveRessignmentWithCopyDestruction)
 	{
-		int uLambdaCalled	  = 0;
-		auto bCopyDestruction = false;
+		int uDeleterCalled = 0;
 		{ // wrapper scope -> Copy constructor by assignment operator
-			auto oWrappedInt1 = janecekvit::extensions::resource_wrapper<int*>(new int(5), [&uLambdaCalled](int*& i)
+			auto oWrappedInt1 = janecekvit::extensions::resource_wrapper<int*>(new int(5), [&uDeleterCalled](int*& i)
 				{
 					delete i;
 					i = nullptr;
-					uLambdaCalled++;
+					uDeleterCalled++;
 				});
 
 			int* i = oWrappedInt1;
 			Assert::AreEqual(*i, 5);
 			Assert::AreEqual(*oWrappedInt1, 5);
+			Assert::AreEqual(uDeleterCalled, 0);
 
 			// Move re-assignment
-			oWrappedInt1 = std::move(janecekvit::extensions::resource_wrapper<int*>(new int(10), [&uLambdaCalled](int*& i)
+			oWrappedInt1 = std::move(janecekvit::extensions::resource_wrapper<int*>(new int(10), [&uDeleterCalled](int*& i)
 				{
 					delete i;
 					i = nullptr;
-					uLambdaCalled++;
+					uDeleterCalled++;
 				}));
 
 			Assert::AreEqual(*oWrappedInt1, 10);
-			Assert::AreEqual(uLambdaCalled, 1);
+			Assert::AreEqual(uDeleterCalled, 1);
 
-			auto oWrappedInt2 = janecekvit::extensions::resource_wrapper<int*>(new int(15), [&uLambdaCalled, &bCopyDestruction](int*& i)
+			auto oWrappedInt2 = janecekvit::extensions::resource_wrapper<int*>(new int(15), [&uDeleterCalled](int*& i)
 				{
-					if (bCopyDestruction)
-						return;
-
 					delete i;
 					i = nullptr;
-					uLambdaCalled++;
-					bCopyDestruction = true;
+					uDeleterCalled++;
 				});
 
 			oWrappedInt1 = oWrappedInt2;
 			Assert::AreEqual(*oWrappedInt1, 15);
-			Assert::AreEqual(uLambdaCalled, 2);
-			Assert::AreEqual(bCopyDestruction, false);
+			Assert::AreEqual(uDeleterCalled, 2);
 		}
-		Assert::AreEqual(uLambdaCalled, 3);
-		Assert::AreEqual(bCopyDestruction, true);
+		Assert::AreEqual(uDeleterCalled, 3);
 	}
+	TEST_METHOD(TestDeleterException)
+	{
+		auto oWrappedInt = janecekvit::extensions::resource_wrapper(new int(5), [](int*& i)
+			{
+				delete i;
+				i = nullptr;
+				throw std::runtime_error("Deleter exception");
+			});
+
+		try
+		{
+			Assert::AreEqual(*oWrappedInt, 5);
+			oWrappedInt.reset();
+		}
+		catch (const std::exception&)
+		{
+			Assert::Fail();
+		}
+	}
+#if __cplusplus >= __cpp_lib_concepts
+	TEST_METHOD(TestDeleterExceptionCallback)
+	{
+		bool callbackCalled = false;
+		auto oWrappedInt	= janecekvit::extensions::resource_wrapper(
+			   new int(5), [](int*& i)
+			   {
+				   delete i;
+				   i = nullptr;
+				   throw std::runtime_error("Deleter exception");
+			   },
+			   [&callbackCalled](const std::exception& ex)
+			   {
+				   Assert::ExpectException<std::exception>([&]
+					   {
+						   callbackCalled = true;
+						   throw ex;
+					   });
+			   });
+
+		Assert::AreEqual(*oWrappedInt, 5);
+		Assert::IsFalse(callbackCalled);
+		oWrappedInt.reset();
+		Assert::IsTrue(callbackCalled);
+	}
+#endif
 };
 } // namespace FrameworkTesting

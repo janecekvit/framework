@@ -11,16 +11,22 @@ namespace FrameworkTesting
 ONLY_USED_AT_NAMESPACE_SCOPE class test_exception : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_exception> // expanded TEST_CLASS() macro due wrong formatting of clangformat
 {
 public:
-#if (__cplusplus >= __cpp_lib_concepts)
+#if __cplusplus >= __cpp_lib_concepts
+
+	std::string GetStringLocation(int origLine, int origColumn, std::string suffix, std::source_location location = std::source_location::current())
+	{
+		return std::format("File: {}({}:{}) '{}'. {}", location.file_name(), origLine, origColumn, location.function_name(), suffix);
+	}
 	TEST_METHOD(TestSimpleTextException)
 	{
 		try
 		{
 			throw exception::exception("Ano: {}, Ne: {}.", std::make_tuple(true, false));
 		}
-		catch (const std::exception& ex)
+		catch (const exception::exception& ex)
 		{
-			Assert::AreEqual(ex.what(), R"(File: C:\Users\DeWitt\Source\Repos\Framework\Testing\test_exception.cpp(18:30) 'TestSimpleTextException'. Ano: true, Ne: false.)");
+			auto location = GetStringLocation(24, 30, "Ano: true, Ne: false.");
+			Assert::AreEqual(ex.what(), location.data());
 		}
 
 		try
@@ -29,7 +35,8 @@ public:
 		}
 		catch (const std::exception& ex)
 		{
-			Assert::AreEqual(ex.what(), R"(File: C:\Users\DeWitt\Source\Repos\Framework\Testing\test_exception.cpp(27:53) 'TestSimpleTextException'. Ano: true, Ne: false.)");
+			auto location = GetStringLocation(34, 53, "Ano: true, Ne: false.");
+			Assert::AreEqual(ex.what(), location.data());
 		}
 
 		try
@@ -38,7 +45,8 @@ public:
 		}
 		catch (const std::exception& ex)
 		{
-			Assert::AreEqual(ex.what(), R"(File: C:\Users\DeWitt\Source\Repos\Framework\Testing\test_exception.cpp(36:30) 'TestSimpleTextException'. )");
+			auto location = GetStringLocation(44, 30, "");
+			Assert::AreEqual(ex.what(), location.data());
 		}
 
 		try
@@ -47,7 +55,8 @@ public:
 		}
 		catch (const std::exception& ex)
 		{
-			Assert::AreEqual(ex.what(), R"(File: C:\Users\DeWitt\Source\Repos\Framework\Testing\test_exception.cpp(45:30) 'TestSimpleTextException'. Ano: true, Ne: false.)");
+			auto location = GetStringLocation(54, 30, "Ano: true, Ne: false.");
+			Assert::AreEqual(ex.what(), location.data());
 		}
 	}
 
@@ -59,7 +68,8 @@ public:
 		}
 		catch (const std::exception& ex)
 		{
-			Assert::AreEqual(ex.what(), R"(File: C:\Users\DeWitt\Source\Repos\Framework\Testing\test_exception.cpp(57:30) 'TestWideTextException'. Ano: true, Ne: false.)");
+			auto location = GetStringLocation(67, 30, "Ano: true, Ne: false.");
+			Assert::AreEqual(ex.what(), location.data());
 		}
 
 		try
@@ -68,7 +78,8 @@ public:
 		}
 		catch (const std::exception& ex)
 		{
-			Assert::AreEqual(ex.what(), R"(File: C:\Users\DeWitt\Source\Repos\Framework\Testing\test_exception.cpp(66:53) 'TestWideTextException'. Ano: true, Ne: false.)");
+			auto location = GetStringLocation(77, 53, "Ano: true, Ne: false.");
+			Assert::AreEqual(ex.what(), location.data());
 		}
 
 		try
@@ -77,7 +88,8 @@ public:
 		}
 		catch (const std::exception& ex)
 		{
-			Assert::AreEqual(ex.what(), R"(File: C:\Users\DeWitt\Source\Repos\Framework\Testing\test_exception.cpp(75:30) 'TestWideTextException'. )");
+			auto location = GetStringLocation(87, 30, "");
+			Assert::AreEqual(ex.what(), location.data());
 		}
 
 		try
@@ -86,7 +98,8 @@ public:
 		}
 		catch (const std::exception& ex)
 		{
-			Assert::AreEqual(ex.what(), R"(File: C:\Users\DeWitt\Source\Repos\Framework\Testing\test_exception.cpp(84:30) 'TestWideTextException'. Ano: true, Ne: false.)");
+			auto location = GetStringLocation(97, 30, "Ano: true, Ne: false.");
+			Assert::AreEqual(ex.what(), location.data());
 		}
 	}
 #else

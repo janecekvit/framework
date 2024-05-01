@@ -42,7 +42,7 @@ public:
 		Assert::AreEqual(lazy_action(), 5);
 	}
 
-	TEST_METHOD(TestLazyActionDefaultValues)
+	TEST_METHOD(TestLazyActionParametersDefaultValues)
 	{
 		// default parameter value
 		auto lambda = [&](int i, int j)
@@ -92,7 +92,7 @@ public:
 		Assert::AreEqual(lazy_action(), 5);
 	}
 
-	TEST_METHOD(TestLazyMethodDefaultValues)
+	TEST_METHOD(TestLazyMethodParametersDefaultValues)
 	{
 		// default parameter value
 		auto lambda = [&](int i, int j)
