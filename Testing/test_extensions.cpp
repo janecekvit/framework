@@ -20,12 +20,9 @@
 
 using namespace janecekvit;
 
-namespace Microsoft
+namespace Microsoft::VisualStudio::CppUnitTestFramework
 {
-namespace VisualStudio
-{
-namespace CppUnitTestFramework
-{
+
 // TypeDefs
 template <>
 static std::wstring ToString<std::tuple<int, int, int, int, int, int, int, int, int, int>>(const std::tuple<int, int, int, int, int, int, int, int, int, int>& t)
@@ -45,118 +42,12 @@ static std::wstring ToString<std::list<const char*>>(const std::list<const char*
 	return L"ListInts";
 }
 
-} // namespace CppUnitTestFramework
-} // namespace VisualStudio
-} // namespace Microsoft
+} // namespace Microsoft::VisualStudio::CppUnitTestFramework
 
 using namespace std::string_literals;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 // https://docs.microsoft.com/cs-cz/visualstudio/test/microsoft-visualstudio-testtools-cppunittestframework-api-reference?view=vs-2019
 
-class IInterface
-{
-public:
-	virtual ~IInterface() = default;
-	virtual int Do()	  = 0;
-};
-
-class CInterface : public virtual IInterface
-{
-public:
-	CInterface()		  = default;
-	virtual ~CInterface() = default;
-	virtual int Do() final override
-	{
-		return 1111;
-	}
-};
-
-class IParamTest
-{
-public:
-	virtual ~IParamTest()													  = default;
-	virtual void Run(_In_ extensions::Storage::parameter_pack_legacy&& oPack) = 0;
-};
-
-class CParamTest : public virtual IParamTest
-{
-public:
-	CParamTest()		  = default;
-	virtual ~CParamTest() = default;
-	virtual void Run(_In_ extensions::Storage::parameter_pack_legacy&& oPack) override
-	{
-		/*int a = 0;
-		int b = 0;
-		int *c = nullptr;
-		std::shared_ptr<int> d = nullptr;*/
-		CInterface* pInt = nullptr;
-
-		// Use unpack by output parameters
-		oPack.get_pack(a, b, c, d, pInt);
-		Assert::AreEqual(a, 25);
-		Assert::AreEqual(b, 333);
-		Assert::AreEqual(*c, 666);
-		Assert::AreEqual(*d, 777);
-		Assert::AreEqual(pInt->Do(), 1111);
-
-		// Use unpack by return tuple
-		auto [iNumber1, iNumber2, pNumber, pShared, pInterface] = oPack.get_pack<int, int, int*, std::shared_ptr<int>, CInterface*>();
-
-		Assert::AreEqual(iNumber1, 25);
-		Assert::AreEqual(iNumber2, 333);
-		Assert::AreEqual(*pNumber, 666);
-		Assert::AreEqual(*pShared, 777);
-		Assert::AreEqual(pInterface->Do(), 1111);
-	}
-
-public:
-	int a				   = 0;
-	int b				   = 0;
-	int* c				   = nullptr;
-	std::shared_ptr<int> d = nullptr;
-};
-
-class IParamTest2
-{
-public:
-	virtual ~IParamTest2()											   = default;
-	virtual void Run(_In_ extensions::Storage::parameter_pack&& oPack) = 0;
-};
-
-class CParamTest2 : public virtual IParamTest2
-{
-public:
-	CParamTest2()		   = default;
-	virtual ~CParamTest2() = default;
-	virtual void Run(_In_ extensions::Storage::parameter_pack&& oPack) override
-	{
-		// Use unpack by return tuple
-		auto [iNumber1, iNumber2, pNumber, pShared, pInterface] = oPack.get_pack<int, int, int*, std::shared_ptr<int>, CInterface*>();
-
-		Assert::AreEqual(iNumber1, 25);
-		Assert::AreEqual(iNumber2, 333);
-		Assert::AreEqual(*pNumber, 666);
-		Assert::AreEqual(*pShared, 777);
-		Assert::AreEqual(pInterface->Do(), 1111);
-
-		a = iNumber1;
-		b = iNumber2;
-		c = pNumber;
-		d = pShared;
-	}
-
-public:
-	int a				   = 0;
-	int b				   = 0;
-	int* c				   = nullptr;
-	std::shared_ptr<int> d = nullptr;
-	std::unique_ptr<int> e = nullptr;
-};
-
-void print(int i, int j, int k, int l, int m)
-{
-	std::cout << i << j << k << l << m << std::endl;
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -429,44 +320,6 @@ public:
 		TestContainerTraits::Test(d);
 		TestContainerTraits::Test(e);
 	} // namespace FrameworkTesting
-
-	TEST_METHOD(TestParameterPackLegacy)
-	{
-		CParamTest oTest;
-
-		int* pInt	 = new int(666);
-		auto pShared = std::make_shared<int>(777);
-		CInterface oInt;
-
-		// Initialize parameter pack
-		auto oPack = extensions::Storage::parameter_pack_legacy(25, 333, pInt, pShared, &oInt);
-		oTest.Run(std::move(oPack));
-
-		Assert::AreEqual(oTest.a, 25);
-		Assert::AreEqual(oTest.b, 333);
-		Assert::AreEqual(*oTest.c, 666);
-		Assert::AreEqual(*oTest.d, 777);
-		int is = 5;
-	}
-
-	TEST_METHOD(TestParameterPack)
-	{
-		CParamTest2 oTest;
-
-		int* pInt	 = new int(666);
-		auto pShared = std::make_shared<int>(777);
-		CInterface oInt;
-
-		// Initialize parameter pack
-		auto oPack = extensions::Storage::parameter_pack(25, 333, pInt, pShared, &oInt);
-		oTest.Run(std::move(oPack));
-
-		Assert::AreEqual(oTest.a, 25);
-		Assert::AreEqual(oTest.b, 333);
-		Assert::AreEqual(*oTest.c, 666);
-		Assert::AreEqual(*oTest.d, 777);
-		int is = 5;
-	}
 
 	TEST_METHOD(TestHeterogeneousContainer)
 	{

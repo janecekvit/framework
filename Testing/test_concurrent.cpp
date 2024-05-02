@@ -1,9 +1,9 @@
 #include "stdafx.h"
 
 #include "CppUnitTest.h"
-#include "Extensions/extensions.h"
+#include "extensions/extensions.h"
 #include "extensions/concurrent.h"
-#include "extensions/resource_wrapper.h"
+#include "storage/resource_wrapper.h"
 
 #include <fstream>
 #include <future>

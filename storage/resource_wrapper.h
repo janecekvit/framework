@@ -13,11 +13,10 @@ Purpose:	header file contains RAII pattern
 */
 
 #include "extensions/constraints.h"
-#include "extensions/extensions.h"
 
 #include <functional>
 
-namespace janecekvit::extensions
+namespace janecekvit::storage
 {
 /// <summary>
 /// The wrapper implemented own deleter that gains functionality to release all used resources correctly.

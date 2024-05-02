@@ -1,7 +1,7 @@
 ﻿#include "stdafx.h"
 
 #include "CppUnitTest.h"
-#include "extensions/resource_wrapper.h"
+#include "storage/resource_wrapper.h"
 
 #include <fstream>
 
@@ -18,7 +18,7 @@ public:
 	{
 		int* iValueChecker = nullptr;
 		{
-			auto oWrapperInt = janecekvit::extensions::resource_wrapper<int*>(new int(5), [&](int*& i)
+			auto oWrapperInt = storage::resource_wrapper<int*>(new int(5), [&](int*& i)
 				{
 					// check if we obtain same pointer through assignment,
 					// if yes reset the value checker, so we knew that lambda is called during destruction
@@ -40,7 +40,7 @@ public:
 	TEST_METHOD(TestUserConversion)
 	{
 		{
-			auto oWrapperInt = janecekvit::extensions::resource_wrapper<int*>(new int(5), [](int*& i)
+			auto oWrapperInt = storage::resource_wrapper<int*>(new int(5), [](int*& i)
 				{
 					delete i;
 					i = nullptr;
@@ -63,7 +63,7 @@ public:
 	{
 		int* iValueChecker = nullptr;
 		{
-			auto oWrapperInt = janecekvit::extensions::resource_wrapper<int*>(new int(5), [&](int*& i)
+			auto oWrapperInt = storage::resource_wrapper<int*>(new int(5), [&](int*& i)
 				{
 					// check if we obtain same pointer through assignment,
 					// if yes reset the value checker, so we knew that lambda is called during destruction
@@ -88,7 +88,7 @@ public:
 
 	TEST_METHOD(TestRetrieve)
 	{
-		auto oWrapperList = janecekvit::extensions::resource_wrapper<std::list<int>>(std::list<int>{ 1, 2 }, [](std::list<int>& i)
+		auto oWrapperList = storage::resource_wrapper<std::list<int>>(std::list<int>{ 1, 2 }, [](std::list<int>& i)
 			{
 				i.clear();
 			});
@@ -107,7 +107,7 @@ public:
 
 	TEST_METHOD(TestUpdate)
 	{
-		auto oWrapperList = janecekvit::extensions::resource_wrapper<std::list<int>>(std::list<int>{ 1, 2 }, [](std::list<int>& i)
+		auto oWrapperList = storage::resource_wrapper<std::list<int>>(std::list<int>{ 1, 2 }, [](std::list<int>& i)
 			{
 				i.clear();
 			});
@@ -129,7 +129,7 @@ public:
 			auto list = std::list<int>{
 				10, 20, 30
 			};
-			auto oWrapperList = janecekvit::extensions::resource_wrapper<std::list<int>>(std::move(list), [](std::list<int>& i)
+			auto oWrapperList = storage::resource_wrapper<std::list<int>>(std::move(list), [](std::list<int>& i)
 				{
 					i.clear();
 				});
@@ -152,7 +152,7 @@ public:
 		int uDeleterCalled = 0;
 
 		{ // wrapper scope -> copy constructor by assignment operator
-			auto oWrapperInt = janecekvit::extensions::resource_wrapper<int*>(new int(5), [&uDeleterCalled](int*& i)
+			auto oWrapperInt = storage::resource_wrapper<int*>(new int(5), [&uDeleterCalled](int*& i)
 				{
 					delete i;
 					i = nullptr;
@@ -174,7 +174,7 @@ public:
 	{
 		int uDeleterCalled = 0;
 		{ // wrapper scope -> Copy constructor by assignment operator
-			auto oWrappedInt1 = janecekvit::extensions::resource_wrapper<int*>(new int(5), [&uDeleterCalled](int*& i)
+			auto oWrappedInt1 = storage::resource_wrapper<int*>(new int(5), [&uDeleterCalled](int*& i)
 				{
 					delete i;
 					i = nullptr;
@@ -187,7 +187,7 @@ public:
 			Assert::AreEqual(uDeleterCalled, 0);
 
 			// Move re-assignment
-			oWrappedInt1 = std::move(janecekvit::extensions::resource_wrapper<int*>(new int(10), [&uDeleterCalled](int*& i)
+			oWrappedInt1 = std::move(storage::resource_wrapper<int*>(new int(10), [&uDeleterCalled](int*& i)
 				{
 					delete i;
 					i = nullptr;
@@ -197,7 +197,7 @@ public:
 			Assert::AreEqual(*oWrappedInt1, 10);
 			Assert::AreEqual(uDeleterCalled, 1);
 
-			auto oWrappedInt2 = janecekvit::extensions::resource_wrapper<int*>(new int(15), [&uDeleterCalled](int*& i)
+			auto oWrappedInt2 = storage::resource_wrapper<int*>(new int(15), [&uDeleterCalled](int*& i)
 				{
 					delete i;
 					i = nullptr;
@@ -212,7 +212,7 @@ public:
 	}
 	TEST_METHOD(TestDeleterException)
 	{
-		auto oWrappedInt = janecekvit::extensions::resource_wrapper(new int(5), [](int*& i)
+		auto oWrappedInt = storage::resource_wrapper(new int(5), [](int*& i)
 			{
 				delete i;
 				i = nullptr;
@@ -233,7 +233,7 @@ public:
 	TEST_METHOD(TestDeleterExceptionCallback)
 	{
 		bool callbackCalled = false;
-		auto oWrappedInt	= janecekvit::extensions::resource_wrapper(
+		auto oWrappedInt	= storage::resource_wrapper(
 			   new int(5), [](int*& i)
 			   {
 				   delete i;

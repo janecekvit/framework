@@ -2,7 +2,7 @@
 
 #include "CppUnitTest.h"
 #include "Interface/ICloneable.h"
-#include "extensions/resource_wrapper.h"
+#include "storage/resource_wrapper.h"
 
 #include <fstream>
 #include <iostream>

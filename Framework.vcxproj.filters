@@ -48,9 +48,6 @@
     <ClInclude Include="extensions\getter_setter.h">
       <Filter>extensions</Filter>
     </ClInclude>
-    <ClInclude Include="extensions\resource_wrapper.h">
-      <Filter>extensions</Filter>
-    </ClInclude>
     <ClInclude Include="extensions\atomic_concurrent.h">
       <Filter>extensions</Filter>
     </ClInclude>
@@ -65,6 +62,12 @@
     </ClInclude>
     <ClInclude Include="utility\conversions.h">
       <Filter>utility</Filter>
+    </ClInclude>
+    <ClInclude Include="storage\resource_wrapper.h">
+      <Filter>storage</Filter>
+    </ClInclude>
+    <ClInclude Include="storage\parameter_pack.h">
+      <Filter>storage</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -88,6 +91,9 @@
     </Filter>
     <Filter Include="utility">
       <UniqueIdentifier>{13b50a72-94d8-4451-b6eb-65c061d12ed2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="storage">
+      <UniqueIdentifier>{a9feeefe-c110-4ab8-be64-1ed60778efe4}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

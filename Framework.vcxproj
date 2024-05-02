@@ -32,9 +32,10 @@
     <ClInclude Include="extensions\finally.h" />
     <ClInclude Include="extensions\getter_setter.h" />
     <ClInclude Include="extensions\lazy.h" />
-    <ClInclude Include="extensions\resource_wrapper.h" />
     <ClInclude Include="Interface\ICloneable.h" />
     <ClInclude Include="Interface\ICRTP.h" />
+    <ClInclude Include="storage\parameter_pack.h" />
+    <ClInclude Include="storage\resource_wrapper.h" />
     <ClInclude Include="Sync\AtomicConditionVariable.h" />
     <ClInclude Include="Sync\WaitForMultipleConditions.h" />
     <ClInclude Include="Thread\IThreadPool.h" />

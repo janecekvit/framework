@@ -21,6 +21,9 @@
     <Filter Include="trace">
       <UniqueIdentifier>{a93d0fef-e9d4-448c-a12b-e4ce1bc489b6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="storage">
+      <UniqueIdentifier>{9ed685e6-c959-4da9-a0ba-c9b22df40666}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -62,7 +65,10 @@
       <Filter>Extensions</Filter>
     </ClCompile>
     <ClCompile Include="test_resource_wrapper.cpp">
-      <Filter>Extensions</Filter>
+      <Filter>storage</Filter>
+    </ClCompile>
+    <ClCompile Include="test_parameter_pack.cpp">
+      <Filter>storage</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
