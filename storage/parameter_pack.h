@@ -86,7 +86,6 @@ namespace janecekvit::storage
 ///
 /// </code>
 /// </example>
-#ifdef __cpp_lib_any
 
 class parameter_pack
 {
@@ -157,9 +156,9 @@ protected:
 	Parameters _arguments;
 };
 
-#else // C++14
+#if defined(__legacy)
 
-class parameter_pack
+class parameter_pack_legacy
 {
 private:
 	// Helper base class used as wrapper to hold any type described by derived parameter<_T> class
@@ -196,11 +195,11 @@ private:
 	// Main class
 public:
 	using Parameters		  = std::list<std::shared_ptr<parameter_base>>;
-	parameter_pack()		  = default;
-	virtual ~parameter_pack() = default;
+	parameter_pack_legacy()			 = default;
+	virtual ~parameter_pack_legacy() = default;
 
 	template <class... _Args>
-	parameter_pack(
+	parameter_pack_legacy(
 		const _Args&... args)
 	{
 		_serialize(args...);
@@ -262,7 +261,7 @@ protected:
 
 // Core method: create dynamic_cast instead of virtual cast to get type what allocated in derived class
 template <class _T>
-const _T& storage::parameter_pack::parameter_base::get() const
+const _T& storage::parameter_pack_legacy::parameter_base::get() const
 {
 	using TRetrievedType = typename std::remove_cv<typename std::remove_reference<decltype(std::declval<parameter<_T>>().get())>::type>::type;
 	static_assert(std::is_same<_T, TRetrievedType>::value, "Cannot cast templated return type <_T> to the derived class \"parameter.<_T>Get()\" type!");

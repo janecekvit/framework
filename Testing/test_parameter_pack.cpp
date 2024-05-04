@@ -1,6 +1,8 @@
 #include "stdafx.h"
 
 #include "CppUnitTest.h"
+
+#define __legacy
 #include "storage/parameter_pack.h"
 
 #include <fstream>
@@ -30,19 +32,19 @@ public:
 	}
 };
 
-class IParamTest
-{
-public:
-	virtual ~IParamTest()								   = default;
-	virtual void Run(_In_ storage::parameter_pack&& oPack) = 0;
-};
-
 ONLY_USED_AT_NAMESPACE_SCOPE class test_parameter_pack : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_parameter_pack> // expanded TEST_CLASS() macro due wrong formatting of clangformat
 {
 public:
-#ifdef __cpp_lib_any
 	TEST_METHOD(TestParameterPackCxx17)
 	{
+		class IParamTest
+		{
+		public:
+			virtual ~IParamTest()								   = default;
+			virtual void Run(_In_ storage::parameter_pack&& oPack) = 0;
+		};
+
+
 		class CParamTest : public virtual IParamTest
 		{
 		public:
@@ -88,15 +90,22 @@ public:
 		Assert::AreEqual(*oTest.c, 666);
 		Assert::AreEqual(*oTest.d, 777);
 	}
-#else
 	TEST_METHOD(TestParameterPackCxx11)
 	{
+		class IParamTest
+		{
+		public:
+			virtual ~IParamTest()								   = default;
+			virtual void Run(_In_ storage::parameter_pack_legacy&& oPack) = 0;
+		};
+
+
 		class CParamTest : public virtual IParamTest
 		{
 		public:
 			CParamTest()		  = default;
 			virtual ~CParamTest() = default;
-			virtual void Run(_In_ storage::parameter_pack&& oPack) override
+			virtual void Run(_In_ storage::parameter_pack_legacy&& oPack) override
 			{
 				CInterface* pInt = nullptr;
 
@@ -123,7 +132,7 @@ public:
 		CInterface oInt;
 
 		// Initialize parameter pack
-		auto oPack = storage::parameter_pack(25, 333, pInt, pShared, &oInt);
+		auto oPack = storage::parameter_pack_legacy(25, 333, pInt, pShared, &oInt);
 		oTest.Run(std::move(oPack));
 
 		Assert::AreEqual(oTest.a, 25);
@@ -131,7 +140,5 @@ public:
 		Assert::AreEqual(*oTest.c, 666);
 		Assert::AreEqual(*oTest.d, 777);
 	}
-
-#endif
 };
 } // namespace FrameworkTesting
