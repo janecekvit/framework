@@ -28,4 +28,4 @@ TODO:
 - Rewrite asserts that use good style (expected value, actual value)
 - Better formatting
 - Create readme.md
-- Minimum supported version c++17
+- Minimum supported version c++17 -> test it
