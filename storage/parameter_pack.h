@@ -7,7 +7,6 @@
 #include <tuple>
 #include <type_traits>
 
-
 namespace janecekvit::storage
 {
 
@@ -87,7 +86,7 @@ namespace janecekvit::storage
 ///
 /// </code>
 /// </example>
-#if __cplusplus >= __cpp_lib_any
+#ifdef __cpp_lib_any
 
 class parameter_pack
 {
@@ -196,9 +195,9 @@ private:
 
 	// Main class
 public:
-	using Parameters				 = std::list<std::shared_ptr<parameter_base>>;
-	parameter_pack()			 = default;
-	virtual ~parameter_pack()	 = default;
+	using Parameters		  = std::list<std::shared_ptr<parameter_base>>;
+	parameter_pack()		  = default;
+	virtual ~parameter_pack() = default;
 
 	template <class... _Args>
 	parameter_pack(
@@ -218,6 +217,7 @@ public:
 		auto tempArgs = _arguments;
 		_deserialize(tempArgs, args...);
 	}
+
 protected:
 	template <class _T>
 	constexpr void _serialize(
@@ -255,6 +255,7 @@ protected:
 		_deserialize(args, first);
 		_deserialize(args, rest...);
 	}
+
 protected:
 	Parameters _arguments;
 };
@@ -269,8 +270,7 @@ const _T& storage::parameter_pack::parameter_base::get() const
 	return dynamic_cast<const parameter<_T>&>(*this).get();
 }
 
-#endif // __cplusplus >= __cpp_lib_any
-
-
+#endif // __cpp_lib_any
 
 } // namespace janecekvit::storage
+

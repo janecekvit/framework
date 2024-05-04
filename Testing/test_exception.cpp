@@ -11,7 +11,7 @@ namespace FrameworkTesting
 ONLY_USED_AT_NAMESPACE_SCOPE class test_exception : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_exception> // expanded TEST_CLASS() macro due wrong formatting of clangformat
 {
 public:
-#if __cplusplus >= __cpp_lib_concepts
+#ifdef __cpp_lib_concepts
 
 	std::string GetStringLocation(int origLine, int origColumn, std::string suffix, std::source_location location = std::source_location::current())
 	{

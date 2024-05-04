@@ -9,7 +9,7 @@ namespace janecekvit::conversions
 std::string to_string(std::wstring_view&& view);
 std::wstring to_wstring(std::string_view&& view);
 
-#if __cplusplus >= __cpp_lib_concepts
+#ifdef __cpp_lib_concepts
 template <constraints::string_type _String, class _Container>
 	requires constraints::is_container_v<_Container>
 _String to_string(const _Container& container)

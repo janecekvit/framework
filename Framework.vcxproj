@@ -34,6 +34,7 @@
     <ClInclude Include="extensions\lazy.h" />
     <ClInclude Include="Interface\ICloneable.h" />
     <ClInclude Include="Interface\ICRTP.h" />
+    <ClInclude Include="storage\heterogeneous_container.h" />
     <ClInclude Include="storage\parameter_pack.h" />
     <ClInclude Include="storage\resource_wrapper.h" />
     <ClInclude Include="Sync\AtomicConditionVariable.h" />
@@ -145,6 +146,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
       <GenerateXMLDocumentationFiles>true</GenerateXMLDocumentationFiles>
+      <BrowseInformation>true</BrowseInformation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -153,6 +155,9 @@
     <Lib>
       <AdditionalDependencies>bcrypt.lib;Iphlpapi.lib;Crypt32.lib;Secur32.lib;Cryptnet.lib</AdditionalDependencies>
     </Lib>
+    <Bscmake>
+      <PreserveSbr>true</PreserveSbr>
+    </Bscmake>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>

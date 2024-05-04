@@ -121,6 +121,7 @@
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <UseFullPaths>true</UseFullPaths>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <BrowseInformation>true</BrowseInformation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -128,6 +129,9 @@
       <Profile>true</Profile>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
     </Link>
+    <Bscmake>
+      <PreserveSbr>true</PreserveSbr>
+    </Bscmake>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -189,6 +193,7 @@
     <ClCompile Include="TestThread.cpp" />
     <ClCompile Include="test_exception.cpp" />
     <ClCompile Include="test_finally.cpp" />
+    <ClCompile Include="test_heterogeneous_container.cpp" />
     <ClCompile Include="test_lazy.cpp" />
     <ClCompile Include="test_parameter_pack.cpp" />
     <ClCompile Include="test_resource_wrapper.cpp" />

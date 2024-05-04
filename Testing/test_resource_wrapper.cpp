@@ -229,7 +229,7 @@ public:
 			Assert::Fail();
 		}
 	}
-#if __cplusplus >= __cpp_lib_concepts
+#ifdef __cpp_lib_concepts
 	TEST_METHOD(TestDeleterExceptionCallback)
 	{
 		bool callbackCalled = false;

@@ -1,5 +1,8 @@
 exception.h, test_exception.cpp
--> DONE, 
+-> DONE,
+
+heterogenous_container.h, test_heterogenous_container.cpp
+-> updade exception that use also the exception.h, check functionallity
 
 finally.h, test_finally.cpp
 -> DONE, 
@@ -11,12 +14,18 @@ parameter_pack.h, test_parameter_pack.cpp
 -> DONE
 
 resource_wrapper.h, resource_wrapper.cpp
--> DONE, fix compilation when no libconcepts are present
+-> fix compilation when no libconcepts are present
 
 trace.h, test_trace.cpp
--> DONE, 
+-> DONE
 
 TODO:
-- replace if __cplusplus >= some value with ifdef(__cpp_lib_concepts)
+- Finish extensions.h cleanup
+- Check concurrent and atomic_concurrent and move it to sync,
+- rewrite sync
+- Rewrite and fix thread
 - use this c++23 in all files
-- heterogenous container in own file
+- Rewrite asserts that use good style (expected value, actual value)
+- Better formatting
+- Create readme.md
+- Minimum supported version c++17

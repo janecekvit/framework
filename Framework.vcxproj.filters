@@ -69,6 +69,9 @@
     <ClInclude Include="storage\parameter_pack.h">
       <Filter>storage</Filter>
     </ClInclude>
+    <ClInclude Include="storage\heterogeneous_container.h">
+      <Filter>storage</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="extensions">

@@ -6,7 +6,7 @@
 namespace janecekvit::extensions
 {
 
-#if __cplusplus >= __cpp_lib_concepts
+#ifdef __cpp_lib_concepts
 /// <summary>
 /// final_action implements finally semantics in C++.
 /// Use it to release correctly resource when scope ends.

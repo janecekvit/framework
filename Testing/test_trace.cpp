@@ -12,7 +12,7 @@ namespace FrameworkTesting
 ONLY_USED_AT_NAMESPACE_SCOPE class test_trace : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_trace> // expanded TEST_CLASS() macro due wrong formatting of clangformat
 {
 public:
-#if __cplusplus >= __cpp_lib_concepts
+#ifdef __cpp_lib_concepts
 
 	enum class test{
 		Warning,
