@@ -9,14 +9,14 @@ namespace janecekvit::synchronization
 {
 
 template <class _Condition = std::condition_variable_any>
-class AtomicConditionVariable
+class atomic_condition_variable
 {
 private:
 	using _Predicate = typename std::function<bool()>;
 
 public:
-	AtomicConditionVariable()		   = default;
-	virtual ~AtomicConditionVariable() = default;
+	atomic_condition_variable()			 = default;
+	virtual ~atomic_condition_variable() = default;
 
 	template <class TLock>
 	void wait(TLock& lock) const

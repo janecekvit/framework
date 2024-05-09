@@ -1,6 +1,6 @@
 #pragma once
 #include "extensions/constraints.h"
-#include "synchronization/AtomicConditionVariable.h"
+#include "synchronization/atomic_condition_variable.h"
 #include "synchronization/concurrent.h"
 
 #include <atomic>
@@ -11,14 +11,14 @@ namespace janecekvit::synchronization
 {
 
 template <class _Condition = std::condition_variable_any>
-class WaitForMultipleConditions
+class wait_for_multiple_conditions
 {
 public:
 	using TResult = typename std::unordered_set<size_t>;
 
 public:
-	WaitForMultipleConditions()			 = default;
-	virtual ~WaitForMultipleConditions() = default;
+	wait_for_multiple_conditions()			= default;
+	virtual ~wait_for_multiple_conditions() = default;
 
 	template <class TLock>
 	[[nodiscard]] TResult wait(TLock& lock) const
@@ -71,7 +71,7 @@ private:
 	}
 
 private:
-	mutable AtomicConditionVariable<_Condition> m_condition;
+	mutable atomic_condition_variable<_Condition> m_condition;
 	mutable concurrent::unordered_set<size_t> m_oEvents;
 };
 

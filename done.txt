@@ -20,7 +20,6 @@ trace.h, test_trace.cpp
 -> DONE
 
 TODO:
-- rename all files to snake case in synchronization
 - Finish extensions.h cleanup
 - Check concurrent and atomic_concurrent and move it to sync,
 - rewrite sync
