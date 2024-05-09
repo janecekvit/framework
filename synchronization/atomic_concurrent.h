@@ -33,7 +33,7 @@ TODO: 2. Make atomic_concurrent based on two classes (exclusive writer, more wri
 #include <unordered_set>
 #include <vector>
 
-namespace janecekvit::atomic_concurrent
+namespace janecekvit::synchronization::atomic_concurrent
 {
 template <class _Type>
 class resource_owner;
@@ -399,4 +399,4 @@ using unordered_multimap = resource_owner<std::unordered_multimap<_Args...>>;
 template <class _Arg>
 using functor = resource_owner<std::function<_Arg>>;
 
-} // namespace janecekvit::atomic_concurrent
+} // namespace janecekvit::synchronization::atomic_concurrent

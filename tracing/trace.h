@@ -1,6 +1,6 @@
 #pragma once
-#include "extensions/concurrent.h"
 #include "extensions/constraints.h"
+#include "synchronization/concurrent.h"
 #include "utility/conversions.h"
 
 #include <format>
@@ -217,7 +217,7 @@ protected:
 	}
 
 protected:
-	concurrent::deque<event> _traceQueue;
+	synchronization::concurrent::deque<event> _traceQueue;
 };
 
 } // namespace janecekvit::tracing

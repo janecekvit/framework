@@ -30,11 +30,14 @@ Purpose: header file of static thread pool class
 
 #pragma once
 #include "IThreadPool.h"
-#include "extensions/concurrent.h"
+#include "synchronization/concurrent.h"
 
 #include <atomic>
 #include <list>
 #include <queue>
+
+namespace janecekvit::thread
+{
 
 /// <summary>
 /// Fixed sized thread pool that executes the task from the queue.
@@ -60,7 +63,7 @@ protected:
 		void _Work();
 
 	private:
-		ThreadPool& m_oParentPool; //dependency
+		ThreadPool& m_oParentPool; // dependency
 		std::thread m_oThread;
 		std::optional<WorkerCallback> m_optTask;
 	};
@@ -85,9 +88,9 @@ protected:
 	void _AddWorkers(size_t uWorkerCount, std::optional<WorkerCallback>&& optTask) noexcept;
 	void _ErrorCallback(const std::exception& ex) noexcept;
 
-protected: //getters && setters
-	janecekvit::concurrent::queue<Task>& _Queue() noexcept;
-	janecekvit::concurrent::list<Worker>& _Pool() noexcept;
+protected: // getters && setters
+	janecekvit::synchronization::concurrent::queue<Task>& _Queue() noexcept;
+	janecekvit::synchronization::concurrent::list<Worker>& _Pool() noexcept;
 	std::condition_variable_any& _Event() const noexcept;
 	std::condition_variable_any& _WaitEvent() const noexcept;
 	bool _Exit() const noexcept;
@@ -100,6 +103,7 @@ private:
 	mutable std::condition_variable_any m_cvPoolEvent;
 	mutable std::condition_variable_any m_cvWaitEvent;
 
-	janecekvit::concurrent::queue<Task> m_queueTask;
-	janecekvit::concurrent::list<Worker> m_oWorkers;
+	janecekvit::synchronization::concurrent::queue<Task> m_queueTask;
+	janecekvit::synchronization::concurrent::list<Worker> m_oWorkers;
 };
+} // namespace janecekvit::thread

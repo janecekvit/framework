@@ -2,6 +2,9 @@
 
 #include <thread>
 
+namespace janecekvit::thread
+{
+
 ThreadPool::Worker::Worker(ThreadPool& oParentPool, std::optional<WorkerCallback>&& optTask)
 	: m_oParentPool(oParentPool)
 	, m_optTask(std::move(optTask))
@@ -25,7 +28,7 @@ void ThreadPool::Worker::_Work()
 	for (auto&& fnCurrentTask = m_oParentPool._GetTask(); fnCurrentTask; fnCurrentTask = m_oParentPool._GetTask())
 	{
 		try
-		{ //execute task
+		{ // execute task
 			(*fnCurrentTask)();
 		}
 		catch (const std::exception& ex)
@@ -33,7 +36,7 @@ void ThreadPool::Worker::_Work()
 			m_oParentPool._ErrorCallback(ex);
 		}
 
-		//Check worker's callback to check if the processing is necessary to exit.
+		// Check worker's callback to check if the processing is necessary to exit.
 		if (m_optTask && (*m_optTask)())
 			return;
 	}
@@ -52,7 +55,7 @@ ThreadPool::ThreadPool(size_t uiPoolSize, WorkerErrorCallback&& fnCallback, std:
 
 ThreadPool::~ThreadPool()
 {
-	//Finish thread pool and wait for
+	// Finish thread pool and wait for
 	m_bEndFlag = true;
 	m_cvPoolEvent.notify_all();
 	m_oWorkers.exclusive()->clear();
@@ -63,7 +66,7 @@ void ThreadPool::AddTask(Task&& fn) noexcept
 	if (m_bEndFlag)
 		return;
 
-	//Add new task to queue and inform workers about it
+	// Add new task to queue and inform workers about it
 	m_queueTask.exclusive()->emplace(std::move(fn));
 	m_cvPoolEvent.notify_one();
 }
@@ -118,12 +121,12 @@ void ThreadPool::_ErrorCallback(const std::exception& ex) noexcept
 	m_fnErrorCallback(ex);
 }
 
-janecekvit::concurrent::queue<IThreadPool::Task>& ThreadPool::_Queue() noexcept
+janecekvit::synchronization::concurrent::queue<IThreadPool::Task>& ThreadPool::_Queue() noexcept
 {
 	return m_queueTask;
 }
 
-janecekvit::concurrent::list<ThreadPool::Worker>& ThreadPool::_Pool() noexcept
+janecekvit::synchronization::concurrent::list<ThreadPool::Worker>& ThreadPool::_Pool() noexcept
 {
 	return m_oWorkers;
 }
@@ -147,3 +150,5 @@ void ThreadPool::_SetExit() noexcept
 {
 	m_bEndFlag = true;
 }
+
+} // namespace janecekvit::thread

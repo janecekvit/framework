@@ -1,12 +1,15 @@
 #pragma once
-#include "Sync/WaitForMultipleConditions.h"
 #include "Thread/ThreadPool.h"
+#include "synchronization/WaitForMultipleConditions.h"
 
 #include <atomic>
 #include <functional>
 #include <list>
 #include <mutex>
 #include <queue>
+
+namespace janecekvit::thread
+{
 
 /// <summary>
 ///
@@ -53,6 +56,7 @@ private:
 
 	std::thread m_oThread;
 	std::atomic<size_t> m_uDeallocationPoolSize = 0;
-	WaitForMultipleConditions<> m_cvDynamicPoolEvent;
-	janecekvit::concurrent::unordered_set<std::thread::id> m_oDeallocatedWorkers;
+	synchronization::WaitForMultipleConditions<> m_cvDynamicPoolEvent;
+	synchronization::concurrent::unordered_set<std::thread::id> m_oDeallocatedWorkers;
 };
+} // namespace janecekvit::thread

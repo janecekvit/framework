@@ -2,9 +2,9 @@
 
 #include "CppUnitTest.h"
 #include "extensions/extensions.h"
-#include "extensions/concurrent.h"
 #include "extensions/getter_setter.h"
 #include "storage/heterogeneous_container.h"
+#include "synchronization/concurrent.h"
 
 #include <future>
 #include <iostream>

@@ -27,15 +27,6 @@
     <ClInclude Include="Thread\IThreadPool.h">
       <Filter>thread</Filter>
     </ClInclude>
-    <ClInclude Include="Sync\AtomicConditionVariable.h">
-      <Filter>sync</Filter>
-    </ClInclude>
-    <ClInclude Include="Sync\WaitForMultipleConditions.h">
-      <Filter>sync</Filter>
-    </ClInclude>
-    <ClInclude Include="extensions\concurrent.h">
-      <Filter>extensions</Filter>
-    </ClInclude>
     <ClInclude Include="extensions\constraints.h">
       <Filter>extensions</Filter>
     </ClInclude>
@@ -46,9 +37,6 @@
       <Filter>extensions</Filter>
     </ClInclude>
     <ClInclude Include="extensions\getter_setter.h">
-      <Filter>extensions</Filter>
-    </ClInclude>
-    <ClInclude Include="extensions\atomic_concurrent.h">
       <Filter>extensions</Filter>
     </ClInclude>
     <ClInclude Include="extensions\lazy.h">
@@ -72,6 +60,18 @@
     <ClInclude Include="storage\heterogeneous_container.h">
       <Filter>storage</Filter>
     </ClInclude>
+    <ClInclude Include="synchronization\atomic_concurrent.h">
+      <Filter>synchronization</Filter>
+    </ClInclude>
+    <ClInclude Include="synchronization\AtomicConditionVariable.h">
+      <Filter>synchronization</Filter>
+    </ClInclude>
+    <ClInclude Include="synchronization\concurrent.h">
+      <Filter>synchronization</Filter>
+    </ClInclude>
+    <ClInclude Include="synchronization\WaitForMultipleConditions.h">
+      <Filter>synchronization</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="extensions">
@@ -79,9 +79,6 @@
     </Filter>
     <Filter Include="interfaces">
       <UniqueIdentifier>{b0478a21-ddee-4d8b-93a1-e2f0686d6e5d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="sync">
-      <UniqueIdentifier>{453cea18-ecff-4211-94a0-9a68cbddcce0}</UniqueIdentifier>
     </Filter>
     <Filter Include="thread">
       <UniqueIdentifier>{923f8c59-8e66-4d38-bfb1-2a88a7762837}</UniqueIdentifier>
@@ -97,6 +94,9 @@
     </Filter>
     <Filter Include="storage">
       <UniqueIdentifier>{a9feeefe-c110-4ab8-be64-1ed60778efe4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="synchronization">
+      <UniqueIdentifier>{453cea18-ecff-4211-94a0-9a68cbddcce0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

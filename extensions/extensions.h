@@ -11,7 +11,6 @@ Purpose:	header file contains set of extended methods implemented over stl conta
 */
 
 #pragma once
-#include "extensions/concurrent.h"
 
 #include <algorithm>
 #include <any>
@@ -24,6 +23,8 @@ Purpose:	header file contains set of extended methods implemented over stl conta
 #include <tuple>
 #include <type_traits>
 #include <typeindex>
+
+#include "extensions/constraints.h"
 
 ///Namespace owns set of extended methods implemented over stl containers
 namespace janecekvit::extensions

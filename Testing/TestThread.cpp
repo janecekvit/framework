@@ -11,6 +11,7 @@
 #include "Thread\ThreadPool.h"
 #include "Thread\ThreadPoolDynamic.h"
 #include "extensions/constraints.h"
+using namespace janecekvit::thread;
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 

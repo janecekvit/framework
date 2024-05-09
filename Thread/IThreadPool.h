@@ -2,6 +2,9 @@
 #include <functional>
 #include <optional>
 
+namespace janecekvit::thread
+{
+
 /// <summary>
 /// Interface implementing methods to create the thread pool that executes tasks from the queue of tasks.
 /// </summary>
@@ -35,3 +38,5 @@ public:
 	/// </summary>
 	virtual size_t PoolSize() const noexcept = 0;
 };
+
+} // namespace janecekvit::thread

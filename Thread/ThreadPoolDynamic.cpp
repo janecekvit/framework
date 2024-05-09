@@ -1,5 +1,8 @@
 #include "ThreadPoolDynamic.h"
 
+namespace janecekvit::thread
+{
+
 ThreadPoolDynamic::ThreadPoolDynamic(size_t uiPoolSize, const double uDifference, WorkerErrorCallback&& fnCallback)
 	: ThreadPool(uiPoolSize, std::move(fnCallback), [this]()
 		  {
@@ -13,7 +16,7 @@ ThreadPoolDynamic::ThreadPoolDynamic(size_t uiPoolSize, const double uDifference
 
 ThreadPoolDynamic::~ThreadPoolDynamic()
 {
-	//Set End Flag and Notify Finish
+	// Set End Flag and Notify Finish
 	_SetExit();
 
 	m_cvDynamicPoolEvent.notify_one(static_cast<size_t>(EConditionEvents::eExit));
@@ -30,15 +33,15 @@ void ThreadPoolDynamic::AddTask(Task&& fn) noexcept
 	size_t uCurrentQueueSize = Size();
 	size_t uCurrentPoolSize	 = PoolSize();
 
-	//Check if Task _Queue is bigger that multiplier of the list of workers -> increase thread pool.
+	// Check if Task _Queue is bigger that multiplier of the list of workers -> increase thread pool.
 	if (uCurrentQueueSize > m_dDifference * uCurrentPoolSize)
 		m_cvDynamicPoolEvent.notify_one(static_cast<size_t>(EConditionEvents::eMagnify));
 
-	//Check if Task _Queue is smaller than the minimum pool size and smaller that multiplier of the list of workers.
+	// Check if Task _Queue is smaller than the minimum pool size and smaller that multiplier of the list of workers.
 	else if ((uCurrentPoolSize > m_uMinimumPoolSize) && ((uCurrentQueueSize * m_uPoolDeallocationMultiplier) < uCurrentPoolSize))
 		m_cvDynamicPoolEvent.notify_one(static_cast<size_t>(EConditionEvents::eReduce));
 
-	//Call base task
+	// Call base task
 	ThreadPool::AddTask(std::move(fn));
 }
 
@@ -49,7 +52,7 @@ bool ThreadPoolDynamic::_IsDeallocationEnabled() const noexcept
 
 bool ThreadPoolDynamic::_IsDeallocationFinished() const
 {
-	return m_oDeallocatedWorkers.concurrent().size() == 0; //TODO
+	return m_oDeallocatedWorkers.concurrent().size() == 0; // TODO
 }
 
 void ThreadPoolDynamic::_PoolController()
@@ -92,15 +95,15 @@ void ThreadPoolDynamic::_PoolController()
 
 void ThreadPoolDynamic::_DeallocateWorkers()
 {
-	//release workers
+	// release workers
 	auto&& oScope		 = _Pool().exclusive();
 	auto&& oDeallocation = m_oDeallocatedWorkers.concurrent();
 	for (auto&& it = oScope->begin(); it != oScope->end();)
 	{
-		//Deallocated worker -> Join worker and release resources
+		// Deallocated worker -> Join worker and release resources
 		if (oDeallocation->find(it->Id()) != oDeallocation->end())
 			oScope->erase(it++);
-		else //Or Get next
+		else // Or Get next
 			++it;
 	}
 }
@@ -113,16 +116,18 @@ bool ThreadPoolDynamic::_PoolCallback()
 	if (!_IsDeallocationEnabled())
 		return false;
 
-	//Decrement reference counter and save thread id
+	// Decrement reference counter and save thread id
 	m_uDeallocationPoolSize--;
 	m_oDeallocatedWorkers.exclusive()->emplace(std::this_thread::get_id());
 
-	//If zero references
+	// If zero references
 	if (!_IsDeallocationEnabled())
 	{
-		//Notify controller to delete memory (Garbage Collector)
+		// Notify controller to delete memory (Garbage Collector)
 		m_cvDynamicPoolEvent.notify_one(static_cast<size_t>(EConditionEvents::eDealloc));
 	}
 
 	return true;
 }
+
+} // namespace janecekvit::thread

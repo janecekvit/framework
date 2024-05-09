@@ -1,11 +1,14 @@
 #pragma once
-#include "Sync/AtomicConditionVariable.h"
-#include "extensions/concurrent.h"
 #include "extensions/constraints.h"
+#include "synchronization/AtomicConditionVariable.h"
+#include "synchronization/concurrent.h"
 
 #include <atomic>
 #include <condition_variable>
 #include <unordered_set>
+
+namespace janecekvit::synchronization
+{
 
 template <class _Condition = std::condition_variable_any>
 class WaitForMultipleConditions
@@ -69,5 +72,7 @@ private:
 
 private:
 	mutable AtomicConditionVariable<_Condition> m_condition;
-	mutable janecekvit::concurrent::unordered_set<size_t> m_oEvents;
+	mutable concurrent::unordered_set<size_t> m_oEvents;
 };
+
+} // namespace janecekvit::synchronization

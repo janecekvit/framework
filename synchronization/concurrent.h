@@ -34,7 +34,7 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 
 /// Namespace owns set of thread-safe concurrent containers and methods that implemented over basic stl containers
 ///  and thread-safe methods for every possible concurrent object
-namespace janecekvit::concurrent
+namespace janecekvit::synchronization::concurrent
 {
 template <class _Type, bool = true>
 class resource_owner;
@@ -633,4 +633,4 @@ using unordered_multimap = result_resource_owner<std::unordered_multimap<_Args..
 template <class _Arg>
 using functor = resource_owner<std::function<_Arg>>;
 
-} // namespace janecekvit::concurrent
+} // namespace janecekvit::synchronization::concurrent

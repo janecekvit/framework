@@ -2,8 +2,8 @@
 
 #include "CppUnitTest.h"
 #include "extensions/extensions.h"
-#include "extensions/concurrent.h"
 #include "storage/resource_wrapper.h"
+#include "synchronization/concurrent.h"
 
 #include <fstream>
 #include <future>
@@ -13,6 +13,7 @@
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace janecekvit;
+using namespace janecekvit::synchronization;
 
 namespace FrameworkTesting
 {

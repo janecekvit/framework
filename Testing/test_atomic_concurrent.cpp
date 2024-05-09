@@ -2,7 +2,7 @@
 
 #include "CppUnitTest.h"
 #include "extensions/extensions.h"
-#include "extensions/atomic_concurrent.h"
+#include "synchronization/atomic_concurrent.h"
 #include "storage/resource_wrapper.h"
 
 #include <exception>
@@ -14,6 +14,7 @@
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace janecekvit;
+using namespace janecekvit::synchronization;
 
 namespace FrameworkTesting
 {

@@ -25,8 +25,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="exception\exception.h" />
-    <ClInclude Include="extensions\atomic_concurrent.h" />
-    <ClInclude Include="extensions\concurrent.h" />
     <ClInclude Include="extensions\constraints.h" />
     <ClInclude Include="extensions\extensions.h" />
     <ClInclude Include="extensions\finally.h" />
@@ -37,8 +35,10 @@
     <ClInclude Include="storage\heterogeneous_container.h" />
     <ClInclude Include="storage\parameter_pack.h" />
     <ClInclude Include="storage\resource_wrapper.h" />
-    <ClInclude Include="Sync\AtomicConditionVariable.h" />
-    <ClInclude Include="Sync\WaitForMultipleConditions.h" />
+    <ClInclude Include="synchronization\AtomicConditionVariable.h" />
+    <ClInclude Include="synchronization\atomic_concurrent.h" />
+    <ClInclude Include="synchronization\concurrent.h" />
+    <ClInclude Include="synchronization\WaitForMultipleConditions.h" />
     <ClInclude Include="Thread\IThreadPool.h" />
     <ClInclude Include="Thread\ThreadPool.h" />
     <ClInclude Include="Thread\ThreadPoolDynamic.h" />

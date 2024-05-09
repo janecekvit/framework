@@ -5,6 +5,9 @@
 #include <atomic>
 #include <condition_variable>
 
+namespace janecekvit::synchronization
+{
+
 template <class _Condition = std::condition_variable_any>
 class AtomicConditionVariable
 {
@@ -83,3 +86,5 @@ private:
 	mutable _Condition m_condition;
 	mutable std::atomic<bool> m_bSignalized = false;
 };
+
+} // namespace janecekvit::synchronization
