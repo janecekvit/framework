@@ -1,14 +1,17 @@
+ == exception ==
 exception.h, test_exception.cpp
 -> DONE,
 
-heterogenous_container.h, test_heterogenous_container.cpp
--> updade exception that use also the exception.h, check functionallity
-
+== extensions ==
 finally.h, test_finally.cpp
 -> DONE, 
 
 lazy.h, test_lazy.cpp
 -> DONE, 
+
+ == storage ==
+heterogenous_container.h, test_heterogenous_container.cpp
+-> updade exception that use also the exception.h, check functionallity
 
 parameter_pack.h, test_parameter_pack.cpp
 -> DONE
@@ -16,12 +19,20 @@ parameter_pack.h, test_parameter_pack.cpp
 resource_wrapper.h, resource_wrapper.cpp
 -> fix compilation when no libconcepts are present
 
+ == synchronization ==
+
+
+ == tracing == 
 trace.h, test_trace.cpp
 -> DONE
 
 TODO:
+- Check concurrent and atomic_concurrent
+- Partial template specialization for events based on condition or semaphore
+- add tests for events and wait for multiple events
+- atomic condition variable with concepts
+- wait for multime conditions with concepts
 - Finish extensions.h cleanup
-- Check concurrent and atomic_concurrent and move it to sync,
 - rewrite sync
 - Rewrite and fix thread
 - use this c++23 in all files

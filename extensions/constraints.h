@@ -14,10 +14,12 @@ Purpose:	header file contains set of extended constraints to describe stl contai
 #include <algorithm>
 #include <any>
 #include <concepts>
+#include <condition_variable>
 #include <functional>
 #include <list>
 #include <memory>
 #include <optional>
+#include <semaphore>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -169,32 +171,27 @@ struct is_explicitly_convertible : std::integral_constant<bool, std::is_construc
 template <class _T, class _U>
 constexpr bool is_explicitly_convertible_v = is_explicitly_convertible<_T, _U>::value;
 
-/// <summary>
-/// Helper concept to determine if template type <_T> is condition variable
-/// </summary>
-#ifdef __cpp_lib_concepts 
-template <class _Condition, class _Lock>
-concept condition_variable = requires(_Condition& cv, _Lock& lock) {
-								 {
-									 cv.notify_one()
-								 } noexcept;
-								 {
-									 cv.notify_all()
-								 } noexcept;
-								 {
-									 cv.wait(lock)
-								 };
-							 };
+#ifdef __cpp_lib_concepts
 
-/// <summary>
-/// Helper concept to determine if template type <_T> is condition variable with pred
-/// </summary>
+template <class _Condition, class _Lock>
+concept condition_variable_notify = requires(_Condition& cv, _Lock& lock) {
+	{
+		cv.notify_one()
+	} noexcept;
+	{
+		cv.notify_all()
+	} noexcept;
+	{
+		cv.wait(lock)
+	};
+};
+
 template <class _Condition, class _Lock, class _Predicate>
-concept condition_variable_pred = condition_variable<_Condition, _Lock> && requires(_Condition& cv, _Lock& lock, _Predicate&& pred) {
-																			   {
-																				   cv.wait(lock, std::move(pred))
-																			   };
-																		   };
+concept condition_variable_pred = condition_variable_notify<_Condition, _Lock> && requires(_Condition& cv, _Lock& lock, _Predicate&& pred) {
+	{
+		cv.wait(lock, std::move(pred))
+	};
+};
 
 template <class _Fmt>
 concept format_string_view = std::is_constructible_v<std::string_view, _Fmt>;
@@ -213,6 +210,14 @@ concept enum_type = std::is_enum_v<_Enum>;
 
 template <class _String>
 concept string_type = std::is_same_v<_String, std::string> || std::is_same_v<_String, std::wstring> || std::is_same_v<_String, std::u8string> || std::is_same_v<_String, std::u16string> || std::is_same_v<_String, std::u32string>;
+
+template <class _Condition>
+concept condition_variable_type = std::is_same_v<std::condition_variable, _Condition> || std::is_same_v<std::condition_variable_any, _Condition>;
+
+#ifdef __cpp_lib_semaphore
+template <class _Semaphore, ptrdiff_t _Least_max_value>
+concept semaphore_type = std::is_constructible_v<std::binary_semaphore, _Semaphore> || std::is_constructible_v<std::counting_semaphore<_Least_max_value>, _Semaphore>;
+#endif // __cpp_lib_semaphore
 
 #endif
 

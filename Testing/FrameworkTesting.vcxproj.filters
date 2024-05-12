@@ -5,16 +5,6 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
-    <Filter Include="Extensions">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Thread">
-      <UniqueIdentifier>{cd8f1851-36c4-4b28-8ef5-584793d6c782}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Interfaces">
-      <UniqueIdentifier>{6507df63-8067-49fb-b648-8fc9561fdb4a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="exception">
       <UniqueIdentifier>{70603568-4c33-415f-a44d-f9d32489d6a2}</UniqueIdentifier>
     </Filter>
@@ -23,6 +13,19 @@
     </Filter>
     <Filter Include="storage">
       <UniqueIdentifier>{9ed685e6-c959-4da9-a0ba-c9b22df40666}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="synchronization">
+      <UniqueIdentifier>{5bf7e347-94ed-42b8-8b67-bea2ca9774d0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="extensions">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="interfaces">
+      <UniqueIdentifier>{6507df63-8067-49fb-b648-8fc9561fdb4a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="thread">
+      <UniqueIdentifier>{cd8f1851-36c4-4b28-8ef5-584793d6c782}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -35,22 +38,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="test_extensions.cpp">
-      <Filter>Extensions</Filter>
+      <Filter>extensions</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="TestThread.cpp">
-      <Filter>Thread</Filter>
+    <ClCompile Include="test_thread.cpp">
+      <Filter>thread</Filter>
     </ClCompile>
     <ClCompile Include="TestInterfaces.cpp">
-      <Filter>Interfaces</Filter>
-    </ClCompile>
-    <ClCompile Include="test_concurrent.cpp">
-      <Filter>Extensions</Filter>
-    </ClCompile>
-    <ClCompile Include="test_atomic_concurrent.cpp">
-      <Filter>Extensions</Filter>
+      <Filter>interfaces</Filter>
     </ClCompile>
     <ClCompile Include="test_exception.cpp">
       <Filter>exception</Filter>
@@ -59,10 +56,10 @@
       <Filter>trace</Filter>
     </ClCompile>
     <ClCompile Include="test_lazy.cpp">
-      <Filter>Extensions</Filter>
+      <Filter>extensions</Filter>
     </ClCompile>
     <ClCompile Include="test_finally.cpp">
-      <Filter>Extensions</Filter>
+      <Filter>extensions</Filter>
     </ClCompile>
     <ClCompile Include="test_resource_wrapper.cpp">
       <Filter>storage</Filter>
@@ -72,6 +69,15 @@
     </ClCompile>
     <ClCompile Include="test_heterogeneous_container.cpp">
       <Filter>storage</Filter>
+    </ClCompile>
+    <ClCompile Include="test_atomic_concurrent.cpp">
+      <Filter>synchronization</Filter>
+    </ClCompile>
+    <ClCompile Include="test_concurrent.cpp">
+      <Filter>synchronization</Filter>
+    </ClCompile>
+    <ClCompile Include="test_event.cpp">
+      <Filter>synchronization</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

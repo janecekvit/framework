@@ -65,42 +65,42 @@ void SyncThreadStructures()
 			  std::cerr << ex.what() << std::endl;
 		  });
 
-	//A. Using vector to store class
+	// A. Using vector to store class
 	std::vector<SyncThreadPoolTest> vecOfTests;
 
 	for (unsigned int i = 0; i < uTestSize; i++)
 	{
-		//1. AddTask
-		//2. std::bind
-		//3. Function adress
-		//4. Pointer to class (not adress to pointer) // Without &
-		//5. Function _TArgs .....
+		// 1. AddTask
+		// 2. std::bind
+		// 3. Function adress
+		// 4. Pointer to class (not adress to pointer) // Without &
+		// 5. Function _TArgs .....
 
-		//Hint: If you using unique_ptr, you must use std::move for Pointer to Class
+		// Hint: If you using unique_ptr, you must use std::move for Pointer to Class
 
-		//A. Using vector to store class
+		// A. Using vector to store class
 		vecOfTests.emplace_back(i, 'A');
-		//A1. Bind Summary method without args
+		// A1. Bind Summary method without args
 		pThreadPool->AddTask([&]()
 			{
 				auto oItem = vecOfTests.back();
 				oItem.Summary();
 			});
-		//A2. Bind Summary method with one arg
+		// A2. Bind Summary method with one arg
 		pThreadPool->AddTask([&]()
 			{
 				auto oItem = vecOfTests.back();
 				oItem.SummaryTwo(2);
 			});
 
-		//B. Without class data save
+		// B. Without class data save
 		SyncThreadPoolTest test(i, 'B');
-		//B1. Bind Summary method without args
+		// B1. Bind Summary method without args
 		pThreadPool->AddTask([&test]()
 			{
 				test.Summary();
 			});
-		//B2. Bind Summary method with one arg
+		// B2. Bind Summary method with one arg
 		pThreadPool->AddTask([&test]()
 			{
 				test.SummaryTwo(2);
@@ -124,7 +124,7 @@ void SyncThreadStructuresDynamic()
 		{
 			std::cerr << ex.what() << std::endl;
 		});
-	//A. Using vector to store class
+	// A. Using vector to store class
 	std::vector<SyncThreadPoolTest> vecOfTests;
 	size_t uCounter	   = 0;
 	double iMultiplier = 1.0;
@@ -134,13 +134,13 @@ void SyncThreadStructuresDynamic()
 		std::cout << "Actual " << i << ". Pool size.: " << pThreadPool->PoolSize() << "\n";
 		Logger::WriteMessage(std::string("Actual " + std::to_string(i) + ". Pool size.: " + std::to_string(pThreadPool->PoolSize()) + "\n").c_str());
 
-		//1. AddTask
-		//2. std::bind
-		//3. Function adress
-		//4. Pointer to class (not adress to pointer) // Without &
-		//5. Function _TArgs .....
+		// 1. AddTask
+		// 2. std::bind
+		// 3. Function adress
+		// 4. Pointer to class (not adress to pointer) // Without &
+		// 5. Function _TArgs .....
 
-		//Hint: If you using unique_ptr, you must use std::move for Pointer to Class
+		// Hint: If you using unique_ptr, you must use std::move for Pointer to Class
 		if (i < TEST_SIZE / 2)
 		{
 			iMultiplier += 0.8;
@@ -152,18 +152,18 @@ void SyncThreadStructuresDynamic()
 		for (unsigned int j = 0; j < TEST_SIZE * iMultiplier; j++)
 		{
 			uCounter += 4;
-			//A. Using vector to store class
+			// A. Using vector to store class
 			vecOfTests.emplace_back(i + j, 'A');
-			//A1. Bind Summary method without args
+			// A1. Bind Summary method without args
 			pThreadPool->AddTask(std::bind(&SyncThreadPoolTest::Summary, vecOfTests.back()));
-			//A2. Bind Summary method with one arg
+			// A2. Bind Summary method with one arg
 			pThreadPool->AddTask(std::bind(&SyncThreadPoolTest::SummaryTwo, vecOfTests.back(), 1));
 
-			//B. Without class data save
+			// B. Without class data save
 			SyncThreadPoolTest test(i + j, 'B');
-			//B1. Bind Summary method without args
+			// B1. Bind Summary method without args
 			pThreadPool->AddTask(std::bind(&SyncThreadPoolTest::Summary, test));
-			//B2. Bind Summary method with one arg
+			// B2. Bind Summary method with one arg
 			pThreadPool->AddTask(std::bind(&SyncThreadPoolTest::SummaryTwo, test, 1));
 		}
 	}
@@ -194,40 +194,14 @@ public:
 	TEST_METHOD(TestSyncThread)
 	{
 		SyncThreadStructures();
-		//system("pause");
+		// system("pause");
 	} // namespace FrameworkTesting
 
 	TEST_METHOD(TestSyncThreadDynamic)
 	{
-		//TODO:
-		//SyncThreadStructuresDynamic();
-		//system("pause");
-	}
-
-	TEST_METHOD(TestConditionVariable)
-	{
-		std::condition_variable_any conv;
-		auto oAsync = std::async(std::launch::async, [&conv]()
-			{
-				using namespace std::chrono_literals;
-				std::this_thread::sleep_for(200ms);
-				conv.notify_one();
-				std::this_thread::sleep_for(200ms);
-				conv.notify_one();
-				std::this_thread::sleep_for(200ms);
-				conv.notify_one();
-			});
-
-		//Create Unique Lock which owns Mutex object and lock it until wait or block end
-		std::mutex mtx;
-		std::unique_lock<std::mutex> mtxQueueLock(mtx);
-		size_t uTest = 0;
-		conv.wait(mtxQueueLock, [&uTest]()
-			{
-				return ++uTest == 3;
-			});
-
-		oAsync.get();
+		// TODO:
+		// SyncThreadStructuresDynamic();
+		// system("pause");
 	}
 };
 } // namespace FrameworkTesting

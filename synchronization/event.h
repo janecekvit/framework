@@ -7,16 +7,23 @@
 
 namespace janecekvit::synchronization
 {
-
-template <class _Condition = std::condition_variable_any>
-class atomic_condition_variable
+/// <summary>
+/// Event is used for signalling.
+/// It can be set to autoreset state, where it resets after each blocking call, or to manual reset state.
+/// </summary>
+#ifdef __cpp_lib_concepts
+template <constraints::condition_variable_type _Condition = std::condition_variable_any>
+#else
+template <class _Condition = std::condition_variable_any, bool _AutoReset>
+#endif
+class event
 {
 private:
 	using _Predicate = typename std::function<bool()>;
 
 public:
-	atomic_condition_variable()			 = default;
-	virtual ~atomic_condition_variable() = default;
+	event() = default;
+	virtual ~event() = default;
 
 	template <class TLock>
 	void wait(TLock& lock) const
@@ -86,5 +93,13 @@ private:
 	mutable _Condition m_condition;
 	mutable std::atomic<bool> m_bSignalized = false;
 };
+
+//#ifdef __cpp_lib_concepts
+//template <ptrdiff_t _MaxValue, constraints::semaphore<_MaxValue> _Semaphore>
+//class event
+//{
+//};
+//#endif
+
 
 } // namespace janecekvit::synchronization

@@ -63,13 +63,13 @@
     <ClInclude Include="synchronization\atomic_concurrent.h">
       <Filter>synchronization</Filter>
     </ClInclude>
-    <ClInclude Include="synchronization\atomic_condition_variable.h">
+    <ClInclude Include="synchronization\event.h">
       <Filter>synchronization</Filter>
     </ClInclude>
     <ClInclude Include="synchronization\concurrent.h">
       <Filter>synchronization</Filter>
     </ClInclude>
-    <ClInclude Include="synchronization\wait_for_multiple_conditions.h">
+    <ClInclude Include="synchronization\wait_for_multiple_events.h">
       <Filter>synchronization</Filter>
     </ClInclude>
   </ItemGroup>

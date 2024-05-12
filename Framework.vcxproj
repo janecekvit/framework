@@ -35,10 +35,10 @@
     <ClInclude Include="storage\heterogeneous_container.h" />
     <ClInclude Include="storage\parameter_pack.h" />
     <ClInclude Include="storage\resource_wrapper.h" />
-    <ClInclude Include="synchronization\atomic_condition_variable.h" />
+    <ClInclude Include="synchronization\event.h" />
     <ClInclude Include="synchronization\atomic_concurrent.h" />
     <ClInclude Include="synchronization\concurrent.h" />
-    <ClInclude Include="synchronization\wait_for_multiple_conditions.h" />
+    <ClInclude Include="synchronization\wait_for_multiple_events.h" />
     <ClInclude Include="Thread\IThreadPool.h" />
     <ClInclude Include="Thread\ThreadPool.h" />
     <ClInclude Include="Thread\ThreadPoolDynamic.h" />

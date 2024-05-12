@@ -187,10 +187,11 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="test_atomic_concurrent.cpp" />
+    <ClCompile Include="test_event.cpp" />
     <ClCompile Include="test_concurrent.cpp" />
     <ClCompile Include="TestInterfaces.cpp" />
     <ClCompile Include="test_extensions.cpp" />
-    <ClCompile Include="TestThread.cpp" />
+    <ClCompile Include="test_thread.cpp" />
     <ClCompile Include="test_exception.cpp" />
     <ClCompile Include="test_finally.cpp" />
     <ClCompile Include="test_heterogeneous_container.cpp" />

@@ -194,7 +194,7 @@ public:
 
 	template <class _Condition, class _Predicate>
 #ifdef __cpp_lib_concepts
-		requires constraints::condition_variable_pred<_Condition, std::unique_lock<std::shared_mutex>, _Predicate>
+		requires constraints::condition_variable_type<_Condition>
 #endif
 	constexpr decltype(auto) wait(_Condition& cv, _Predicate&& pred) const
 	{
@@ -204,7 +204,7 @@ public:
 
 	template <class _Condition>
 #ifdef __cpp_lib_concepts
-		requires constraints::condition_variable<_Condition, std::unique_lock<std::shared_mutex>>
+		requires constraints::condition_variable_type<_Condition>
 #endif
 	constexpr decltype(auto) wait(_Condition& cv) const
 	{
@@ -367,7 +367,7 @@ public:
 
 	template <class _Condition, class _Predicate>
 #ifdef __cpp_lib_concepts
-		requires constraints::condition_variable_pred<_Condition, std::shared_lock<std::shared_mutex>, _Predicate>
+		requires constraints::condition_variable_type<_Condition>
 #endif
 	constexpr decltype(auto) wait(_Condition& cv, _Predicate&& pred) const
 	{
@@ -377,7 +377,7 @@ public:
 
 	template <class _Condition>
 #ifdef __cpp_lib_concepts
-		requires constraints::condition_variable<_Condition, std::shared_lock<std::shared_mutex>>
+		requires constraints::condition_variable_type<_Condition>
 #endif
 	constexpr decltype(auto) wait(_Condition& cv) const
 	{
