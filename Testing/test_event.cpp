@@ -20,160 +20,163 @@ public:
 	std::mutex m_conditionMtx;
 	std::shared_mutex m_testMtx;
 
-	TEST_METHOD(TestOrigConditionVariableNotifyOneBeforeWaitStarted)
+	void PrepareScenarioSetBeforeWait(std::function<void()>&& setCallback, std::function<void()>&& waitCallback)
 	{
-		bool bModified = false;
-		std::condition_variable acv;
-		auto status = std::cv_status::no_timeout;
-
+		bool bSetClalled = false;
 		m_testMtx.lock();
 		auto task = std::async(std::launch::async, [&, this]()
 			{
-				acv.notify_one();
-				bModified = true;
+				setCallback();
+				bSetClalled = true;
 				m_testMtx.unlock();
 			});
 
-		std::unique_lock testLock(m_testMtx);
-		{
-			std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
-			using namespace std::chrono_literals;
-			status = acv.wait_for(mtxQueueLock, 50ms);
-		}
+		m_testMtx.lock();
+		waitCallback();
 
 		task.get();
 		m_testMtx.unlock();
-		Assert::IsTrue(bModified);
-		Assert::AreEqual(static_cast<size_t>(std::cv_status::timeout), static_cast<size_t>(status));
+		Assert::IsTrue(bSetClalled);
 	}
 
-	TEST_METHOD(TestOrigConditionVariableNotifyOneAfterWaitStarted)
+	void PrepareScenarioSetAfterWait(std::function<void()>&& setCallback, std::function<void()>&& waitCallback)
 	{
-		bool bModified = false;
-		std::condition_variable acv;
-		auto status = std::cv_status::no_timeout;
-
+		bool bSetClalled = false;
 		m_testMtx.lock();
 		auto task = std::async(std::launch::async, [&, this]()
 			{
 				std::unique_lock testLock(m_testMtx);
-				acv.notify_one();
-				bModified = true;
+				setCallback();
+				bSetClalled = true;
 			});
 
 		{
-			std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
 			m_testMtx.unlock();
-			using namespace std::chrono_literals;
-			status = acv.wait_for(mtxQueueLock, 100ms);
+			waitCallback();
 		}
 
 		task.get();
-		Assert::IsTrue(bModified);
-		Assert::AreEqual(static_cast<size_t>(std::cv_status::no_timeout), static_cast<size_t>(status));
+		Assert::IsTrue(bSetClalled);
 	}
 
-	TEST_METHOD(TestNotifyOneBeforeWaitStarted)
+	TEST_METHOD(TestConditionVariabletSetBeforeWait)
 	{
-		bool bModified = false;
-		synchronization::event acv;
+		std::condition_variable acv;
 		auto status = false;
 
-		m_testMtx.lock();
-		auto task = std::async(std::launch::async, [&, this]()
+		PrepareScenarioSetBeforeWait(
+			[&]()
 			{
 				acv.notify_one();
-				bModified = true;
-				m_testMtx.unlock();
+			},
+			[&]()
+			{
+				std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
+				using namespace std::chrono_literals;
+				status = acv.wait_for(mtxQueueLock, 100ms) == std::cv_status::no_timeout;
 			});
 
-		std::unique_lock testLock(m_testMtx);
-		{
-			std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
-			using namespace std::chrono_literals;
-			status = acv.wait_for(mtxQueueLock, 100ms);
-		}
+		// status is false because the condition variable was set before the wait
+		// and there is not any mechanism to wake-up the thread that waiting after notification
+		Assert::IsFalse(status);
+	}
 
-		task.get();
-		m_testMtx.unlock();
-		Assert::IsTrue(bModified);
+	TEST_METHOD(TestConditionVariabletSetAfterWait)
+	{
+		std::condition_variable acv;
+		auto status = false;
+
+		PrepareScenarioSetAfterWait(
+			[&]()
+			{
+				acv.notify_one();
+			},
+			[&]()
+			{
+				std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
+				using namespace std::chrono_literals;
+				status = acv.wait_for(mtxQueueLock, 100ms) == std::cv_status::no_timeout;
+			});
+
+		// status is true because the condition variable was set after the wait
 		Assert::IsTrue(status);
 	}
 
-	TEST_METHOD(TestNotifyOneAfterWaitStarted)
+	TEST_METHOD(TestSemaphoreSetBeforeWait)
 	{
-		bool bModified = false;
-		synchronization::event acv;
-		auto status = false;
-
-		m_testMtx.lock();
-		auto task = std::async(std::launch::async, [&, this]()
-			{
-				std::unique_lock testLock(m_testMtx);
-				acv.notify_one();
-				bModified = true;
-			});
-
-		{
-			std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
-			m_testMtx.unlock();
-			using namespace std::chrono_literals;
-			status = acv.wait_for(mtxQueueLock, 100ms);
-		}
-
-		task.get();
-		Assert::IsTrue(bModified);
-		Assert::IsTrue(status);
-	}
-
-	TEST_METHOD(TestSemaphoreBeforeWaitStarted)
-	{
-		bool bModified = false;
 		std::binary_semaphore sem{ 0 };
 		auto status = false;
 
-		m_testMtx.lock();
-		auto task = std::async(std::launch::async, [&, this]()
+		PrepareScenarioSetBeforeWait(
+			[&]()
 			{
 				sem.release();
-				bModified = true;
-				m_testMtx.unlock();
+			},
+			[&]()
+			{
+				using namespace std::chrono_literals;
+				status = sem.try_acquire_for(100ms);
 			});
 
-		std::unique_lock testLock(m_testMtx);
-		{
-			using namespace std::chrono_literals;
-			status = sem.try_acquire_for(100ms);
-		}
-
-		task.get();
-		m_testMtx.unlock();
-		Assert::IsTrue(bModified);
 		Assert::IsTrue(status);
 	}
 
-	TEST_METHOD(TestSemaphorAfterAquireStarted)
+	TEST_METHOD(TestSemaphorSetAfterAquire)
 	{
-		bool bModified = false;
 		std::binary_semaphore sem{ 0 };
 		auto status = false;
 
-		m_testMtx.lock();
-		auto task = std::async(std::launch::async, [&, this]()
+		PrepareScenarioSetAfterWait(
+			[&]()
 			{
-				std::unique_lock testLock(m_testMtx);
 				sem.release();
-				bModified = true;
+			},
+			[&]()
+			{
+				using namespace std::chrono_literals;
+				status = sem.try_acquire_for(100ms);
 			});
 
-		{
-			m_testMtx.unlock();
-			using namespace std::chrono_literals;
-			status = sem.try_acquire_for(100ms);
-		}
+		Assert::IsTrue(status);
+	}
 
-		task.get();
-		Assert::IsTrue(bModified);
+	TEST_METHOD(TestEventSetBeforeWait)
+	{
+		synchronization::event e;
+		auto status = false;
+
+		PrepareScenarioSetBeforeWait(
+			[&]()
+			{
+				e.notify_one();
+			},
+			[&]()
+			{
+				std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
+				using namespace std::chrono_literals;
+				status = e.wait_for(mtxQueueLock, 100ms);
+			});
+
+		Assert::IsTrue(status);
+	}
+
+	TEST_METHOD(TestEventSetAfterWait)
+	{
+		synchronization::event e;
+		auto status = false;
+
+		PrepareScenarioSetAfterWait(
+			[&]()
+			{
+				e.notify_one();
+			},
+			[&]()
+			{
+				std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
+				using namespace std::chrono_literals;
+				status = e.wait_for(mtxQueueLock, 100ms);
+			});
+
 		Assert::IsTrue(status);
 	}
 
