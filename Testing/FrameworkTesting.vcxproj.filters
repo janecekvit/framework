@@ -76,7 +76,7 @@
     <ClCompile Include="test_concurrent.cpp">
       <Filter>synchronization</Filter>
     </ClCompile>
-    <ClCompile Include="test_event.cpp">
+    <ClCompile Include="test_signal.cpp">
       <Filter>synchronization</Filter>
     </ClCompile>
   </ItemGroup>

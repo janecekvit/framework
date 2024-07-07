@@ -1,7 +1,7 @@
 ﻿#include "stdafx.h"
 
 #include "CppUnitTest.h"
-#include "synchronization/event.h"
+#include "synchronization/signal.h"
 
 #include <future>
 #include <semaphore>
@@ -10,21 +10,32 @@
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace janecekvit;
 using namespace std::string_literals;
+using namespace std::chrono_literals;
 
 namespace FrameworkTesting
 {
 
-ONLY_USED_AT_NAMESPACE_SCOPE class test_event : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_event> // expanded TEST_CLASS() macro due wrong formatting of clangformat
+ONLY_USED_AT_NAMESPACE_SCOPE class test_signal : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_signal> // expanded TEST_CLASS() macro due wrong formatting of clangformat
 {
 public:
 	std::mutex m_conditionMtx;
 	std::shared_mutex m_testMtx;
 
+	std::future<void> AddTask(std::function<void()>&& task)
+	{
+		auto work = std::async(std::launch::async, [this, task = std::move(task)]()
+			{
+				task();
+			});
+
+		return work;
+	}
+
 	void PrepareScenarioSetBeforeWait(std::function<void()>&& setCallback, std::function<void()>&& waitCallback)
 	{
 		bool bSetClalled = false;
 		m_testMtx.lock();
-		auto task = std::async(std::launch::async, [&, this]()
+		auto task = AddTask([&, this]()
 			{
 				setCallback();
 				bSetClalled = true;
@@ -43,7 +54,7 @@ public:
 	{
 		bool bSetClalled = false;
 		m_testMtx.lock();
-		auto task = std::async(std::launch::async, [&, this]()
+		auto task = AddTask([&, this]()
 			{
 				std::unique_lock testLock(m_testMtx);
 				setCallback();
@@ -59,7 +70,7 @@ public:
 		Assert::IsTrue(bSetClalled);
 	}
 
-	TEST_METHOD(TestConditionVariabletSetBeforeWait)
+	TEST_METHOD(ScenarioConditionVariableSetBeforeWait)
 	{
 		std::condition_variable acv;
 		auto status = false;
@@ -81,7 +92,7 @@ public:
 		Assert::IsFalse(status);
 	}
 
-	TEST_METHOD(TestConditionVariabletSetAfterWait)
+	TEST_METHOD(ScenarioConditionVariableSetAfterWait)
 	{
 		std::condition_variable acv;
 		auto status = false;
@@ -102,7 +113,7 @@ public:
 		Assert::IsTrue(status);
 	}
 
-	TEST_METHOD(TestSemaphoreSetBeforeWait)
+	TEST_METHOD(ScenarioSemaphoreSetBeforeWait)
 	{
 		std::binary_semaphore sem{ 0 };
 		auto status = false;
@@ -121,7 +132,7 @@ public:
 		Assert::IsTrue(status);
 	}
 
-	TEST_METHOD(TestSemaphorSetAfterAquire)
+	TEST_METHOD(ScenarioSemaphorSetAfterWait)
 	{
 		std::binary_semaphore sem{ 0 };
 		auto status = false;
@@ -133,66 +144,140 @@ public:
 			},
 			[&]()
 			{
-				using namespace std::chrono_literals;
 				status = sem.try_acquire_for(100ms);
 			});
 
 		Assert::IsTrue(status);
 	}
 
-	TEST_METHOD(TestEventSetBeforeWait)
+	TEST_METHOD(ScenarioSignalConSetBeforeWait)
 	{
-		synchronization::event e;
+		synchronization::signal<std::condition_variable_any> s;
 		auto status = false;
 
 		PrepareScenarioSetBeforeWait(
 			[&]()
 			{
-				e.notify_one();
+				s.signalize();
 			},
 			[&]()
 			{
 				std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
-				using namespace std::chrono_literals;
-				status = e.wait_for(mtxQueueLock, 100ms);
+				status = s.wait_for(mtxQueueLock, 100ms);
 			});
 
 		Assert::IsTrue(status);
 	}
 
-	TEST_METHOD(TestEventSetAfterWait)
+	TEST_METHOD(ScenarioSignalConSetAfterWait)
 	{
-		synchronization::event e;
+		synchronization::signal<std::condition_variable_any> s;
 		auto status = false;
 
 		PrepareScenarioSetAfterWait(
 			[&]()
 			{
-				e.notify_one();
+				s.signalize();
 			},
 			[&]()
 			{
 				std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
 				using namespace std::chrono_literals;
-				status = e.wait_for(mtxQueueLock, 100ms);
+				status = s.wait_for(mtxQueueLock, 100ms);
 			});
 
 		Assert::IsTrue(status);
 	}
 
-	/*Assert::AreEqual(static_cast<size_t>(t), static_cast<size_t>(test::Warning));
-	Assert::AreEqual(std::hash<std::thread::id>()(id), std::hash<std::thread::id>()(std::this_thread::get_id()));
-	Assert::AreEqual(srcl.file_name(), defaultLocation.file_name());
-	Assert::AreEqual(srcl.function_name(), "void __cdecl FrameworkTesting::test_trace::TestTrace(void)");
-	Assert::AreEqual(srcl.line(), static_cast<uint_least32_t>(25));
-	Assert::AreEqual(data, L"ANO: true"s);
+	TEST_METHOD(ScenarioSignalSemSetBeforeWait)
+	{
+		synchronization::signal<std::binary_semaphore> s;
+		auto status = false;
 
-	Assert::AreEqual(static_cast<size_t>(t2.priority()), static_cast<size_t>(test::Verbose));
-	Assert::AreEqual(std::hash<std::thread::id>()(t2.thread_id()), std::hash<std::thread::id>()(std::this_thread::get_id()));
-	Assert::AreEqual(t2.source_location().file_name(), defaultLocation.file_name());
-	Assert::AreEqual(t2.source_location().function_name(), "void __cdecl FrameworkTesting::test_trace::TestTrace(void)");
-	Assert::AreEqual(t2.source_location().line(), static_cast<uint_least32_t>(29));
-	Assert::AreEqual(t2.data(), L"NE: false"s);*/
+		PrepareScenarioSetBeforeWait(
+			[&]()
+			{
+				s.signalize();
+			},
+			[&]()
+			{
+				status = s.wait_for(100ms);
+			});
+
+		Assert::IsTrue(status);
+	}
+
+	TEST_METHOD(ScenarioSignalSemSetAfterWait)
+	{
+		synchronization::signal<std::binary_semaphore> s;
+		auto status = false;
+
+		PrepareScenarioSetAfterWait(
+			[&]()
+			{
+				s.signalize();
+			},
+			[&]()
+			{
+				status = s.wait_for(100ms);
+			});
+
+		Assert::IsTrue(status);
+	}
+
+	TEST_METHOD(SignalCon_Signalization)
+	{
+		synchronization::signal<std::condition_variable_any> s;
+		int counter = 0;
+
+		std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
+		std::list<std::future<void>> tasks;
+		tasks.emplace_back(AddTask([&]()
+			{
+				s.wait(mtxQueueLock);
+				counter++;
+			}));
+
+		s.signalize();
+
+		std::ranges::for_each(tasks, [](auto& task)
+		{
+				task.get();
+			});
+		Assert::AreEqual(1, counter);
+	}
+
+	/*TEST_METHOD(SignalCon_SignalizationAll)
+	{
+		synchronization::signal<std::condition_variable_any> s;
+		int counter = 0;
+
+		std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
+		std::list<std::future<void>> tasks;
+		tasks.emplace_back(AddTask([&]()
+			{
+				s.wait(mtxQueueLock);
+				counter++;
+			}));
+		tasks.emplace_back(AddTask([&]()
+			{
+				s.wait(mtxQueueLock);
+				counter++;
+			}));
+		tasks.emplace_back(AddTask([&]()
+			{
+				s.wait(mtxQueueLock);
+				counter++;
+			}));
+
+		s.signalize();
+
+		std::ranges::for_each(tasks, [](auto& task)
+			{
+				task.get();
+			});
+		Assert::AreEqual(3, counter);
+	}*/
 };
 
 } // namespace FrameworkTesting

@@ -63,7 +63,7 @@
     <ClInclude Include="synchronization\atomic_concurrent.h">
       <Filter>synchronization</Filter>
     </ClInclude>
-    <ClInclude Include="synchronization\event.h">
+    <ClInclude Include="synchronization\signal.h">
       <Filter>synchronization</Filter>
     </ClInclude>
     <ClInclude Include="synchronization\concurrent.h">

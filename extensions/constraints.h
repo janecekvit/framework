@@ -215,8 +215,13 @@ template <class _Condition>
 concept condition_variable_type = std::is_same_v<std::condition_variable, _Condition> || std::is_same_v<std::condition_variable_any, _Condition>;
 
 #ifdef __cpp_lib_semaphore
-template <class _Semaphore, ptrdiff_t _Least_max_value>
-concept semaphore_type = std::is_constructible_v<std::binary_semaphore, _Semaphore> || std::is_constructible_v<std::counting_semaphore<_Least_max_value>, _Semaphore>;
+template <class _Semaphore, ptrdiff_t _Least_max_value = std::_Semaphore_max>
+concept semaphore_type = std::is_same_v<std::binary_semaphore, _Semaphore> || std::is_same_v<std::counting_semaphore<_Least_max_value>, _Semaphore>;
+#endif // __cpp_lib_semaphore
+
+#ifdef __cpp_lib_semaphore
+template <class _Semaphore>
+concept binary_semaphore_type = std::is_same_v<std::binary_semaphore, _Semaphore>;
 #endif // __cpp_lib_semaphore
 
 #endif
