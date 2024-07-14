@@ -20,6 +20,8 @@ resource_wrapper.h, resource_wrapper.cpp
 -> fix compilation when no libconcepts are present
 
  == synchronization ==
+ signal.h, test_signal.cpp
+ -> DONE (fix compilation when no libconcepts are present)
 
 
  == tracing == 
@@ -28,10 +30,8 @@ trace.h, test_trace.cpp
 
 TODO:
 - Check concurrent and atomic_concurrent
-- Partial template specialization for events based on condition or semaphore
-- add tests for events and wait for multiple events
-- atomic condition variable with concepts
-- wait for multime conditions with concepts
+- add tests wait for multiple signals
+- wait for multime signals  with concepts
 - Finish extensions.h cleanup
 - rewrite sync
 - Rewrite and fix thread

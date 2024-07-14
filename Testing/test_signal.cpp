@@ -21,12 +21,28 @@ public:
 	std::mutex m_conditionMtx;
 	std::shared_mutex m_testMtx;
 
+	void CompareStatuses(const std::list<std::future_status>& actual, const std::list<std::future_status>& expected)
+	{
+		Assert::AreEqual(actual.size(), expected.size());
+		auto itExpected = expected.begin();
+		for (const auto& status : actual)
+		{
+			Assert::AreEqual(static_cast<size_t>(*itExpected), static_cast<size_t>(status));
+			++itExpected;
+		}
+	}
+
 	std::future<void> AddTask(std::function<void()>&& task)
 	{
-		auto work = std::async(std::launch::async, [this, task = std::move(task)]()
+		auto work = std::async(std::launch::async, [task = std::move(task)]()
 			{
 				task();
 			});
+
+		// replan scheduler
+		std::this_thread::yield();
+		work.wait_for(0ms);
+		std::this_thread::yield();
 
 		return work;
 	}
@@ -94,8 +110,8 @@ public:
 
 	TEST_METHOD(ScenarioConditionVariableSetAfterWait)
 	{
-		std::condition_variable acv;
 		auto status = false;
+		std::condition_variable acv;
 
 		PrepareScenarioSetAfterWait(
 			[&]()
@@ -115,8 +131,8 @@ public:
 
 	TEST_METHOD(ScenarioSemaphoreSetBeforeWait)
 	{
-		std::binary_semaphore sem{ 0 };
 		auto status = false;
+		std::binary_semaphore sem{ 0 };
 
 		PrepareScenarioSetBeforeWait(
 			[&]()
@@ -152,8 +168,8 @@ public:
 
 	TEST_METHOD(ScenarioSignalConSetBeforeWait)
 	{
-		synchronization::signal<std::condition_variable_any> s;
 		auto status = false;
+		synchronization::signal<std::condition_variable_any> s;
 
 		PrepareScenarioSetBeforeWait(
 			[&]()
@@ -171,8 +187,8 @@ public:
 
 	TEST_METHOD(ScenarioSignalConSetAfterWait)
 	{
-		synchronization::signal<std::condition_variable_any> s;
 		auto status = false;
+		synchronization::signal<std::condition_variable_any> s;
 
 		PrepareScenarioSetAfterWait(
 			[&]()
@@ -191,8 +207,8 @@ public:
 
 	TEST_METHOD(ScenarioSignalSemSetBeforeWait)
 	{
-		synchronization::signal<std::binary_semaphore> s;
 		auto status = false;
+		synchronization::signal<std::binary_semaphore> s;
 
 		PrepareScenarioSetBeforeWait(
 			[&]()
@@ -209,8 +225,8 @@ public:
 
 	TEST_METHOD(ScenarioSignalSemSetAfterWait)
 	{
-		synchronization::signal<std::binary_semaphore> s;
 		auto status = false;
+		synchronization::signal<std::binary_semaphore> s;
 
 		PrepareScenarioSetAfterWait(
 			[&]()
@@ -227,57 +243,344 @@ public:
 
 	TEST_METHOD(SignalCon_Signalization)
 	{
-		synchronization::signal<std::condition_variable_any> s;
 		int counter = 0;
+		std::list<std::future_status> statuses;
+		synchronization::signal<std::condition_variable_any> s;
 
-		std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
-		std::list<std::future<void>> tasks;
-		tasks.emplace_back(AddTask([&]()
+		auto task1 = AddTask([&]()
 			{
+				std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
 				s.wait(mtxQueueLock);
 				counter++;
-			}));
-
-		s.signalize();
-
-		std::ranges::for_each(tasks, [](auto& task)
-		{
-				task.get();
 			});
+
+		statuses.emplace_back(task1.wait_for(0ms));
+		s.signalize();
+		statuses.emplace_back(task1.wait_for(25ms));
+
+		task1.get();
+
+		CompareStatuses(statuses, { std::future_status::timeout, std::future_status::ready });
 		Assert::AreEqual(1, counter);
 	}
 
-	/*TEST_METHOD(SignalCon_SignalizationAll)
+	TEST_METHOD(SignalCon_SignalizationAutoReset)
+	{
+		int counter = 0;
+		std::list<std::future_status> statuses;
+		synchronization::signal<std::condition_variable_any> s;
+		auto callback = [&]()
+		{
+			std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
+			s.wait(mtxQueueLock);
+			counter++;
+		};
+
+		auto task1 = AddTask(callback);
+		auto task2 = AddTask(callback);
+
+		statuses.emplace_back(task1.wait_for(0ms));
+		statuses.emplace_back(task2.wait_for(0ms));
+		s.signalize();
+		statuses.emplace_back(task1.wait_for(100ms));
+		statuses.emplace_back(task2.wait_for(0ms));
+		s.signalize();
+		statuses.emplace_back(task1.wait_for(0ms));
+		statuses.emplace_back(task2.wait_for(100ms));
+
+		CompareStatuses(statuses, { std::future_status::timeout, std::future_status::timeout,
+									  std::future_status::ready, std::future_status::timeout,
+									  std::future_status::ready, std::future_status::ready });
+
+		Assert::AreEqual(2, counter);
+	}
+
+	TEST_METHOD(SignalCon_SignalizationManualReset)
+	{
+		int counter = 0;
+		std::list<std::future_status> statuses;
+		synchronization::signal<std::condition_variable_any, true> s;
+		auto callback = [&]()
+		{
+			std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
+			s.wait(mtxQueueLock);
+			counter++;
+		};
+
+		auto task1 = AddTask(callback);
+		auto task2 = AddTask(callback);
+
+		statuses.emplace_back(task1.wait_for(0ms));
+		statuses.emplace_back(task2.wait_for(0ms));
+		s.signalize();
+		statuses.emplace_back(task1.wait_for(25ms));
+		statuses.emplace_back(task2.wait_for(25ms));
+
+		CompareStatuses(statuses, { std::future_status::timeout, std::future_status::timeout,
+									  std::future_status::ready, std::future_status::ready });
+
+		Assert::AreEqual(2, counter);
+	}
+
+	TEST_METHOD(SignalCon_SignalizationManualResetWithReset)
+	{
+		int counter = 0;
+		std::list<std::future_status> statuses;
+		synchronization::signal<std::condition_variable_any, true> s;
+		auto callback = [&]()
+		{
+			std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
+			s.wait(mtxQueueLock);
+			counter++;
+		};
+
+		auto task1 = AddTask(callback);
+
+		statuses.emplace_back(task1.wait_for(25ms));
+		s.signalize();
+		statuses.emplace_back(task1.wait_for(25ms));
+		s.reset();
+
+		auto task2 = AddTask(callback);
+
+		statuses.emplace_back(task2.wait_for(25ms));
+		s.signalize();
+		statuses.emplace_back(task2.wait_for(25ms));
+
+		CompareStatuses(statuses, { std::future_status::timeout, std::future_status::ready,
+									  std::future_status::timeout, std::future_status::ready });
+
+		Assert::AreEqual(2, counter);
+	}
+
+	TEST_METHOD(SignalCon_WaitPredicate)
+	{
+		int counter = 0;
+		std::list<std::future_status> statuses;
+		synchronization::signal<std::condition_variable_any> s;
+		auto callback = [&]()
+		{
+			std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
+			s.wait(mtxQueueLock, []()
+				{
+					return true;
+				});
+			counter++;
+			s.wait(mtxQueueLock, []()
+				{
+					return false;
+				});
+			counter++;
+		};
+
+		auto task1 = AddTask(callback);
+		statuses.emplace_back(task1.wait_for(25ms));
+		Assert::AreEqual(1, counter);
+		s.signalize();
+		statuses.emplace_back(task1.wait_for(25ms));
+		Assert::AreEqual(2, counter);
+
+		CompareStatuses(statuses, { std::future_status::timeout, std::future_status::ready });
+	}
+
+	TEST_METHOD(SignalCon_WaitForPredicate)
 	{
 		synchronization::signal<std::condition_variable_any> s;
-		int counter = 0;
-
 		std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
-		std::list<std::future<void>> tasks;
-		tasks.emplace_back(AddTask([&]()
+
+		Assert::IsTrue(s.wait_for(mtxQueueLock, 0ms, []()
 			{
-				s.wait(mtxQueueLock);
-				counter++;
+				return true;
 			}));
-		tasks.emplace_back(AddTask([&]()
-			{
-				s.wait(mtxQueueLock);
-				counter++;
-			}));
-		tasks.emplace_back(AddTask([&]()
-			{
-				s.wait(mtxQueueLock);
-				counter++;
-			}));
+
+		Assert::IsFalse(s.wait_for(mtxQueueLock, 0ms));
 
 		s.signalize();
+		Assert::IsTrue(s.wait_for(mtxQueueLock, 0ms));
+	}
 
-		std::ranges::for_each(tasks, [](auto& task)
+	TEST_METHOD(SignalCon_WaitUntilPredicate)
+	{
+		synchronization::signal<std::condition_variable_any> s;
+		std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
+
+		Assert::IsTrue(s.wait_until(mtxQueueLock, std::chrono::steady_clock::now(), []()
 			{
-				task.get();
+				return true;
+			}));
+
+		Assert::IsFalse(s.wait_until(mtxQueueLock, std::chrono::steady_clock::now()));
+
+		s.signalize();
+		Assert::IsTrue(s.wait_until(mtxQueueLock, std::chrono::steady_clock::now()));
+	}
+
+	TEST_METHOD(SignalSem_Signalization)
+	{
+		int counter = 0;
+		std::list<std::future_status> statuses;
+		synchronization::signal<std::binary_semaphore> s;
+
+		auto task1 = AddTask([&]()
+			{
+				s.wait();
+				counter++;
 			});
-		Assert::AreEqual(3, counter);
-	}*/
+
+		statuses.emplace_back(task1.wait_for(0ms));
+		s.signalize();
+		statuses.emplace_back(task1.wait_for(25ms));
+
+		task1.get();
+
+		CompareStatuses(statuses, { std::future_status::timeout, std::future_status::ready });
+		Assert::AreEqual(1, counter);
+	}
+
+	TEST_METHOD(SignalSem_SignalizationAutoReset)
+	{
+		int counter = 0;
+		std::list<std::future_status> statuses;
+		synchronization::signal<std::binary_semaphore> s;
+		auto callback = [&]()
+		{
+			s.wait();
+			counter++;
+		};
+
+		auto task1 = AddTask(callback);
+		auto task2 = AddTask(callback);
+
+		statuses.emplace_back(task1.wait_for(0ms));
+		statuses.emplace_back(task2.wait_for(0ms));
+		s.signalize();
+		statuses.emplace_back(task1.wait_for(25ms));
+		statuses.emplace_back(task2.wait_for(0ms));
+		s.signalize();
+		statuses.emplace_back(task1.wait_for(0ms));
+		statuses.emplace_back(task2.wait_for(25ms));
+
+		CompareStatuses(statuses, { std::future_status::timeout, std::future_status::timeout,
+									  std::future_status::ready, std::future_status::timeout,
+									  std::future_status::ready, std::future_status::ready });
+
+		Assert::AreEqual(2, counter);
+	}
+
+	TEST_METHOD(SignalSem_SignalizationManualReset)
+	{
+		int counter = 0;
+		std::list<std::future_status> statuses;
+		synchronization::signal<std::binary_semaphore, true> s;
+		auto callback = [&]()
+		{
+			s.wait();
+			counter++;
+		};
+
+		auto task1 = AddTask(callback);
+		auto task2 = AddTask(callback);
+
+		statuses.emplace_back(task1.wait_for(0ms));
+		statuses.emplace_back(task2.wait_for(0ms));
+		s.signalize();
+		statuses.emplace_back(task1.wait_for(25ms));
+		statuses.emplace_back(task2.wait_for(25ms));
+
+		CompareStatuses(statuses, { std::future_status::timeout, std::future_status::timeout,
+									  std::future_status::ready, std::future_status::ready });
+
+		Assert::AreEqual(2, counter);
+	}
+
+	TEST_METHOD(SignalSem_SignalizationManualResetWithReset)
+	{
+		int counter = 0;
+		std::list<std::future_status> statuses;
+		synchronization::signal<std::binary_semaphore, true> s;
+		auto callback = [&]()
+		{
+			s.wait();
+			counter++;
+		};
+
+		auto task1 = AddTask(callback);
+
+		statuses.emplace_back(task1.wait_for(25ms));
+		s.signalize();
+		statuses.emplace_back(task1.wait_for(25ms));
+		s.reset();
+
+		auto task2 = AddTask(callback);
+
+		statuses.emplace_back(task2.wait_for(25ms));
+		s.signalize();
+		statuses.emplace_back(task2.wait_for(25ms));
+
+		CompareStatuses(statuses, { std::future_status::timeout, std::future_status::ready,
+									  std::future_status::timeout, std::future_status::ready });
+
+		Assert::AreEqual(2, counter);
+	}
+
+	TEST_METHOD(SignalSem_WaitPredicate)
+	{
+		int counter = 0;
+		std::list<std::future_status> statuses;
+		synchronization::signal<std::binary_semaphore> s;
+		auto callback = [&]()
+		{
+			s.wait([]()
+				{
+					return true;
+				});
+			counter++;
+			s.wait([]()
+				{
+					return false;
+				});
+			counter++;
+		};
+
+		auto task1 = AddTask(callback);
+		statuses.emplace_back(task1.wait_for(25ms));
+		Assert::AreEqual(1, counter);
+		s.signalize();
+		statuses.emplace_back(task1.wait_for(25ms));
+		Assert::AreEqual(2, counter);
+
+		CompareStatuses(statuses, { std::future_status::timeout, std::future_status::ready });
+	}
+
+	TEST_METHOD(SignalSem_WaitForPredicate)
+	{
+		synchronization::signal<std::binary_semaphore> s;
+
+		Assert::IsTrue(s.wait_for(0ms, []()
+			{
+				return true;
+			}));
+
+		Assert::IsFalse(s.wait_for(0ms));
+
+		s.signalize();
+		Assert::IsTrue(s.wait_for(0ms));
+	}
+
+	TEST_METHOD(SignalSem_WaitUntilPredicate)
+	{
+		synchronization::signal<std::binary_semaphore> s;
+
+		Assert::IsTrue(s.wait_until(std::chrono::steady_clock::now(), []()
+			{
+				return true;
+			}));
+
+		Assert::IsFalse(s.wait_until(std::chrono::steady_clock::now()));
+
+		s.signalize();
+		Assert::IsTrue(s.wait_until(std::chrono::steady_clock::now()));
+	}
 };
 
 } // namespace FrameworkTesting
