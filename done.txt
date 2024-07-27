@@ -23,6 +23,9 @@ resource_wrapper.h, resource_wrapper.cpp
  signal.h, test_signal.cpp
  -> DONE (fix compilation when no libconcepts are present)
 
+wait_for_multiple_signals.h, test_wait_for_multiple_signals.cpp
+ -> DONE (fix compilation when no libconcepts are present)
+
 
  == tracing == 
 trace.h, test_trace.cpp
@@ -30,8 +33,6 @@ trace.h, test_trace.cpp
 
 TODO:
 - Check concurrent and atomic_concurrent
-- add tests wait for multiple signals
-- wait for multime signals  with concepts
 - Finish extensions.h cleanup
 - rewrite sync
 - Rewrite and fix thread

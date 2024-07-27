@@ -19,7 +19,12 @@ public:
 	{
 	}
 
+#ifdef __cpp_lib_concepts
+	template <class... _AltArgs>
+		requires std::is_same_v<std::tuple<_AltArgs...>, std::tuple<_Args...>> && std::is_invocable_v<std::function<_Ret(_Args...)>, _AltArgs...>
+#else
 	template <class... _AltArgs, std::enable_if_t<std::is_same_v<std::tuple<_AltArgs...>, std::tuple<_Args...>>, int> = 0>
+#endif
 	[[nodiscard]] _Ret operator()(_AltArgs&&... args) const // -> std::invoke_result_t<_F, _Args...>
 	{
 		return std::invoke(_evaluator, std::forward<_AltArgs>(args)...);
@@ -38,7 +43,12 @@ private:
 /// <summary>
 /// lazy call wraps final_action to easily retrieve and fill it
 /// </summary>
+#ifdef __cpp_lib_concepts
+template <class _F, class... _Args>
+	requires std::is_invocable_v<_F, _Args...>
+#else
 template <class _F, class... _Args, std::enable_if_t<std::is_invocable_v<_F, _Args...>, int> = 0>
+#endif
 [[nodiscard]] decltype(auto) lazy(_F&& callback, _Args&&... args)
 {
 	return lazy_action<std::invoke_result_t<_F, _Args...>, _Args...>{ std::forward<_F>(callback), std::forward<_Args>(args)... };

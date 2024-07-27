@@ -79,6 +79,9 @@
     <ClCompile Include="test_signal.cpp">
       <Filter>synchronization</Filter>
     </ClCompile>
+    <ClCompile Include="test_wait_for_multiple_signals.cpp">
+      <Filter>synchronization</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\done.txt" />

@@ -1,9 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Thread\ThreadPoolDynamic.cpp">
-      <Filter>thread</Filter>
-    </ClCompile>
     <ClCompile Include="Thread\ThreadPool.cpp">
       <Filter>thread</Filter>
     </ClCompile>
@@ -12,9 +9,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Thread\ThreadPoolDynamic.h">
-      <Filter>thread</Filter>
-    </ClInclude>
     <ClInclude Include="Thread\ThreadPool.h">
       <Filter>thread</Filter>
     </ClInclude>
@@ -69,7 +63,7 @@
     <ClInclude Include="synchronization\concurrent.h">
       <Filter>synchronization</Filter>
     </ClInclude>
-    <ClInclude Include="synchronization\wait_for_multiple_events.h">
+    <ClInclude Include="synchronization\wait_for_multiple_signals.h">
       <Filter>synchronization</Filter>
     </ClInclude>
   </ItemGroup>

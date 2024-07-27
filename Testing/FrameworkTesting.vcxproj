@@ -199,6 +199,7 @@
     <ClCompile Include="test_parameter_pack.cpp" />
     <ClCompile Include="test_resource_wrapper.cpp" />
     <ClCompile Include="test_trace.cpp" />
+    <ClCompile Include="test_wait_for_multiple_signals.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Framework.vcxproj">

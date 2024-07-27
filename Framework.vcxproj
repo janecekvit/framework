@@ -20,7 +20,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Thread\ThreadPool.cpp" />
-    <ClCompile Include="Thread\ThreadPoolDynamic.cpp" />
     <ClCompile Include="utility\conversions.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -38,10 +37,9 @@
     <ClInclude Include="synchronization\signal.h" />
     <ClInclude Include="synchronization\atomic_concurrent.h" />
     <ClInclude Include="synchronization\concurrent.h" />
-    <ClInclude Include="synchronization\wait_for_multiple_events.h" />
+    <ClInclude Include="synchronization\wait_for_multiple_signals.h" />
     <ClInclude Include="Thread\IThreadPool.h" />
     <ClInclude Include="Thread\ThreadPool.h" />
-    <ClInclude Include="Thread\ThreadPoolDynamic.h" />
     <ClInclude Include="tracing\trace.h" />
     <ClInclude Include="utility\conversions.h" />
   </ItemGroup>

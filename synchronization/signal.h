@@ -67,7 +67,7 @@ public:
 	}
 
 #ifdef __cpp_lib_semaphore
-	[[nodiscard]] void wait() const
+	void wait() const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
 		for (; !_reset_strategy();)
@@ -76,7 +76,7 @@ public:
 #endif
 
 #ifdef __cpp_lib_semaphore
-	[[nodiscard]] void wait(_Predicate&& pred) const
+	void wait(_Predicate&& pred) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
 		for (; !(_reset_strategy() || pred());)
