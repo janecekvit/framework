@@ -37,7 +37,7 @@ constexpr size_t IterationCount = 500000;
 
 ONLY_USED_AT_NAMESPACE_SCOPE class test_concurrent : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_concurrent> // expanded TEST_CLASS() macro due wrong formatting of clangformat
 {
-	[[no_discard]] static concurrent::unordered_map<int, int> _prepare_testing_data()
+	[[nodiscard]] static concurrent::unordered_map<int, int> _prepare_testing_data()
 	{
 		concurrent::unordered_map<int, int> container;
 		container.exclusive()->emplace(5, 5); // exclusive access with lifetime of one operation
@@ -50,7 +50,7 @@ ONLY_USED_AT_NAMESPACE_SCOPE class test_concurrent : public ::Microsoft::VisualS
 		return container;
 	}
 
-	[[no_discard]] static concurrent::resource_owner<int> _prepare_testing_data_perf_test()
+	[[nodiscard]] static concurrent::resource_owner<int> _prepare_testing_data_perf_test()
 	{
 		concurrent::resource_owner<int> container;
 		container.exclusive()--; // exclusive access with lifetime of one operation

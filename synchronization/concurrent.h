@@ -15,6 +15,7 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 
 #pragma once
 #include "extensions/constraints.h"
+#include "synchronization/signal.h"
 
 #include <array>
 #include <cerrno>
@@ -380,6 +381,16 @@ public:
 		requires constraints::condition_variable_type<_Condition>
 #endif
 	constexpr decltype(auto) wait(_Condition& cv) const
+	{
+		_check_ownership();
+		return cv.wait(_concurrentLock);
+	}
+
+	template <class _Signal>
+#ifdef __cpp_lib_concepts
+		requires synchronization::signal_type<_Signal>
+#endif
+	constexpr decltype(auto) wait(_Signal& cv) const
 	{
 		_check_ownership();
 		return cv.wait(_concurrentLock);

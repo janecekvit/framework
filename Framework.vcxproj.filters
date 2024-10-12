@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Thread\ThreadPool.cpp">
+    <ClCompile Include="Thread\sync_thread_pool.cpp">
       <Filter>thread</Filter>
     </ClCompile>
     <ClCompile Include="utility\conversions.cpp">
@@ -9,7 +9,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Thread\ThreadPool.h">
+    <ClInclude Include="Thread\sync_thread_pool.h">
       <Filter>thread</Filter>
     </ClInclude>
     <ClInclude Include="Interface\ICloneable.h">
@@ -18,7 +18,7 @@
     <ClInclude Include="Interface\ICRTP.h">
       <Filter>interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="Thread\IThreadPool.h">
+    <ClInclude Include="Thread\thread_pool.h">
       <Filter>thread</Filter>
     </ClInclude>
     <ClInclude Include="extensions\constraints.h">

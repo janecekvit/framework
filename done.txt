@@ -41,3 +41,8 @@ TODO:
 - Better formatting
 - Create readme.md
 - Minimum supported version c++17 -> test it
+
+
+EXTRA:
+Create c++ compile time DI
+https://github.com/radzevich/Compile-time-Dependency-Injection

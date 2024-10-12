@@ -8,7 +8,6 @@
 
 namespace janecekvit::synchronization
 {
-
 /// <summary>
 /// The signal is used for synchronization between different threads.
 /// It sets an auto reset state by default, where it resets after each blocking call, or to the manual reset state.
@@ -203,5 +202,10 @@ private:
 	mutable _SyncPrimitive _syncPrimitive;
 	mutable std::atomic<bool> _signalized = false;
 };
+
+#ifdef __cpp_lib_concepts
+template <class _Type, class _InnerType = std::binary_semaphore>
+concept signal_type = std::is_same_v<_Type, janecekvit::synchronization::signal<_InnerType>>;
+#endif
 
 } // namespace janecekvit::synchronization
