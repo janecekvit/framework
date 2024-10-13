@@ -83,7 +83,7 @@ public:
 
 		concurrent::resource_owner<std::array<int, 4>> oArray;
 		auto size = oArray.exclusive().size();
-		Assert::AreEqual<int>(size, 4);
+		Assert::AreEqual<size_t>(size, 4);
 	}
 
 	TEST_METHOD(TestExclusiveAccessDirect)
@@ -103,7 +103,7 @@ public:
 		Assert::AreEqual(scope->at(15), 15);
 		Assert::ExpectException<std::out_of_range>([&]()
 			{
-				scope->at(20);
+				std::ignore = scope->at(20);
 			});
 	}
 
@@ -156,7 +156,7 @@ public:
 			Assert::AreEqual(scope->at(15), 15);
 			Assert::ExpectException<std::out_of_range>([&]()
 				{
-					scope->at(20);
+					std::ignore = scope->at(20);
 				});
 
 			Assert::AreEqual(scope2->at(5), 5);
@@ -164,14 +164,14 @@ public:
 			Assert::AreEqual(scope2->at(15), 15);
 			Assert::ExpectException<std::out_of_range>([&]()
 				{
-					scope2->at(20);
+					std::ignore = scope2->at(20);
 				});
 			Assert::AreEqual(scope3->at(5), 5);
 			Assert::AreEqual(scope3->at(10), 10);
 			Assert::AreEqual(scope3->at(15), 15);
 			Assert::ExpectException<std::out_of_range>([&]()
 				{
-					scope3->at(20);
+					std::ignore = scope3->at(20);
 				});
 
 			const int number = extensions::execute_on_container(container.concurrent().get(), 10, [&](const int& number)
@@ -387,7 +387,7 @@ public:
 		auto&& scope	  = container.exclusive();
 		auto tmpContainer = scope.move();
 
-		Assert::AreEqual<int>(scope.size(), 0);
+		Assert::AreEqual<size_t>(scope.size(), 0);
 		Assert::AreEqual<int>(tmpContainer[5], 5);
 		Assert::AreEqual<int>(tmpContainer[10], 10);
 		Assert::AreEqual<int>(tmpContainer[15], 15);
@@ -553,7 +553,7 @@ public:
 
 			Assert::ExpectException<std::system_error>([&]()
 				{
-					scope->at(40);
+					std::ignore = scope->at(40);
 				});
 			scope.lock();
 			Assert::AreEqual(scope().at(40), 40);

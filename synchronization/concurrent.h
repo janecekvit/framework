@@ -408,6 +408,10 @@ private:
 	mutable std::shared_lock<std::shared_mutex> _concurrentLock;
 };
 
+class release_resource_owner_lock_details
+{
+};
+
 template <class _Type>
 class resource_owner_lock_details
 {
@@ -498,7 +502,7 @@ protected:
 /// </example>
 
 template <class _Type, bool _Release>
-class resource_owner : public std::conditional_t<!_Release, resource_owner_lock_details<_Type>, void>
+class resource_owner : public std::conditional_t<!_Release, resource_owner_lock_details<_Type>, release_resource_owner_lock_details>
 {
 	friend exclusive_resource_holder<_Type, _Release>;
 	friend concurrent_resource_holder<_Type, _Release>;

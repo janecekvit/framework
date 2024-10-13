@@ -56,7 +56,6 @@ SpacesBeforeTrailingComments: 1
 SpaceAfterTemplateKeyword: true
 SpaceBeforeRangeBasedForLoopColon: true
 SpaceBeforeSquareBrackets: false
-SpacesInCStyleCastParentheses: false
 SpacesInConditionalStatement: false
 SpacesInContainerLiterals: false
 SpaceAfterCStyleCast: true
@@ -66,6 +65,5 @@ SpaceInEmptyParentheses: false
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
-Standard: c++20
 TabWidth: 4
 UseTab: true
