@@ -38,7 +38,7 @@ constexpr size_t IterationCount = 500000;
 
 ONLY_USED_AT_NAMESPACE_SCOPE class test_atomic_atomic_concurrent : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_atomic_atomic_concurrent> // expanded TEST_CLASS() macro due wrong formatting of clangformat
 {
-	[[no_discard]] static std::unique_ptr<atomic_concurrent::unordered_map<int, int>> _prepare_testing_data()
+	[[nodiscard]] static std::unique_ptr<atomic_concurrent::unordered_map<int, int>> _prepare_testing_data()
 	{
 		auto container = std::make_unique<atomic_concurrent::unordered_map<int, int>>();
 		container->writer()->emplace(5, 5); // Writer access with lifetime of one operation
@@ -51,7 +51,7 @@ ONLY_USED_AT_NAMESPACE_SCOPE class test_atomic_atomic_concurrent : public ::Micr
 		return container;
 	}
 
-	[[no_discard]] static std::unique_ptr<atomic_concurrent::resource_owner<int>> _prepare_testing_data_perf_test()
+	[[nodiscard]] static std::unique_ptr<atomic_concurrent::resource_owner<int>> _prepare_testing_data_perf_test()
 	{
 		auto container = std::make_unique<atomic_concurrent::resource_owner<int>>();
 		container->writer()--; // writer access with lifetime of one operation
@@ -97,7 +97,7 @@ public:
 
 		atomic_concurrent::resource_owner<std::array<int, 4>> oArray;
 		auto size = oArray.writer().size();
-		Assert::AreEqual<int>(size, 4);
+		Assert::AreEqual<size_t>(size, 4);
 	}
 
 	TEST_METHOD(TestWriterAccessDirect)
@@ -133,7 +133,7 @@ public:
 		Assert::AreEqual(scope->at(15), 20);
 		Assert::ExpectException<std::out_of_range>([&]()
 			{
-				scope->at(20);
+				std::ignore = scope->at(20);
 			});
 	}
 
@@ -184,7 +184,7 @@ public:
 			Assert::AreEqual(scope->at(15), 15);
 			Assert::ExpectException<std::out_of_range>([&]()
 				{
-					scope->at(20);
+					std::ignore = scope->at(20);
 				});
 
 			Assert::AreEqual(scope2->at(5), 5);
@@ -192,14 +192,14 @@ public:
 			Assert::AreEqual(scope2->at(15), 15);
 			Assert::ExpectException<std::out_of_range>([&]()
 				{
-					scope2->at(20);
+					std::ignore = scope2->at(20);
 				});
 			Assert::AreEqual(scope3->at(5), 5);
 			Assert::AreEqual(scope3->at(10), 10);
 			Assert::AreEqual(scope3->at(15), 15);
 			Assert::ExpectException<std::out_of_range>([&]()
 				{
-					scope3->at(20);
+					std::ignore = scope3->at(20);
 				});
 
 			const int number = extensions::execute_on_container(container->reader().get(), 10, [&](const int& number)
@@ -415,7 +415,7 @@ public:
 		auto&& scope	  = container->writer();
 		auto tmpContainer = scope.move();
 
-		Assert::AreEqual<int>(scope.size(), 0);
+		Assert::AreEqual<size_t>(scope.size(), 0);
 		Assert::AreEqual<int>(tmpContainer[5], 5);
 		Assert::AreEqual<int>(tmpContainer[10], 10);
 		Assert::AreEqual<int>(tmpContainer[15], 15);

@@ -41,6 +41,8 @@ TODO:
 - Better formatting
 - Create readme.md
 - Minimum supported version c++17 -> test it
+- Use wait_for_multiple_signals in _sync_thread
+- Implement notify all in signal condition variable and add testing for it
 
 
 EXTRA:

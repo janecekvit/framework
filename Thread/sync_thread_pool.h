@@ -37,6 +37,7 @@ Purpose: header file of static thread pool class
 #include <future>
 #include <list>
 #include <queue>
+#include <functional>
 
 namespace janecekvit::thread
 {
@@ -45,20 +46,29 @@ namespace janecekvit::thread
 /// Fixed sized thread pool that executes the task from the queue.
 /// </summary>
 class sync_thread_pool
-//: public virtual thread_pool
 {
 public:
-	using _Task			 = typename std::function<void()>;
+#ifdef __cpp_lib_move_only_function	
+	using _Task			 = typename std::move_only_function<void()>;
+#else
+	using _Task			 = typename std::shared_ptr<std::function<void()>>;
+#endif // __cpp_lib_move_only_function	
+
 	using _ErrorCallback = typename std::function<void(const std::exception&)>;
 
 private:
 	class worker
 	{
-		template <class... Args>
+	public:
 		worker(sync_thread_pool& parent);
-		~worker();
+		virtual ~worker();
 
+		private:
+//#ifdef __cpp_lib_jthread	
+//		std::jthread _thread;
+//#else	
 		std::thread _thread;
+//#endif
 	};
 
 public:
@@ -73,30 +83,43 @@ public: // IThreadPool interface
 		requires std::is_invocable_v<std::packaged_task<void(_Args...)>, _Args...>
 	void add_task(std::packaged_task<void(_Args...)>&& fn) noexcept
 	{
-		_tasks.exclusive()->emplace([x = std::move(fn)]
+#ifdef __cpp_lib_move_only_function
+		_tasks.exclusive()->emplace([x = std::move(fn)]() mutable
 			{
 				x();
 			});
+#else
+		auto callback = std::make_shared<std::function<void()>>([x = std::move(fn)]() mutable
+			{
+				x();
+			});
+		_tasks.exclusive()->emplace(std::move(callback));
+#endif // __cpp_lib_move_only_function	
+
+		_event.signalize(state::Ready);
+		
 	}
 
 	template <class _R, class... _Args>
-		requires std::is_invocable_r_v<_R, std::packaged_task<_R(_Args...)>, _Args...>
-	std::future<_R> add_waitable_task(std::packaged_task<_R(_Args...)>&& fn) noexcept
+		//requires std::is_invocable_r_v<_R, std::packaged_task<_R(_Args...)>, _Args...>
+	[[nodiscard]] std::future<_R> add_waitable_task(std::packaged_task<_R(_Args...)>&& fn) noexcept
 	{
 		auto future = fn.get_future();
-		_tasks.exclusive()->emplace([x = std::move(fn)]
+		_tasks.exclusive()->emplace([x = std::move(fn)]() mutable
 			{
 				x();
 			});
-
+		
+		_event.signalize(state::Ready);
 		return future;
 	}
+
 	size_t size() const noexcept;
 	size_t pool_size() const noexcept;
 
 protected: // getters && setters
 	void _work();
-	std::list<std::thread> _add_workers(size_t uWorkerCount) noexcept;
+	std::list<worker> _add_workers(size_t uWorkerCount) noexcept;
 	std::optional<_Task> _get_task() noexcept;
 
 private:
@@ -106,9 +129,10 @@ private:
 		Exit
 	};
 
+	std::atomic<size_t> _exitedWorkers = 0; // TODO: remove When condition variable notify all finished
 	synchronization::wait_for_multiple_signals<state> _event;
 	synchronization::concurrent::queue<_Task> _tasks;
-	const std::list<std::thread> _workers;
+	const std::list<worker> _workers;
 	const std::optional<_ErrorCallback> _callback;
 };
 

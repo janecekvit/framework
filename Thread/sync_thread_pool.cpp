@@ -5,16 +5,21 @@
 namespace janecekvit::thread
 {
 
-template <class... Args>
-inline sync_thread_pool::worker::worker(sync_thread_pool& parent)
+sync_thread_pool::worker::worker(sync_thread_pool& parent)
 {
-	_thread = std::thread(&sync_thread_pool::_work, parent);
+//#ifdef __cpp_lib_jthread
+//	_thread = std::jthread(&sync_thread_pool::_work, &parent);
+//#else
+	_thread = std::thread(&sync_thread_pool::_work, &parent);
+//#endif
 }
 
 sync_thread_pool::worker::~worker()
 {
+//#ifndef __cpp_lib_jthread
 	if (_thread.joinable())
 		_thread.join();
+//#endif
 }
 
 sync_thread_pool::sync_thread_pool(size_t uiPoolSize)
@@ -31,28 +36,15 @@ sync_thread_pool::sync_thread_pool(size_t uiPoolSize, _ErrorCallback&& callback)
 sync_thread_pool::~sync_thread_pool()
 {
 	for (size_t position = 0; position < _workers.size(); position++)
+	{
 		_event.signalize(state::Exit);
+		
+		// wait for the worker to exit
+		for (; _exitedWorkers == position;)
+			std::this_thread::yield();
+	}
 }
 
-// void sync_thread_pool::AddTask(Task&& fn) noexcept
-//{
-//	if (m_bEndFlag)
-//		return;
-//
-//	// Add new task to queue and inform workers about it
-//	m_queueTask.exclusive()->emplace(std::move(fn));
-//	m_cvPoolEvent.notify_one();
-// }
-//
-// void sync_thread_pool::WaitAll() const noexcept
-//{
-//	auto&& oScope = m_queueTask.concurrent();
-//	oScope.wait(_WaitEvent(), [&oScope, this]()
-//		{
-//			return oScope->empty() || _Exit();
-//		});
-// }
-//
 size_t janecekvit::thread::sync_thread_pool::size() const noexcept
 {
 	return _tasks.concurrent()->size();
@@ -77,13 +69,15 @@ void sync_thread_pool::_work()
 				_callback.value()(ex);
 		}
 	}
+
+	_exitedWorkers++;
 }
 
-std::list<std::thread> sync_thread_pool::_add_workers(size_t uWorkerCount) noexcept
+std::list<sync_thread_pool::worker> sync_thread_pool::_add_workers(size_t uWorkerCount) noexcept
 {
-	std::list<std::thread> workers;
+	std::list<sync_thread_pool::worker> workers;
 	for (size_t uCount = 0; uCount < uWorkerCount; uCount++)
-		workers.emplace_back(&sync_thread_pool::_work, this);
+		workers.emplace_back(*this);
 
 	return workers;
 }
@@ -96,7 +90,7 @@ std::optional<sync_thread_pool::_Task> sync_thread_pool::_get_task() noexcept
 		return {};
 
 	auto&& scope	   = _tasks.exclusive();
-	auto fnCurrentTask = scope->front();
+	auto fnCurrentTask = std::move(scope->front());
 	scope->pop();
 	return fnCurrentTask;
 }
