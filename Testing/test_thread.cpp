@@ -54,6 +54,20 @@ public:
 		Assert::AreEqual(counter, 1);
 	}
 
+	TEST_METHOD(SyncThreadAddTaskLambda)
+	{
+		int counter = 0;
+		{
+			sync_thread_pool pool(thread_size);
+			pool.add_task([&counter]()
+				{
+					counter++;
+				});
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		}
+		Assert::AreEqual(counter, 1);
+	}
+
 	TEST_METHOD(SyncThreadAddTaskWaitableTask)
 	{
 		int counter = 0;
@@ -64,7 +78,6 @@ public:
 				counter++;
 			}));
 
-
 		result.wait();
 		Assert::AreEqual(counter, 1);
 	}
@@ -72,13 +85,21 @@ public:
 	TEST_METHOD(SyncThreadAddTaskWaitableTaskWithResult)
 	{
 		sync_thread_pool pool(thread_size);
-
-		auto result = pool.add_waitable_task(std::packaged_task<int()>([]
+		auto result = pool.add_waitable_task(std::packaged_task<int()>([]()
 			{
 				return 5;
 			}));
+		Assert::AreEqual(result.get(), 5);
+	}
 
-		//Assert::AreEqual(result.get(), 5);
+	TEST_METHOD(SyncThreadAddTaskWaitableTaskWithResultLambda)
+	{
+		sync_thread_pool pool(thread_size);
+		auto result = pool.add_waitable_task([]()
+			{
+				return 5;
+			});
+		Assert::AreEqual(result.get(), 5);
 	}
 };
 } // namespace FrameworkTesting

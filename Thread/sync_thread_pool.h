@@ -76,12 +76,18 @@ public:
 	sync_thread_pool(size_t uiPoolSize, _ErrorCallback&& callback);
 
 public:
-	virtual ~sync_thread_pool();
+	virtual ~sync_thread_pool(); 
 
-public: // IThreadPool interface
+	template <typename _Fn>
+		requires std::is_invocable_v<_Fn>
+	void add_task(_Fn&& fn) noexcept
+	{
+		add_task(std::packaged_task<void()>(std::forward<_Fn>(fn)));
+	}
+
 	template <class... _Args>
-		requires std::is_invocable_v<std::packaged_task<void(_Args...)>, _Args...>
-	void add_task(std::packaged_task<void(_Args...)>&& fn) noexcept
+		requires std::is_invocable_v<std::packaged_task<void()>, _Args...>
+	void add_task(std::packaged_task<void()>&& fn) noexcept
 	{
 #ifdef __cpp_lib_move_only_function
 		_tasks.exclusive()->emplace([x = std::move(fn)]() mutable
@@ -100,9 +106,16 @@ public: // IThreadPool interface
 		
 	}
 
+	template <typename _Fn>
+		requires std::is_invocable_v<_Fn>
+	[[nodiscard]] auto add_waitable_task(_Fn&& fn) noexcept
+	{
+		return add_waitable_task(std::packaged_task<std::invoke_result_t<_Fn>()>(std::forward<_Fn>(fn)));
+	}
+
 	template <class _R, class... _Args>
-		//requires std::is_invocable_r_v<_R, std::packaged_task<_R(_Args...)>, _Args...>
-	[[nodiscard]] std::future<_R> add_waitable_task(std::packaged_task<_R(_Args...)>&& fn) noexcept
+		requires std::is_invocable_v<std::packaged_task<_R()>, _Args...>
+	[[nodiscard]] std::future<_R> add_waitable_task(std::packaged_task<_R()>&& fn) noexcept
 	{
 		auto future = fn.get_future();
 		_tasks.exclusive()->emplace([x = std::move(fn)]() mutable
