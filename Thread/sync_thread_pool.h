@@ -25,7 +25,7 @@ Purpose: header file of static thread pool class
 
 @author: Vit Janecek
 @mailto: janecekvit@gmail.com
-@version 1.05 01/03/2018
+@version 1.05 15/10/2024
 */
 
 #pragma once
@@ -51,10 +51,74 @@ public:
 #ifdef __cpp_lib_move_only_function	
 	using _Task			 = typename std::move_only_function<void()>;
 #else
-	using _Task			 = typename std::shared_ptr<std::function<void()>>;
-#endif // __cpp_lib_move_only_function	
 
-	using _ErrorCallback = typename std::function<void(const std::exception&)>;
+	class move_only_function
+	{
+		struct callable_base
+		{
+			virtual ~callable_base()  = default;
+			virtual void operator()() = 0;
+		};
+
+		template <typename _Fn>
+		struct callable : callable_base
+		{
+			callable(_Fn&& f)
+				: _function(std::move(f))
+			{
+			}
+
+			void operator()() override
+			{
+				_function();
+			}
+			
+			_Fn _function;
+		};
+
+	public:
+		move_only_function() = default;
+		virtual ~move_only_function() = default;
+
+		template <typename F>
+		move_only_function(F&& f)
+			: _function(std::make_unique<callable<F>>(std::move(f)))
+		{
+		}
+
+		move_only_function(move_only_function&& other) noexcept
+			: _function(std::move(other._function))
+		{
+		}
+
+		move_only_function& operator=(move_only_function&& other) noexcept
+		{
+			if (this != &other)
+				_function = std::move(other._function);
+			return *this;
+		}
+
+		move_only_function(const move_only_function&)			 = delete;
+		move_only_function& operator=(const move_only_function&) = delete;
+
+		void operator()()
+		{
+			if (_function)
+				_function->operator()();
+		}
+
+		explicit operator bool() const noexcept
+		{
+			return _function != nullptr;
+		}
+
+	private:
+		std::unique_ptr<callable_base> _function;
+	};
+
+
+	using _Task			 = typename move_only_function;
+#endif // __cpp_lib_move_only_function	
 
 private:
 	class worker
@@ -64,17 +128,15 @@ private:
 		virtual ~worker();
 
 		private:
-//#ifdef __cpp_lib_jthread	
-//		std::jthread _thread;
-//#else	
+#ifdef __cpp_lib_jthread	
+		std::jthread _thread;
+#else	
 		std::thread _thread;
-//#endif
+#endif
 	};
 
 public:
 	sync_thread_pool(size_t uiPoolSize);
-	sync_thread_pool(size_t uiPoolSize, _ErrorCallback&& callback);
-
 public:
 	virtual ~sync_thread_pool(); 
 
@@ -89,19 +151,10 @@ public:
 		requires std::is_invocable_v<std::packaged_task<void()>, _Args...>
 	void add_task(std::packaged_task<void()>&& fn) noexcept
 	{
-#ifdef __cpp_lib_move_only_function
 		_tasks.exclusive()->emplace([x = std::move(fn)]() mutable
 			{
 				x();
 			});
-#else
-		auto callback = std::make_shared<std::function<void()>>([x = std::move(fn)]() mutable
-			{
-				x();
-			});
-		_tasks.exclusive()->emplace(std::move(callback));
-#endif // __cpp_lib_move_only_function	
-
 		_event.signalize(state::Ready);
 		
 	}
@@ -146,7 +199,6 @@ private:
 	synchronization::wait_for_multiple_signals<state> _event;
 	synchronization::concurrent::queue<_Task> _tasks;
 	const std::list<worker> _workers;
-	const std::optional<_ErrorCallback> _callback;
 };
 
 } // namespace janecekvit::thread

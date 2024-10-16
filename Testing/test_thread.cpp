@@ -16,16 +16,16 @@ namespace FrameworkTesting
 
 constexpr const size_t thread_size = 4;
 
-ONLY_USED_AT_NAMESPACE_SCOPE class TestThread : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<TestThread>
+ONLY_USED_AT_NAMESPACE_SCOPE class test_sync_thread : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_sync_thread>
 {
 public:
-	TEST_METHOD(SyncThreadPoolSize)
+	TEST_METHOD(PoolSize)
 	{
 		sync_thread_pool pool(thread_size);
 		Assert::AreEqual(pool.pool_size(), thread_size);
 	}
 
-	TEST_METHOD(SyncThreadSize)
+	TEST_METHOD(Size)
 	{
 		sync_thread_pool pool(thread_size);
 		pool.add_task(std::packaged_task<void()>([]
@@ -37,7 +37,7 @@ public:
 		Assert::AreEqual(pool.size(), size_t(2));
 	}
 
-	TEST_METHOD(SyncThreadAddTask)
+	TEST_METHOD(AddTask)
 	{
 		int counter = 0;
 		{
@@ -54,7 +54,7 @@ public:
 		Assert::AreEqual(counter, 1);
 	}
 
-	TEST_METHOD(SyncThreadAddTaskLambda)
+	TEST_METHOD(AddTaskLambda)
 	{
 		int counter = 0;
 		{
@@ -68,7 +68,7 @@ public:
 		Assert::AreEqual(counter, 1);
 	}
 
-	TEST_METHOD(SyncThreadAddTaskWaitableTask)
+	TEST_METHOD(AddWaitableTask)
 	{
 		int counter = 0;
 		sync_thread_pool pool(thread_size);
@@ -82,7 +82,7 @@ public:
 		Assert::AreEqual(counter, 1);
 	}
 
-	TEST_METHOD(SyncThreadAddTaskWaitableTaskWithResult)
+	TEST_METHOD(AddWaitableTaskWithResult)
 	{
 		sync_thread_pool pool(thread_size);
 		auto result = pool.add_waitable_task(std::packaged_task<int()>([]()
@@ -92,7 +92,7 @@ public:
 		Assert::AreEqual(result.get(), 5);
 	}
 
-	TEST_METHOD(SyncThreadAddTaskWaitableTaskWithResultLambda)
+	TEST_METHOD(AddWaitableTaskWithResultLambda)
 	{
 		sync_thread_pool pool(thread_size);
 		auto result = pool.add_waitable_task([]()
@@ -100,6 +100,21 @@ public:
 				return 5;
 			});
 		Assert::AreEqual(result.get(), 5);
+	}
+
+	TEST_METHOD(AddWaitableTaskException)
+	{
+		sync_thread_pool pool(thread_size);
+		std::packaged_task<void()> task([]()
+			{
+				throw std::exception();
+			});
+
+		auto result = pool.add_waitable_task(std::move(task));
+		Assert::ExpectException<std::exception>([&result]()
+			{
+				result.get();
+			});
 	}
 };
 } // namespace FrameworkTesting

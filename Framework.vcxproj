@@ -38,7 +38,6 @@
     <ClInclude Include="synchronization\atomic_concurrent.h" />
     <ClInclude Include="synchronization\concurrent.h" />
     <ClInclude Include="synchronization\wait_for_multiple_signals.h" />
-    <ClInclude Include="Thread\thread_pool.h" />
     <ClInclude Include="Thread\sync_thread_pool.h" />
     <ClInclude Include="tracing\trace.h" />
     <ClInclude Include="utility\conversions.h" />

@@ -18,9 +18,6 @@
     <ClInclude Include="Interface\ICRTP.h">
       <Filter>interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="Thread\thread_pool.h">
-      <Filter>thread</Filter>
-    </ClInclude>
     <ClInclude Include="extensions\constraints.h">
       <Filter>extensions</Filter>
     </ClInclude>

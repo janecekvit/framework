@@ -7,29 +7,21 @@ namespace janecekvit::thread
 
 sync_thread_pool::worker::worker(sync_thread_pool& parent)
 {
-//#ifdef __cpp_lib_jthread
-//	_thread = std::jthread(&sync_thread_pool::_work, &parent);
-//#else
+#ifdef __cpp_lib_jthread
+	_thread = std::jthread(&sync_thread_pool::_work, &parent);
+#else
 	_thread = std::thread(&sync_thread_pool::_work, &parent);
-//#endif
+#endif
 }
 
 sync_thread_pool::worker::~worker()
 {
-//#ifndef __cpp_lib_jthread
 	if (_thread.joinable())
 		_thread.join();
-//#endif
 }
 
 sync_thread_pool::sync_thread_pool(size_t uiPoolSize)
 	: _workers(_add_workers(uiPoolSize))
-{
-}
-
-sync_thread_pool::sync_thread_pool(size_t uiPoolSize, _ErrorCallback&& callback)
-	: _workers(_add_workers(uiPoolSize))
-	, _callback(callback)
 {
 }
 
@@ -63,10 +55,8 @@ void sync_thread_pool::_work()
 		{ // execute task
 			(*fnCurrentTask)();
 		}
-		catch (const std::exception& ex)
+		catch (const std::exception&)
 		{
-			if (_callback)
-				_callback.value()(ex);
 		}
 	}
 
