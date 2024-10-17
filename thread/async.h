@@ -37,13 +37,15 @@ Purpose: header file of static thread pool class
 #include <list>
 #include <queue>
 #include <functional>
+#include <type_traits>
 
 namespace janecekvit::thread::async
 {
 
+
 template <typename _Fn, typename ...Args>
-	requires std::is_invocable_r_v<std::invoke_result_t<_Fn>, _Fn, Args...>
-[[nodiscard]] std::future<std::invoke_result_t<_Fn>> create(_Fn&& fn, Args&&... args) noexcept
+	requires std::is_invocable_r_v<std::invoke_result_t<_Fn, Args...>, _Fn, Args...>
+[[nodiscard]] std::future<std::invoke_result_t<_Fn, Args...>> create(_Fn&& fn, Args&&... args) noexcept
 {
 	return std::async(std::launch::async, std::forward<_Fn>(fn), std::forward<Args...>(args)...);
 }

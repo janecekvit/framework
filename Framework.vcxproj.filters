@@ -7,9 +7,6 @@
     <ClCompile Include="utility\conversions.cpp">
       <Filter>utility</Filter>
     </ClCompile>
-    <ClCompile Include="thread\async_thread_pool.cpp">
-      <Filter>thread</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Thread\sync_thread_pool.h">
@@ -66,7 +63,7 @@
     <ClInclude Include="synchronization\wait_for_multiple_signals.h">
       <Filter>synchronization</Filter>
     </ClInclude>
-    <ClInclude Include="thread\async_thread_pool.h">
+    <ClInclude Include="thread\async.h">
       <Filter>thread</Filter>
     </ClInclude>
   </ItemGroup>

@@ -82,7 +82,7 @@
     <ClCompile Include="test_wait_for_multiple_signals.cpp">
       <Filter>synchronization</Filter>
     </ClCompile>
-    <ClCompile Include="test_async_thread_pool.cpp">
+    <ClCompile Include="test_async.cpp">
       <Filter>thread</Filter>
     </ClCompile>
   </ItemGroup>

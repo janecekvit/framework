@@ -1,11 +1,13 @@
 #include "stdafx.h"
 
 #include "CppUnitTest.h"
-#include "Thread/async_thread_pool.h"
+#include "thread/async.h"
 
 #include <future>
 #include <iostream>
 #include <string>
+
+
 
 using namespace janecekvit::thread;
 
@@ -16,13 +18,12 @@ namespace FrameworkTesting
 
 constexpr const size_t thread_size = 4;
 
-ONLY_USED_AT_NAMESPACE_SCOPE class test_async_thread_pool : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_async_thread_pool>
+ONLY_USED_AT_NAMESPACE_SCOPE class test_async : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_async>
 {
 public:
 	TEST_METHOD(Create)
 	{
 		int counter = 0;
-
 		auto result = async::create([&counter]()
 			{
 				counter++;
@@ -32,18 +33,17 @@ public:
 		Assert::AreEqual(counter, 1);
 	}
 
-	/*TEST_METHOD(Create2)
+	TEST_METHOD(CreateWithParameter)
 	{
 		int counter = 0;
-		{
-			async::create([&counter](int i)
-				{
-					counter = i;
-				}, (int)2);
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		}
-		Assert::AreEqual(counter, 1);
-	}*/
+		auto result = async::create([&counter](int i)
+			{
+				counter = i;
+			}, 5);
+
+		result.get();
+		Assert::AreEqual(counter, 5);
+	}
 
 	TEST_METHOD(CreateWithResult)
 	{
@@ -52,6 +52,14 @@ public:
 				return 5;
 			});
 		Assert::AreEqual(result.get(), 5);
+	}
+	TEST_METHOD(CreateWithResultAndParam)
+	{
+		auto result = async::create([](int i)
+			{
+				return i;
+			}, 10);
+		Assert::AreEqual(result.get(), 10);
 	}
 
 	TEST_METHOD(CreateWithException)
@@ -67,5 +75,7 @@ public:
 				result.get();
 			});
 	}
+
+
 };
 } // namespace FrameworkTesting
