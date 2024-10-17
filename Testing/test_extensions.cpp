@@ -5,6 +5,8 @@
 #include "extensions/getter_setter.h"
 #include "storage/heterogeneous_container.h"
 #include "synchronization/concurrent.h"
+#include "extensions/cloneable.h"
+#include "extensions/ICRTP.h"
 
 #include <future>
 #include <iostream>
@@ -49,8 +51,53 @@ using namespace std::string_literals;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 // https://docs.microsoft.com/cs-cz/visualstudio/test/microsoft-visualstudio-testtools-cppunittestframework-api-reference?view=vs-2019
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////
+
+struct impl : public virtual cloneable<impl>
+{
+	std::unique_ptr<impl> clone() const override
+	{
+		return std::make_unique<impl>(*this);
+	}
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+template <class T>
+class Base : public ICRTP<T>
+{
+public:
+	void interface()
+	{
+		//
+		ICRTP<T>::UnderlyingType().implementation();
+		// ...
+	}
+
+	void implementation()
+	{
+		i++;
+	}
+
+	int i = 0;
+};
+
+class Derived : public Base<Derived>
+{
+public:
+	void implementation()
+	{
+		j++;
+	}
+	int j = 0;
+};
+
+class Derived2 : public Base<Derived2>
+{
+public:
+	int j = 0;
+};
+
 
 class CPortsHeader
 {
@@ -286,8 +333,6 @@ public:
 		TestContainerTraits::Test(e);
 	} // namespace FrameworkTesting
 
-	
-
 	TEST_METHOD(TestContainerextensions)
 	{
 		std::unordered_map<CPortsHeader, std::string, CPortsHeaderComparator, CPortsHeaderComparator> my_map;
@@ -462,5 +507,16 @@ public:
 		auto oResultGenerator = extensions::tuple::generate<10>(fnCallback);
 		Assert::AreEqual(oResultGenerator, std::make_tuple(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
 	}
+
+	///////////////////////////////////////////////////////////////////////////////
+
+	TEST_METHOD(TestIcloneable)
+	{
+		auto s = std::make_unique<impl>();
+		auto f = s->clone();
+		Assert::IsNotNull(s.get());
+		Assert::IsNotNull(f.get());
+	};
 };
+
 } // namespace FrameworkTesting

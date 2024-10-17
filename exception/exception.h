@@ -60,8 +60,8 @@ private:
 		{
 			if constexpr (std::is_constructible_v<std::wstring_view, _Fmt>)
 			{
-				std::wstring _error_wide = std::vformat(format, std::make_wformat_args(arguments...));
-				_error += conversions::to_string(_error_wide);
+				std::wstring error_wide = std::vformat(format, std::make_wformat_args(arguments...));
+				_error += conversions::to_string(error_wide);
 			}
 			else
 				_error += std::vformat(format, std::make_format_args(arguments...));

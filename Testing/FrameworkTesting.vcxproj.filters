@@ -21,9 +21,6 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="interfaces">
-      <UniqueIdentifier>{6507df63-8067-49fb-b648-8fc9561fdb4a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="thread">
       <UniqueIdentifier>{cd8f1851-36c4-4b28-8ef5-584793d6c782}</UniqueIdentifier>
     </Filter>
@@ -45,9 +42,6 @@
     </ClCompile>
     <ClCompile Include="test_sync_thread_pool.cpp">
       <Filter>thread</Filter>
-    </ClCompile>
-    <ClCompile Include="TestInterfaces.cpp">
-      <Filter>interfaces</Filter>
     </ClCompile>
     <ClCompile Include="test_exception.cpp">
       <Filter>exception</Filter>
