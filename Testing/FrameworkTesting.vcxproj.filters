@@ -43,7 +43,7 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="test_thread.cpp">
+    <ClCompile Include="test_sync_thread_pool.cpp">
       <Filter>thread</Filter>
     </ClCompile>
     <ClCompile Include="TestInterfaces.cpp">
@@ -81,6 +81,9 @@
     </ClCompile>
     <ClCompile Include="test_wait_for_multiple_signals.cpp">
       <Filter>synchronization</Filter>
+    </ClCompile>
+    <ClCompile Include="test_async_thread_pool.cpp">
+      <Filter>thread</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

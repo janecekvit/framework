@@ -16,7 +16,7 @@ namespace FrameworkTesting
 
 constexpr const size_t thread_size = 4;
 
-ONLY_USED_AT_NAMESPACE_SCOPE class test_sync_thread : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_sync_thread>
+ONLY_USED_AT_NAMESPACE_SCOPE class test_sync_thread_pool : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_sync_thread_pool>
 {
 public:
 	TEST_METHOD(PoolSize)

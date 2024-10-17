@@ -19,7 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Thread\sync_thread_pool.cpp" />
+    <ClCompile Include="thread\async_thread_pool.cpp" />
+    <ClCompile Include="thread\sync_thread_pool.cpp" />
     <ClCompile Include="utility\conversions.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -38,7 +39,8 @@
     <ClInclude Include="synchronization\atomic_concurrent.h" />
     <ClInclude Include="synchronization\concurrent.h" />
     <ClInclude Include="synchronization\wait_for_multiple_signals.h" />
-    <ClInclude Include="Thread\sync_thread_pool.h" />
+    <ClInclude Include="thread\async_thread_pool.h" />
+    <ClInclude Include="thread\sync_thread_pool.h" />
     <ClInclude Include="tracing\trace.h" />
     <ClInclude Include="utility\conversions.h" />
   </ItemGroup>
