@@ -6,7 +6,6 @@
 #include "storage/heterogeneous_container.h"
 #include "synchronization/concurrent.h"
 #include "extensions/cloneable.h"
-#include "extensions/ICRTP.h"
 
 #include <future>
 #include <iostream>
@@ -60,44 +59,6 @@ struct impl : public virtual cloneable<impl>
 		return std::make_unique<impl>(*this);
 	}
 };
-
-///////////////////////////////////////////////////////////////////////////////
-
-template <class T>
-class Base : public ICRTP<T>
-{
-public:
-	void interface()
-	{
-		//
-		ICRTP<T>::UnderlyingType().implementation();
-		// ...
-	}
-
-	void implementation()
-	{
-		i++;
-	}
-
-	int i = 0;
-};
-
-class Derived : public Base<Derived>
-{
-public:
-	void implementation()
-	{
-		j++;
-	}
-	int j = 0;
-};
-
-class Derived2 : public Base<Derived2>
-{
-public:
-	int j = 0;
-};
-
 
 class CPortsHeader
 {

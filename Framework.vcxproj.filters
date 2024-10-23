@@ -63,9 +63,6 @@
     <ClInclude Include="extensions\cloneable.h">
       <Filter>extensions</Filter>
     </ClInclude>
-    <ClInclude Include="extensions\ICRTP.h">
-      <Filter>extensions</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="extensions">
