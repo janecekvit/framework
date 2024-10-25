@@ -20,7 +20,6 @@ namespace janecekvit::storage
 {
 /// <summary>
 /// The wrapper implemented own deleter that gains functionality to release all used resources correctly.
-/// Method derives from the getter_setter class to using input resource with implicit conversions.
 /// Ensure that deleter's body can be called multiple times to handle deallocations of the same resource in case of CopyConstructible methods of this wrapper are used.
 /// When _DestuctorThrowException is set to true, destructor can raise exception when deleter functor fails or isn't initialized.
 /// Throwing an exception out of a destructor is dangerous. If another exception is already propagating the application will terminate. Be careful with this.

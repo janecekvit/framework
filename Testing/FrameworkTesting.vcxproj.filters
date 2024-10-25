@@ -79,6 +79,9 @@
     <ClCompile Include="test_async.cpp">
       <Filter>thread</Filter>
     </ClCompile>
+    <ClCompile Include="test_property.cpp">
+      <Filter>extensions</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\done.txt" />

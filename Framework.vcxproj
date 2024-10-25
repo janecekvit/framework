@@ -28,7 +28,7 @@
     <ClInclude Include="extensions\constraints.h" />
     <ClInclude Include="extensions\extensions.h" />
     <ClInclude Include="extensions\finally.h" />
-    <ClInclude Include="extensions\getter_setter.h" />
+    <ClInclude Include="extensions\property.h" />
     <ClInclude Include="extensions\lazy.h" />
     <ClInclude Include="storage\heterogeneous_container.h" />
     <ClInclude Include="storage\parameter_pack.h" />

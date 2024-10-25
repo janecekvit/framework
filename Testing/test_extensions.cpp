@@ -2,7 +2,6 @@
 
 #include "CppUnitTest.h"
 #include "extensions/extensions.h"
-#include "extensions/getter_setter.h"
 #include "storage/heterogeneous_container.h"
 #include "synchronization/concurrent.h"
 #include "extensions/cloneable.h"
@@ -181,72 +180,6 @@ private:
 	std::vector<int> k;
 };
 
-class GetterSetterTesting
-{
-	void Test()
-	{
-		i->emplace_back(1);
-		j->emplace_back(1);
-		k->emplace_back(1);
-	}
-
-public:
-	extensions::getter_setter<std::vector<int>> i;
-
-protected:
-	extensions::getter_setter<std::vector<int>> j;
-
-private:
-	extensions::getter_setter<std::vector<int>> k;
-};
-
-class TestGetterSetter
-{
-public:
-	void AllAccessible()
-	{
-		{ // int test scope
-			Int				 = 5;
-			IntSetterPrivate = 6; //   -> private set
-			IntBothPrivate	 = 6; //  -> private set and get
-
-			int i1 = Int;
-			int i2 = IntSetterPrivate; // -> private set
-			int i3 = IntBothPrivate;   // -> private get and set
-
-			int& ilv1 = Int;
-			ilv1++;
-			int& ilv2 = IntSetterPrivate; //   -> private set
-			ilv2++;
-			int& ilv3 = IntBothPrivate; //  -> private get
-			ilv3++;
-		}
-
-		Bool = true; // private set
-
-		{
-			auto b1 = Vec.begin();
-			auto b2 = VecSetterPrivate.begin();
-			auto b3 = VecBothPrivate.begin(); // -> private get
-
-			Vec->emplace_back(5);
-			VecSetterPrivate->emplace_back(5); // -> private set
-			VecBothPrivate->emplace_back(5);   //-> private set
-		}
-	}
-
-public:
-	extensions::getter_setter<int> Int;
-	extensions::getter_setter<int, TestGetterSetter> IntSetterPrivate;
-	extensions::getter_setter<int, TestGetterSetter, TestGetterSetter> IntBothPrivate;
-
-	extensions::getter_setter<std::vector<int>> Vec;
-	extensions::getter_setter<std::vector<int>, TestGetterSetter> VecSetterPrivate;
-	extensions::getter_setter<std::vector<int>, TestGetterSetter, TestGetterSetter> VecBothPrivate;
-
-	extensions::getter_setter<bool, TestGetterSetter> Bool;
-};
-
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace FrameworkTesting
@@ -375,81 +308,6 @@ public:
 #endif
 	}
 
-	TEST_METHOD(TestGetterSetterWrapper)
-	{
-		{ // check normal visibility without any getter/setter
-			NoGetterSetter o;
-			o.i.emplace_back(5);
-			Assert::AreEqual(o.i.size(), (size_t) 1);
-			// o.j.emplace_back(5); -> protected
-			// o.k.emplace_back(5); -> private
-
-			const NoGetterSetter u = o;
-			// u.i.emplace_back(5); -> access error, const on modifiable value
-			Assert::AreEqual(u.i.size(), (size_t) 1);
-			// u.j.emplace_back(5); -> protected
-			// u.k.emplace_back(5); -> private
-		}
-
-		{ // check getter setter visibility
-			GetterSetterTesting x;
-			auto ij = x.i->size();
-			x.i->emplace_back(5);
-			auto z = x.i.begin();
-			Assert::AreEqual(x.i.size(), (size_t) 1);
-
-			// check getter setter visibility
-			const GetterSetterTesting y = x;
-			Assert::AreEqual(y.i.size(), (size_t) 1);
-			// y.i->emplace_back(5); ->access error, const on modifiable value
-		}
-
-		TestGetterSetter visibility;
-		visibility.AllAccessible();
-
-		{ // int test scope
-			visibility.Int = 5;
-			// visibility.IntSetterPrivate = 6; //   -> private set
-			// visibility.IntBothPrivate = 6; //  -> private set and get
-
-			int i1 = visibility.Int;
-			int i2 = visibility.IntSetterPrivate; //   -> private set
-
-			// int i3 = visibility.IntBothPrivate; // -> private get and set
-
-			int& ilv1 = visibility.Int;
-			// int& ilv2 = visibility.IntSetterPrivate; //   -> private set
-			// int& ilv3 = visibility.IntBothPrivate;	 //  -> private get and set
-		}
-
-		{ // bool explicit conversions
-
-			int iCondition = 0;
-			if (visibility.Bool) // -> non-const explicit bool
-				iCondition++;
-
-			if (const auto& constVisivility = visibility; constVisivility.Bool) // -> const explicit bool
-				iCondition++;
-
-			if (visibility.Int) // -> non-const explicit bool
-				iCondition++;
-
-			if (const auto& constVisivility = visibility; constVisivility.Int) // -> const explicit bool
-				iCondition++;
-
-			Assert::AreEqual(iCondition, 4);
-		}
-
-		{ // container tests
-			auto beg1 = visibility.Vec.begin();
-			auto beg2 = visibility.VecSetterPrivate.begin();
-			// visibility.VecBothPrivate.begin(); -> private get
-
-			visibility.Vec->emplace_back(5);
-			// visibility.VecSetterPrivate->emplace_back(5);  -> private set
-			// visibility.VecBothPrivate->emplace_back(5);  -> private set
-		}
-	}
 
 	TEST_METHOD(TestTupleExtensions)
 	{

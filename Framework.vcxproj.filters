@@ -21,7 +21,7 @@
     <ClInclude Include="extensions\finally.h">
       <Filter>extensions</Filter>
     </ClInclude>
-    <ClInclude Include="extensions\getter_setter.h">
+    <ClInclude Include="extensions\property.h">
       <Filter>extensions</Filter>
     </ClInclude>
     <ClInclude Include="extensions\lazy.h">
