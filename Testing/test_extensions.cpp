@@ -1,10 +1,10 @@
 #include "stdafx.h"
 
 #include "CppUnitTest.h"
+#include "extensions/cloneable.h"
 #include "extensions/extensions.h"
 #include "storage/heterogeneous_container.h"
 #include "synchronization/concurrent.h"
-#include "extensions/cloneable.h"
 
 #include <future>
 #include <iostream>
@@ -96,99 +96,47 @@ struct CPortsHeaderComparator
 	}
 };
 
-namespace TestContainerTraits
-{
-struct WithoutEnd
-{
-	int begin()
-	{
-		return 1;
-	}
-};
-
-struct WithoutBegin
-{
-	int begin()
-	{
-		return 1;
-	}
-};
-
-struct MyContainer
-{
-	int* begin()
-	{
-		return nullptr;
-	}
-	int* end()
-	{
-		return nullptr;
-	}
-	size_t size()
-	{
-		return 0;
-	}
-};
-
-// different notation
-// template <class Other>
-// typename std::enable_if_t<constraints::is_container_v<Other>>
-// Test(const Other& other)
-//{
-//	int i = 0;
-//	/*for (const auto& item : other)
-//		std::cout << item;*/
-// }
-
-template <class Other, typename std::enable_if_t<constraints::is_container_v<Other>, int> = 0>
-auto Test(const Other& other)
-{
-	int i = 0;
-	/*for (const auto& item : other)
-		std::cout << item;*/
-}
-
-void Test(const int& other)
-{
-	int i = 0;
-	// std::cout << other;
-}
-
-void Test(const WithoutEnd& other)
-{
-	int i = 0;
-	// std::cout << other;
-}
-
-void Test(const WithoutBegin& other)
-{
-	int i = 0;
-	// std::cout << other;
-}
-
-} // namespace TestContainerTraits
-
-class NoGetterSetter
-{
-public:
-	std::vector<int> i;
-
-protected:
-	std::vector<int> j;
-
-private:
-	std::vector<int> k;
-};
-
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace FrameworkTesting
 {
-ONLY_USED_AT_NAMESPACE_SCOPE class TestTemplates : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<TestTemplates> // expanded TEST_CLASS() macro due wrong formatting of clangformat
+ONLY_USED_AT_NAMESPACE_SCOPE class test_extensions : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_extensions> // expanded TEST_CLASS() macro due wrong formatting of clangformat
 {
 public:
 	TEST_METHOD(TestContainerTraits)
 	{
+		struct WithoutEnd
+		{
+			int begin()
+			{
+				return 1;
+			}
+		};
+
+		struct WithoutBegin
+		{
+			int begin()
+			{
+				return 1;
+			}
+		};
+
+		struct MyContainer
+		{
+			int* begin()
+			{
+				return nullptr;
+			}
+			int* end()
+			{
+				return nullptr;
+			}
+			size_t size()
+			{
+				return 0;
+			}
+		};
+
 		std::vector<int> vec;
 		std::list<int> list;
 		std::set<std::string> set;
@@ -198,9 +146,9 @@ public:
 
 		int a;
 		std::string b;
-		TestContainerTraits::WithoutEnd c;
-		TestContainerTraits::WithoutBegin d;
-		TestContainerTraits::MyContainer e;
+		WithoutEnd c;
+		WithoutBegin d;
+		MyContainer e;
 
 		Assert::AreEqual(constraints::is_container_v<decltype(vec)>, true);
 		Assert::AreEqual(constraints::is_container_v<decltype(list)>, true);
@@ -214,29 +162,13 @@ public:
 		Assert::AreEqual(constraints::is_container_v<decltype(d)>, false);
 		Assert::AreEqual(constraints::is_container_v<decltype(e)>, true);
 
-		TestContainerTraits::Test(vec);
-		TestContainerTraits::Test(list);
-		TestContainerTraits::Test(set);
-		TestContainerTraits::Test(map);
-		TestContainerTraits::Test(uset);
-		TestContainerTraits::Test(umap);
-		TestContainerTraits::Test(a);
-		TestContainerTraits::Test(b);
-		TestContainerTraits::Test(c);
-		TestContainerTraits::Test(d);
-		TestContainerTraits::Test(e);
 	} // namespace FrameworkTesting
 
-	TEST_METHOD(TestContainerextensions)
+	TEST_METHOD(TestExecuteOnContainer)
 	{
 		std::unordered_map<CPortsHeader, std::string, CPortsHeaderComparator, CPortsHeaderComparator> my_map;
 		my_map.emplace(CPortsHeader(5, 6), "tezko");
-		for (auto kv : my_map)
-		{
-			std::cout << kv.first.uSourcePort << " ";
-			std::cout << kv.first.uDestinationPort << " ";
-			std::cout << kv.second;
-		}
+
 
 		extensions::execute_on_container(my_map, CPortsHeader(5, 6), [](_In_ const std::string oResult)
 			{
@@ -295,6 +227,63 @@ public:
 
 		int isa = 0;
 	}
+
+	TEST_METHOD(TestRecast)
+	{
+		struct base
+		{
+			virtual ~base() = default;
+		};
+
+		struct derived : public base
+		{
+		};
+
+		auto ptr = std::make_unique<derived>();
+		Assert::IsTrue(static_cast<bool>(ptr));
+
+		auto ptr2 = extensions::recast<derived, base>(std::move(ptr));
+#pragma warning(suppress : 26800)
+		Assert::IsFalse(static_cast<bool>(ptr));
+		Assert::IsTrue(static_cast<bool>(ptr2));
+
+		auto ptr3 = extensions::recast<base, derived>(std::move(ptr2));
+		Assert::IsFalse(static_cast<bool>(ptr));
+#pragma warning(suppress : 26800)
+		Assert::IsFalse(static_cast<bool>(ptr2));
+		Assert::IsTrue(static_cast<bool>(ptr3));
+	}
+
+	TEST_METHOD(TestTuplePrint)
+	{
+		auto oStream = extensions::tuple::print(std::make_tuple(1, 2, 3, "1", "10"), std::string(", "));
+		Assert::AreEqual(oStream.str(), "1, 2, 3, 1, 10, "s);
+	}
+
+	TEST_METHOD(TestTupleGenerator)
+	{
+		auto fnCallback = [](auto&&... oArgs) -> int
+		{
+			auto tt = std::forward_as_tuple(oArgs...);
+			return std::get<0>(tt);
+		};
+		auto oResultGenerator = extensions::tuple::generate<10>(fnCallback);
+		Assert::AreEqual(oResultGenerator, std::make_tuple(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
+	}
+
+	TEST_METHOD(TestTupleUnpackHeterogeneousContainer)
+	{
+		auto oHeterogeneousContainer = extensions::tuple::unpack(std::make_tuple(1, 2, 3, "1", "10"));
+		Assert::AreEqual(oHeterogeneousContainer.get<int>(), std::list<int>{ 1, 2, 3 });
+		Assert::AreEqual(oHeterogeneousContainer.get<const char*>(), std::list<const char*>{ "1", "10" });
+	}
+
+	TEST_METHOD(TestNumeric)
+	{
+		auto result = extensions::numeric::factorial<5>();
+		Assert::AreEqual(result.value, (size_t) 120);
+	}
+
 	TEST_METHOD(TestHashFunction)
 	{
 		std::string s("ano");
@@ -306,25 +295,6 @@ public:
 #elif defined ENVIRONMENT_32
 		Assert::AreEqual(uHash, static_cast<size_t>(730160148));
 #endif
-	}
-
-
-	TEST_METHOD(TestTupleExtensions)
-	{
-		auto oHeterogeneousContainer = extensions::tuple::unpack(std::make_tuple(1, 2, 3, "1", "10"));
-		Assert::AreEqual(oHeterogeneousContainer.get<int>(), std::list<int>{ 1, 2, 3 });
-		Assert::AreEqual(oHeterogeneousContainer.get<const char*>(), std::list<const char*>{ "1", "10" });
-
-		auto oStream = extensions::tuple::print(std::make_tuple(1, 2, 3, "1", "10"), std::string(", "));
-		Assert::AreEqual(oStream.str(), "1, 2, 3, 1, 10, "s);
-
-		auto fnCallback = [](auto&&... oArgs) -> int
-		{
-			auto tt = std::forward_as_tuple(oArgs...);
-			return std::get<0>(tt);
-		};
-		auto oResultGenerator = extensions::tuple::generate<10>(fnCallback);
-		Assert::AreEqual(oResultGenerator, std::make_tuple(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
 	}
 
 	///////////////////////////////////////////////////////////////////////////////

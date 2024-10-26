@@ -6,6 +6,9 @@ exception.h, test_exception.cpp
 cloneable.h, test_cloneable.cpp
 -> DONE,
 
+extensions.h, test_extensions.cpp
+-> WORKING
+
 finally.h, test_finally.cpp
 -> DONE, 
 

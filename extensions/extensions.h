@@ -12,6 +12,8 @@ Purpose:	header file contains set of extended methods implemented over stl conta
 
 #pragma once
 
+#include "extensions/constraints.h"
+
 #include <algorithm>
 #include <any>
 #include <functional>
@@ -24,9 +26,7 @@ Purpose:	header file contains set of extended methods implemented over stl conta
 #include <type_traits>
 #include <typeindex>
 
-#include "extensions/constraints.h"
-
-///Namespace owns set of extended methods implemented over stl containers
+/// Namespace owns set of extended methods implemented over stl containers
 namespace janecekvit::extensions
 {
 /// <summary>
@@ -148,39 +148,21 @@ template <template <class...> class _Container, class... _Args, class _Func>
 }
 
 /// <summary>
-/// Method implements RAII memory wrapper recasting from _Base to TDervied
-/// Method convert current instance of RAII memory wrapper to the new one
-/// Method is atomically, if recast cannot be done, input pointer is still valid
+/// Method cast the _From type in std::unique_ptr to their inherited forms
 /// </summary>
-/// <returns>On success, returns recasted memory-safe pointer, else do not nothing</returns>
-template <class _Base, class _TDerived>
-[[nodiscard]] constexpr std::unique_ptr<_TDerived> recast(
-	std::unique_ptr<_Base>& item)
+/// <typeparam name="_From">The type of the original pointer</typeparam>
+/// <typeparam name="_To">The type of the target pointer</typeparam>
+/// <param name="item">The unique pointer to be recasted</param>
+/// <returns>returns the recasted memory-safe pointer</returns>
+template <class _From, class _To>
+[[nodiscard]] constexpr std::unique_ptr<_To> recast(std::unique_ptr<_From>&& item)
+	requires (std::derived_from<_To, _From> || std::derived_from<_From, _To>) && (!std::is_same_v<_From, _To>)
 {
-	auto* pTemp = dynamic_cast<_TDerived*>(item.get());
-	if (pTemp)
-		return nullptr;
-
+	auto pTemp = dynamic_cast<_To*>(item.get());
+	if (!pTemp)
+		throw std::bad_cast{}; // throw exception if recast is not possible
 	item.release();
-	return std::unique_ptr<_TDerived>(pTemp);
-}
-
-/// <summary>
-/// Method implements RAII memory wrapper recasting from TDervied to _Base
-/// Method convert current instance of RAII memory wrapper to the new one
-/// Method is atomically, if recast cannot be done, input pointer is still valid
-/// </summary>
-/// <returns>On success, returns recasted memory-safe pointer, else do not nothing</returns>
-template <class _Base, class _TDerived>
-[[nodiscard]] constexpr std::unique_ptr<_Base> recast(
-	std::unique_ptr<_TDerived>& item)
-{
-	auto* pTemp = dynamic_cast<_Base*>(item.get());
-	if (pTemp)
-		return nullptr;
-
-	item.release();
-	return std::unique_ptr<_Base>(pTemp);
+	return std::unique_ptr<_To>(std::move(pTemp));
 }
 
 namespace tuple
@@ -193,12 +175,6 @@ constexpr auto generate(_F func, std::index_sequence<_Is...>)
 {
 	return std::make_tuple(func(_Is)...);
 }
-
-//template <class _Tuple, std::size_t... _I>
-//constexpr storage::heterogeneous_container unpack(_Tuple&& t, std::index_sequence<_I...>)
-//{
-//	return storage::heterogeneous_container{ std::get<_I>(t)... };
-//}
 
 } // namespace details
 
@@ -221,15 +197,6 @@ template <char _N, typename _F>
 {
 	return details::generate(func, std::make_index_sequence<_N>{});
 }
-
-///// <summary>
-///// unpack tuple to the Heterogeneous container
-///// </summary>
-//template <class _Tuple>
-//[[nodiscard]] constexpr storage::heterogeneous_container unpack(_Tuple&& t)
-//{
-//	return details::unpack(std::forward<_Tuple>(t), std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<_Tuple>>>{});
-//}
 
 template <class _Stream, class... _Args>
 auto& operator<<(_Stream& os, const std::tuple<_Args...>& t)
