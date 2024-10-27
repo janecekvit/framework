@@ -54,13 +54,13 @@ namespace janecekvit::extensions
 ///	});
 /// </code>
 /// </example>
-template <template <class...> class _Container, class _Key, class... _Args, class _Func>
+template <class _Container, class _Key, class _Func>
 constexpr decltype(auto) execute_on_container(
-	_Container<_Args...>& container,
+	_Container& container,
 	const _Key& key,
 	_Func&& callback)
 {
-	if constexpr (constraints::is_foundable_v<_Container<_Args...>, _Key>)
+	if constexpr (constraints::is_foundable_v<_Container, _Key>)
 	{
 		if constexpr (constraints::is_pair_v<std::_Iter_value_t<decltype(container.find(key))>>)
 		{
@@ -92,59 +92,15 @@ constexpr decltype(auto) execute_on_container(
 	}
 }
 
-template <template <class...> class _Container, class _Key, class... _Args, class _Func>
+
+template <class _Container, class _Key, class _Func>
+	requires std::invocable<_Func, const typename _Container::value_type>
 constexpr decltype(auto) execute_on_container(
-	const _Container<_Args...>& container,
+	const _Container& container,
 	const _Key& key,
 	_Func&& callback)
 {
-	return execute_on_container(const_cast<_Container<_Args...>&>(container), key, callback);
-}
-
-/// <summary>
-/// for_each() method internally calls std::for_each method with lambda predicator over input collection
-/// </summary>
-/// <param name="container">The input container defined by begin() and end() iterators.</param>
-/// <param name="callback">The lambda/functor callback called for each value in container.</param>
-/// <returns>void()</returns>
-template <template <class...> class _Container, class... _Args, class _Func>
-constexpr auto for_each(
-	_Container<_Args...>& container,
-	_Func&& callback)
-	-> decltype(std::begin(container), std::end(container), void())
-{
-	std::for_each(container.begin(), container.end(), callback);
-}
-template <template <class...> class _Container, class... _Args, class _Func>
-constexpr auto for_each(
-	const _Container<_Args...>& container,
-	_Func&& callback)
-	-> decltype(std::begin(container), std::end(container), void())
-{
-	for_each(const_cast<_Container<_Args...>&>(container), callback);
-}
-
-/// <summary>
-/// any_of() method internally calls std::any_of method with  lambda predicator over input collection
-/// <param name="container">The input container defined by begin() and end() iterators.</param>
-/// <param name="callback">The lambda/functor callback called for each value in container.</param>
-/// <returns>return true, when callback predicate found result for any item in container</returns>
-/// </summary>
-template <template <class...> class _Container, class... _Args, class _Func>
-[[nodiscard]] constexpr auto any_of(
-	_Container<_Args...>& container,
-	_Func&& callback)
-	-> decltype(std::begin(container), std::end(container), callback(*std::begin(container)), bool())
-{
-	return std::any_of(container.begin(), container.end(), callback);
-}
-template <template <class...> class _Container, class... _Args, class _Func>
-[[nodiscard]] constexpr auto any_of(
-	const _Container<_Args...>& container,
-	_Func&& callback)
-	-> decltype(std::begin(container), std::end(container), callback(*std::begin(container)), bool()) const
-{
-	return any_of(const_cast<_Container<_Args...>&>(container), callback);
+	return execute_on_container(const_cast<_Container&>(container), key, callback);
 }
 
 /// <summary>

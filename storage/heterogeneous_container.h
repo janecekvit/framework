@@ -122,7 +122,7 @@ public:
 	[[nodiscard]] constexpr size_t size() const noexcept
 	{
 		auto oScope = m_umapArgs.concurrent();
-		return extensions::execute_on_container(oScope.get(), std::type_index(typeid(_T)), [](std::list<std::any>& listInput)
+		return extensions::execute_on_container(oScope.get(), std::type_index(typeid(_T)), [](const std::list<std::any>& listInput)
 			{
 				return listInput.size();
 			});
@@ -210,7 +210,7 @@ private:
 	{
 		try
 		{
-			auto oScope = m_umapArgs.concurrent();
+			auto oScope = m_umapArgs.exclusive();
 			extensions::execute_on_container(oScope.get(), std::type_index(typeid(_T)), [&fnCallback](std::list<std::any>& listInput)
 				{
 					for (auto&& item : listInput)
@@ -224,7 +224,7 @@ private:
 	}
 
 protected:
-	synchronization::concurrent::unordered_map<std::type_index, std::list<std::any>> m_umapArgs;
+	mutable synchronization::concurrent::unordered_map<std::type_index, std::list<std::any>> m_umapArgs;
 };
 
 } // namespace storage

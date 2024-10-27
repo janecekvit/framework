@@ -10,6 +10,8 @@
 #include <iostream>
 #include <string>
 #include <thread>
+#include <ranges>
+
 
 #if _WIN32 || _WIN64
 #if _WIN64
@@ -59,12 +61,12 @@ struct impl : public virtual cloneable<impl>
 	}
 };
 
-class CPortsHeader
+class Ports
 {
 public:
 	unsigned int uSourcePort, uDestinationPort;
 
-	CPortsHeader(_In_ unsigned int uSPort, _In_ unsigned int uDPort)
+	Ports(_In_ unsigned int uSPort, _In_ unsigned int uDPort)
 		: uSourcePort(uSPort)
 		, uDestinationPort(uDPort)
 	{
@@ -83,14 +85,14 @@ private:
 	std::unordered_map<int, int> m_mapINT;
 };
 
-struct CPortsHeaderComparator
+struct PortsCmp
 {
-	size_t operator()(_In_ const CPortsHeader& x) const
+	size_t operator()(_In_ const Ports& x) const
 	{
 		return (std::hash<int>()(x.uSourcePort) ^ std::hash<int>()(x.uDestinationPort));
 	}
 
-	bool operator()(_In_ const CPortsHeader& a, _In_ const CPortsHeader& b) const
+	bool operator()(_In_ const Ports& a, _In_ const Ports& b) const
 	{
 		return a.uSourcePort == b.uSourcePort && a.uDestinationPort == b.uDestinationPort;
 	}
@@ -103,129 +105,39 @@ namespace FrameworkTesting
 ONLY_USED_AT_NAMESPACE_SCOPE class test_extensions : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_extensions> // expanded TEST_CLASS() macro due wrong formatting of clangformat
 {
 public:
-	TEST_METHOD(TestContainerTraits)
+	TEST_METHOD(TestExecuteOnContainerObject)
 	{
-		struct WithoutEnd
-		{
-			int begin()
+		std::unordered_map<Ports, std::string, PortsCmp, PortsCmp> myMap = { { Ports(5, 6), "tezko" } };
+
+		auto value1 = extensions::execute_on_container(myMap, Ports(5, 6), [](std::string& oResult)
 			{
-				return 1;
-			}
-		};
+				return 20;
+			});
 
-		struct WithoutBegin
-		{
-			int begin()
+		auto value2 = extensions::execute_on_container(myMap, Ports(5, 7), [](std::string& oResult)
 			{
-				return 1;
-			}
-		};
+				return 10;
+			});
 
-		struct MyContainer
-		{
-			int* begin()
-			{
-				return nullptr;
-			}
-			int* end()
-			{
-				return nullptr;
-			}
-			size_t size()
-			{
-				return 0;
-			}
-		};
-
-		std::vector<int> vec;
-		std::list<int> list;
-		std::set<std::string> set;
-		std::map<int, std::string> map;
-		std::unordered_set<int, int> uset;
-		std::unordered_map<std::string, int> umap;
-
-		int a;
-		std::string b;
-		WithoutEnd c;
-		WithoutBegin d;
-		MyContainer e;
-
-		Assert::AreEqual(constraints::is_container_v<decltype(vec)>, true);
-		Assert::AreEqual(constraints::is_container_v<decltype(list)>, true);
-		Assert::AreEqual(constraints::is_container_v<decltype(set)>, true);
-		Assert::AreEqual(constraints::is_container_v<decltype(map)>, true);
-		Assert::AreEqual(constraints::is_container_v<decltype(uset)>, true);
-		Assert::AreEqual(constraints::is_container_v<decltype(umap)>, true);
-		Assert::AreEqual(constraints::is_container_v<decltype(a)>, false);
-		Assert::AreEqual(constraints::is_container_v<decltype(b)>, true);
-		Assert::AreEqual(constraints::is_container_v<decltype(c)>, false);
-		Assert::AreEqual(constraints::is_container_v<decltype(d)>, false);
-		Assert::AreEqual(constraints::is_container_v<decltype(e)>, true);
-
-	} // namespace FrameworkTesting
-
-	TEST_METHOD(TestExecuteOnContainer)
+		Assert::AreEqual(value1, 20);
+		Assert::AreEqual(value2, 0);
+	}
+	TEST_METHOD(TestExecuteOnContainerObjectConst)
 	{
-		std::unordered_map<CPortsHeader, std::string, CPortsHeaderComparator, CPortsHeaderComparator> my_map;
-		my_map.emplace(CPortsHeader(5, 6), "tezko");
+		const std::unordered_map<Ports, std::string, PortsCmp, PortsCmp> myMap = { { Ports(5, 6), "tezko" } };
 
-
-		extensions::execute_on_container(my_map, CPortsHeader(5, 6), [](_In_ const std::string oResult)
+		auto value1 = extensions::execute_on_container(myMap, Ports(5, 6), [](const std::string& oResult)
 			{
-				std::cout << oResult << std::endl;
+				return 20;
 			});
 
-		auto i = extensions::execute_on_container(my_map, CPortsHeader(5, 6), [](_In_ const std::string oResult) -> int
+		auto value2 = extensions::execute_on_container(myMap, Ports(5, 7), [](const std::string& oResult)
 			{
-				std::cout << oResult << std::endl;
-				return 58;
+				return 10;
 			});
 
-		std::unordered_map<int, std::shared_ptr<std::string>> mapSecond;
-		mapSecond.emplace(5, std::make_unique<std::string>("s"));
-		auto j = extensions::execute_on_container(mapSecond, 4, [](_In_ auto& oResult) -> std::shared_ptr<std::string>
-			{
-				std::cout << oResult;
-				return nullptr;
-			});
-
-		auto ooo = [](_In_ const auto& oResult) -> std::shared_ptr<std::string>
-		{
-			std::cout << oResult << std::endl;
-			return oResult;
-		};
-
-		auto j2 = extensions::execute_on_container(mapSecond, 5, ooo);
-
-		bool b = {};
-
-		std::map<int, int> mapInts;
-		mapInts.emplace(5, 10);
-		auto iRes = extensions::execute_on_container(mapInts, 5, [](_In_ int& oResult)
-			{
-				oResult += 1;
-				return oResult;
-			});
-
-		CPortsHeader oVal(10, 20);
-		oVal.Compute();
-
-		std::unordered_set<int> setInts{ 5 };
-		auto iEx = extensions::execute_on_container(setInts, 5, [](_In_ const int& oResult) -> int
-			{
-				return oResult;
-			});
-
-		bool bMap = constraints::is_pair_v<std::iterator_traits<typename std::map<int, int>::iterator>::value_type>;
-		bool bVec = constraints::is_pair_v<std::iterator_traits<typename std::vector<int>::iterator>::value_type>;
-
-		std::vector<int> vecPok = { 1, 4, 6 };
-		auto iVecRes			= extensions::execute_on_container(vecPok, 4, [](_In_ const int& oResult) -> int
-					   {
-				   return oResult;
-			   });
-
-		int isa = 0;
+		Assert::AreEqual(value1, 20);
+		Assert::AreEqual(value2, 0);
 	}
 
 	TEST_METHOD(TestRecast)

@@ -188,6 +188,7 @@
     </ClCompile>
     <ClCompile Include="test_async.cpp" />
     <ClCompile Include="test_atomic_concurrent.cpp" />
+    <ClCompile Include="test_constraints.cpp" />
     <ClCompile Include="test_property.cpp" />
     <ClCompile Include="test_signal.cpp" />
     <ClCompile Include="test_concurrent.cpp" />
