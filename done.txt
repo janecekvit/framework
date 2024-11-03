@@ -6,6 +6,9 @@ exception.h, test_exception.cpp
 cloneable.h, test_cloneable.cpp
 -> DONE,
 
+constraints.h, test_constraints.cpp
+-> DONE,
+
 extensions.h, test_extensions.cpp
 ->DONE, (fix compilation when no libconcepts are present))
 
@@ -14,6 +17,9 @@ finally.h, test_finally.cpp
 
 lazy.h, test_lazy.cpp
 -> DONE, 
+
+property.h, test_property.cpp
+-> WORKING ON IT, 
 
 
  == storage ==
@@ -40,10 +46,12 @@ sync_thread.h, sync_thread.cpp, test_sync_thread.cpp,
 async.h, test_async.cpp
 -> DONE (add coroutines)
 
-
  == tracing == 
 trace.h, test_trace.cpp
 -> DONE
+
+ == utility ==
+ conversion.h, test_conversion.cpp
 
 TODO:
 - Check concurrent and atomic_concurrent

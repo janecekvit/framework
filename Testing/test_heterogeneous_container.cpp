@@ -13,37 +13,6 @@ using namespace std::string_literals;
 namespace FrameworkTesting
 {
 
-class TestHeterogeneousContainer
-{
-public:
-	TestHeterogeneousContainer()
-	{
-		std::function<void(int&)> fnCallbackInt = [this](int& i)
-		{
-			i += 10;
-		};
-
-		std::function<void(int&)> fnCallbackInt2 = [this](int& i)
-		{
-			i += 20;
-		};
-
-		m_pContainer = std::make_unique<storage::heterogeneous_container>(fnCallbackInt, fnCallbackInt2);
-	}
-	virtual ~TestHeterogeneousContainer() = default;
-
-	int call()
-	{
-		int iCall = 0;
-		m_pContainer->call_first<std::function<void(int&)>>(iCall);
-		return iCall;
-	}
-
-private:
-	std::unique_ptr<storage::heterogeneous_container> m_pContainer = nullptr;
-};
-
-
 ONLY_USED_AT_NAMESPACE_SCOPE class test_heterogeneous_container : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_heterogeneous_container> // expanded TEST_CLASS() macro due wrong formatting of clangformat
 {
 public:
@@ -191,8 +160,38 @@ public:
 
 	TEST_METHOD(TestContainerInClass)
 	{
+		class TestHeterogeneousContainer
+		{
+		public:
+			TestHeterogeneousContainer()
+			{
+				std::function<void(int&)> fnCallbackInt = [this](int& i)
+				{
+					i += 10;
+				};
+
+				std::function<void(int&)> fnCallbackInt2 = [this](int& i)
+				{
+					i += 20;
+				};
+
+				m_pContainer = std::make_unique<storage::heterogeneous_container>(fnCallbackInt, fnCallbackInt2);
+			}
+			virtual ~TestHeterogeneousContainer() = default;
+
+			int call()
+			{
+				int iCall = 0;
+				m_pContainer->call_first<std::function<void(int&)>>(iCall);
+				return iCall;
+			}
+
+		private:
+			std::unique_ptr<storage::heterogeneous_container> m_pContainer = nullptr;
+		};
+
 		// Test container in nested class
-		FrameworkTesting::TestHeterogeneousContainer oTestContainer;
+		TestHeterogeneousContainer oTestContainer;
 		Assert::AreEqual(10, oTestContainer.call());
 	}
 };

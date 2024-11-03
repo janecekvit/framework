@@ -1,10 +1,10 @@
 #include "stdafx.h"
 
 #include "CppUnitTest.h"
+#include "extensions/cloneable.h"
 #include "extensions/property.h"
 #include "storage/heterogeneous_container.h"
 #include "synchronization/concurrent.h"
-#include "extensions/cloneable.h"
 
 #include <future>
 #include <iostream>
@@ -21,41 +21,9 @@
 
 using namespace janecekvit;
 
-
 using namespace std::string_literals;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 // https://docs.microsoft.com/cs-cz/visualstudio/test/microsoft-visualstudio-testtools-cppunittestframework-api-reference?view=vs-2019
-
-class NoGetterSetter
-{
-public:
-	std::vector<int> i;
-
-protected:
-	std::vector<int> j;
-
-private:
-	std::vector<int> k;
-};
-
-class GetterSetterTesting
-{
-	void Test()
-	{
-		i->emplace_back(1);
-		j->emplace_back(1);
-		k->emplace_back(1);
-	}
-
-public:
-	extensions::property<std::vector<int>> i;
-
-protected:
-	extensions::property<std::vector<int>> j;
-
-private:
-	extensions::property<std::vector<int>> k;
-};
 
 class TestGetterSetter
 {
@@ -104,6 +72,78 @@ public:
 	extensions::property<bool, TestGetterSetter> Bool;
 };
 
+class PropertyTesting
+{
+public:
+	extensions::property<std::vector<int>> Public;
+
+protected:
+	extensions::property<std::vector<int>> Protected;
+
+private:
+	extensions::property<std::vector<int>> Private;
+};
+
+struct SimpleValue
+{
+	SimpleValue(int val)
+		: Value(val)
+	{
+	}
+
+	 std::vector<int> Value;
+};
+
+struct PropertyHolder
+{
+	extensions::property<SimpleValue, PropertyHolder, PropertyHolder> Value;
+
+	PropertyHolder()
+		: Value(0)
+	{
+	}
+
+	PropertyHolder(const SimpleValue& value)
+		: Value(value)
+	{
+	}
+
+	PropertyHolder(SimpleValue&& value)
+		: Value(std::move(value))
+	{
+	}
+
+	
+	PropertyHolder(const extensions::property<SimpleValue, PropertyHolder, PropertyHolder>& value)
+		: Value(value)
+	{
+	}
+
+	PropertyHolder(extensions::property<SimpleValue, PropertyHolder, PropertyHolder>&& value)
+		: Value(std::move(value))
+	{
+	}
+
+
+	PropertyHolder& operator=(const SimpleValue& value)
+	{
+		Value = value;
+		return *this;
+	}
+
+	PropertyHolder& operator=(SimpleValue&& value)
+	{
+		Value = std::move(value);
+		return *this;
+	}
+
+	bool CheckValue(const SimpleValue& value) const
+	{
+		return value.Value == Value->Value;
+	}
+};
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace FrameworkTesting
@@ -111,81 +151,197 @@ namespace FrameworkTesting
 ONLY_USED_AT_NAMESPACE_SCOPE class test_property : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_property> // expanded TEST_CLASS() macro due wrong formatting of clangformat
 {
 public:
-
-	TEST_METHOD(TestGetterSetterWrapper)
+	TEST_METHOD(TestPropertyConstruction)
 	{
-		{ // check normal visibility without any getter/setter
-			NoGetterSetter o;
-			o.i.emplace_back(5);
-			Assert::AreEqual(o.i.size(), (size_t) 1);
-			// o.j.emplace_back(5); -> protected
-			// o.k.emplace_back(5); -> private
+		SimpleValue intHolder(5);
+		const SimpleValue intHolderConst(10);
+		SimpleValue intHolderMove(15);
 
-			const NoGetterSetter u = o;
-			// u.i.emplace_back(5); -> access error, const on modifiable value
-			Assert::AreEqual(u.i.size(), (size_t) 1);
-			// u.j.emplace_back(5); -> protected
-			// u.k.emplace_back(5); -> private
-		}
+		// construction tests by value
+		extensions::property<SimpleValue> value(intHolder);
+		Assert::AreEqual(value->Value.size(), size_t(5));
 
-		{ // check getter setter visibility
-			GetterSetterTesting x;
-			auto ij = x.i->size();
-			x.i->emplace_back(5);
-			auto z = x.i.begin();
-			Assert::AreEqual(x.i.size(), (size_t) 1);
+		const extensions::property<SimpleValue> valueConst(intHolderConst);
+		Assert::AreEqual(valueConst->Value.size(), size_t(10));
 
-			// check getter setter visibility
-			const GetterSetterTesting y = x;
-			Assert::AreEqual(y.i.size(), (size_t) 1);
-			// y.i->emplace_back(5); ->access error, const on modifiable value
-		}
+		extensions::property<SimpleValue> valueMove(std::move(intHolderMove));
+		Assert::AreEqual(valueMove->Value.size(), size_t(15));
+
+		// construction tests by property
+		extensions::property<SimpleValue> valueByProperty(value);
+		Assert::AreEqual(valueByProperty->Value.size(), size_t(5));
+
+		extensions::property<SimpleValue> valueByPropertyConst(valueConst);
+		Assert::AreEqual(valueByPropertyConst->Value.size(), size_t(10));
+
+		extensions::property<SimpleValue> valueByPropertyMove(std::move(valueMove));
+		Assert::AreEqual(valueByPropertyMove->Value.size(), size_t(15));
+	}
+
+	TEST_METHOD(TestPropertyConstructionPrivate)
+	{
+		SimpleValue intHolder(5);
+		const SimpleValue intHolderConst(10);
+		SimpleValue intHolderMove(15);
+
+		// construction tests by value
+		PropertyHolder value(intHolder);
+		Assert::IsTrue(value.CheckValue(5));
+
+		PropertyHolder valueConst(intHolderConst);
+		Assert::IsTrue(valueConst.CheckValue(10));
+
+		PropertyHolder valueMove(std::move(intHolderMove));
+		Assert::IsTrue(valueMove.CheckValue(15));
+
+		// construction tests by property
+		PropertyHolder valueByProperty(value);
+		Assert::IsTrue(valueByProperty.CheckValue(size_t(5)));
+
+		PropertyHolder valueByPropertyConst(valueConst);
+		Assert::IsTrue(valueByPropertyConst.CheckValue(size_t(10)));
+
+		PropertyHolder valueByPropertyMove(std::move(valueMove));
+		Assert::IsTrue(valueByPropertyMove.CheckValue(size_t(15)));
+
+		// do not work, private constructor
+		/*extensions::property<SimpleValue, PropertyHolder, PropertyHolder> value(intHolder);
+		const extensions::property<SimpleValue, PropertyHolder, PropertyHolder> valueConst(intHolderConst);
+		extensions::property<SimpleValue, PropertyHolder, PropertyHolder> valueMove(std::move(intHolderMove));*/
+
+	}
+
+	TEST_METHOD(TestPropertyAssign)
+	{
+		SimpleValue intHolder(5);
+		const SimpleValue intHolderConst(10);
+		SimpleValue intHolderMove(15);
+
+		auto value = extensions::property<SimpleValue>(intHolder);
+		const auto valueConst = extensions::property<SimpleValue>(intHolderConst);
+		auto valueMove = extensions::property<SimpleValue>(std::move(intHolderMove));
+
+		// construction tests by property
+		auto valueCopy = value;
+		Assert::AreEqual(valueCopy->Value.size(), size_t(5));
+
+		const auto valueCopyConst = valueConst;
+		Assert::AreEqual(valueCopyConst->Value.size(), size_t(10));
+
+		auto valueCopyMove = std::move(valueMove);
+		Assert::AreEqual(valueCopyMove->Value.size(), size_t(15));
+		Assert::AreEqual(valueMove->Value.size(), size_t(0));
+	}
+
+	TEST_METHOD(TestPropertyAssignPrivate)
+	{
+		SimpleValue intHolder(5);
+		const SimpleValue intHolderConst(10);
+		SimpleValue intHolderMove(15);
+
+		PropertyHolder value;
+		value = intHolder;
+		Assert::IsTrue(value.CheckValue(5));
+
+		PropertyHolder valueConst;
+		valueConst = intHolderConst;
+		Assert::IsTrue(valueConst.CheckValue(10));
+
+		PropertyHolder valueMove;
+		valueMove = std::move(intHolderMove);
+		Assert::IsTrue(valueMove.CheckValue(15));
+	}
+
+	TEST_METHOD(TestPropertyUserDefinedConversions)
+	{
+		// bool conversions
+		auto valueTrue = extensions::property<int>(5);
+		Assert::IsTrue(static_cast<bool>(valueTrue));
+		auto valueFalse = extensions::property<int>(0);
+		Assert::IsFalse(static_cast<bool>(valueFalse));
+
+		// user defined conversions
+		auto value = extensions::property<int>(10);
+		const int intValueConst = value;
+		const int& intRefValueConst = value;
+		int& intRefValue = value;
+		int intMoveValue = std::move(value);
+
+		Assert::AreEqual(intValueConst, 10);
+		Assert::AreEqual(intRefValueConst, 10);
+		Assert::AreEqual(intRefValue, 10);
+		Assert::AreEqual(intMoveValue, 10);
+		
+	}
+
+	TEST_METHOD(TestPropertyPublicVisibility)
+	{
+		class PropertyTesting
+		{
+		public:
+			extensions::property<std::vector<int>> Public;
+		};
+
+		PropertyTesting value;
+		value.Public->emplace_back(5);
+
+		Assert::AreEqual(value.Public->at(0), 5);
+	}
+
+	TEST_METHOD(TestPropertyVisibilityX)
+	{
+		TestGetterSetter visibility;
+		visibility.AllAccessible();
+
+		// int test scope
+		visibility.Int = 5;
+		// visibility.IntSetterPrivate = 6; //   -> private set
+		// visibility.IntBothPrivate = 6; //  -> private set and get
+
+		int i1 = visibility.Int;
+		int i2 = visibility.IntSetterPrivate; //   -> private set
+
+		// int i3 = visibility.IntBothPrivate; // -> private get and set
+
+		int& ilv1 = visibility.Int;
+		// int& ilv2 = visibility.IntSetterPrivate; //   -> private set
+		// int& ilv3 = visibility.IntBothPrivate;	 //  -> private get and set
+	}
+
+	TEST_METHOD(TestPropertyExplicitConversions)
+	{ // bool explicit conversions
 
 		TestGetterSetter visibility;
 		visibility.AllAccessible();
 
-		{ // int test scope
-			visibility.Int = 5;
-			// visibility.IntSetterPrivate = 6; //   -> private set
-			// visibility.IntBothPrivate = 6; //  -> private set and get
+		int iCondition = 0;
+		if (visibility.Bool) // -> non-const explicit bool
+			iCondition++;
 
-			int i1 = visibility.Int;
-			int i2 = visibility.IntSetterPrivate; //   -> private set
+		if (const auto& constVisivility = visibility; constVisivility.Bool) // -> const explicit bool
+			iCondition++;
 
-			// int i3 = visibility.IntBothPrivate; // -> private get and set
+		if (visibility.Int) // -> non-const explicit bool
+			iCondition++;
 
-			int& ilv1 = visibility.Int;
-			// int& ilv2 = visibility.IntSetterPrivate; //   -> private set
-			// int& ilv3 = visibility.IntBothPrivate;	 //  -> private get and set
-		}
+		if (const auto& constVisivility = visibility; constVisivility.Int) // -> const explicit bool
+			iCondition++;
 
-		{ // bool explicit conversions
+		Assert::AreEqual(iCondition, 4);
+	}
 
-			int iCondition = 0;
-			if (visibility.Bool) // -> non-const explicit bool
-				iCondition++;
+	TEST_METHOD(TestPropertyContainers)
+	{ // container tests
+		TestGetterSetter visibility;
+		visibility.AllAccessible();
 
-			if (const auto& constVisivility = visibility; constVisivility.Bool) // -> const explicit bool
-				iCondition++;
+		auto beg1 = visibility.Vec.begin();
+		auto beg2 = visibility.VecSetterPrivate.begin();
+		// visibility.VecBothPrivate.begin(); -> private get
 
-			if (visibility.Int) // -> non-const explicit bool
-				iCondition++;
-
-			if (const auto& constVisivility = visibility; constVisivility.Int) // -> const explicit bool
-				iCondition++;
-
-			Assert::AreEqual(iCondition, 4);
-		}
-
-		{ // container tests
-			auto beg1 = visibility.Vec.begin();
-			auto beg2 = visibility.VecSetterPrivate.begin();
-			// visibility.VecBothPrivate.begin(); -> private get
-
-			visibility.Vec->emplace_back(5);
-			// visibility.VecSetterPrivate->emplace_back(5);  -> private set
-			// visibility.VecBothPrivate->emplace_back(5);  -> private set
-		}
+		visibility.Vec->emplace_back(5);
+		// visibility.VecSetterPrivate->emplace_back(5);  -> private set
+		// visibility.VecBothPrivate->emplace_back(5);  -> private set
 	}
 };
 

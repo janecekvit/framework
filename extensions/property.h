@@ -23,7 +23,6 @@ class public_access
 {
 };
 
-
 /// <summary>
 /// The Getter/Setter wrapper implements C++ like assessors to modify inner value of the defined resource type (_Resource).
 /// Wrapper via accessors can modify the visibility of set and get methods.
@@ -87,85 +86,43 @@ class property
 
 public:
 	constexpr property() = default;
-	virtual ~property()  = default;
+	virtual ~property()	 = default;
 
+	// Constructors
 public: // public set
-	template <class _TModifier = _TSetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
-	constexpr property(_Resource&& resource)
-		: _resource(std::move(resource))
+	template <class _FwdResource = _Resource, class _TModifier = _TSetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
+	constexpr property(_FwdResource&& resource)
+		: _resource(std::forward<_FwdResource>(resource))
 	{
 	}
 
 private: // private set
-	template <class _TModifier = _TSetter, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
-	constexpr property(_Resource&& resource)
-		: _resource(std::move(resource))
-	{
-	}
-
-public: // public set
-	template <class _TModifier = _TSetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
-	constexpr property(const _Resource& resource)
-		: _resource(resource)
-	{
-	}
-
-private: // private set
-	template <class _TModifier = _TSetter, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
-	constexpr property(const _Resource& resource)
-		: _resource(resource)
-	{
-	}
-
-public: // public set
-	template <class _TModifier = _TSetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
-	property(const property& other)
-		: _resource(other._resource)
-	{
-	}
-
-private: // private set
-	template <class _TModifier = _TSetter, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
-	property(const property& other)
-		: _resource(other._resource)
+	template <class _FwdResource = _Resource, class _TModifier = _TSetter, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	constexpr property(_FwdResource&& resource)
+		: _resource(std::forward<_FwdResource>(resource))
 	{
 	}
 
 public: // public set
 	template <class _TModifier = _TSetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
 	property(property&& other)
-		: _resource(std::move(other._resource))
+		: _resource(std::forward<_Resource>(other._resource))
 	{
 	}
 
 private: // private set
 	template <class _TModifier = _TSetter, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
 	property(property&& other)
-		: _resource(std::move(other._resource))
+		: _resource(std::forward<_Resource>(other._resource))
 	{
 	}
 
-public: // public set
-	template <class _TModifier = _TSetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
-	property& operator=(const property& other)
-	{
-		_resource = other._resource;
-		return *this;
-	}
-
-private: // private set
-	template <class _TModifier = _TSetter, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
-	property& operator=(const property& other)
-	{
-		_resource = other._resource;
-		return *this;
-	}
-
+	// assign operators
 public: // public set
 	template <class _TModifier = _TSetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
 	property& operator=(property&& other)
 	{
-		_resource = std::move(other._resource);
+		_resource = std::forward<_Resource>(other._resource);
 		return *this;
 	}
 
@@ -173,10 +130,11 @@ private: // private set
 	template <class _TModifier = _TSetter, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
 	property& operator=(property&& other)
 	{
-		_resource = std::move(other._resource);
+		_resource = std::forward<_Resource>(other._resource);
 		return *this;
 	}
 
+	//user-defined conversions
 public: // public get
 	template <class _TModifier = _TGetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
 	[[nodiscard]] constexpr operator const _Resource&() const& noexcept
@@ -247,20 +205,7 @@ private: // private get -> bool operator const: cannot be called for native bool
 		return static_cast<bool>(_resource);
 	}
 
-public: // public get -> bool operator const: cannot be called for native bool to avoid interfering with operator auto() + we can handle non-cost variable because bool is captured by value
-	template <class _Quantified = _Resource, class _TModifier = _TGetter, std::enable_if_t<std::is_convertible_v<_Quantified, bool> && !std::is_same_v<_Quantified, bool> && std::is_same_v<_TModifier, public_access>, int> = 0>
-	[[nodiscard]] constexpr explicit operator bool() noexcept
-	{
-		return static_cast<bool>(_resource);
-	}
-
-private: // private get -> bool operator const: cannot be called for native bool to avoid interfering with operator auto() + we can handle non-cost variable because bool is captured by value
-	template <class _Quantified = _Resource, class _TModifier = _TGetter, std::enable_if_t<std::is_convertible_v<_Quantified, bool> && !std::is_same_v<_Quantified, bool> && !std::is_same_v<_TModifier, public_access>, int> = 0>
-	[[nodiscard]] constexpr explicit operator bool() noexcept
-	{
-		return static_cast<bool>(_resource);
-	}
-
+	// container accessors
 public: // public get
 	template <class _Quantified = _Resource, class _TModifier = _TGetter, std::enable_if_t<constraints::is_container_v<_Quantified> && std::is_same_v<_TModifier, public_access>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) begin() const noexcept
@@ -303,6 +248,7 @@ private: // private get
 		return _resource.size();
 	}
 
+	// pointer accessors
 public: // public set
 	template <class _Quantified = _Resource, class _TModifier = _TSetter, std::enable_if_t<std::is_pointer_v<_Quantified> && std::is_same_v<_TModifier, public_access>, int> = 0>
 	[[nodiscard]] constexpr auto operator->() & noexcept -> _Resource&
