@@ -305,16 +305,17 @@ private: // private get
 		return std::addressof(_resource);
 	}
 
+	// Address accessors
 public: // public set
-	template <class _TModifier = _TSetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
-	constexpr _Resource* operator&()
+	template <class _TModifier = _TGetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
+	constexpr const _Resource* operator&() const& noexcept 
 	{
 		return std::addressof(_resource);
 	}
 
 private: // private set
-	template <class _TModifier = _TSetter, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
-	constexpr _Resource* operator&()
+	template <class _TModifier = _TGetter, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	constexpr const _Resource* operator&() const& noexcept 
 	{
 		return std::addressof(_resource);
 	}

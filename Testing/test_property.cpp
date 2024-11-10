@@ -257,7 +257,7 @@ public:
 		// bool conversions
 		auto valueTrue = extensions::property<int>(5);
 		Assert::IsTrue(static_cast<bool>(valueTrue));
-		auto valueFalse = extensions::property<int>(0);
+		const auto valueFalse = extensions::property<int>(0);
 		Assert::IsFalse(static_cast<bool>(valueFalse));
 
 		// user defined conversions
@@ -274,75 +274,69 @@ public:
 		
 	}
 
-	TEST_METHOD(TestPropertyPublicVisibility)
+	TEST_METHOD(TestPropertyContainersMethods)
 	{
-		class PropertyTesting
+		auto value = extensions::property<std::vector<int>>(5);
+		Assert::AreEqual(value.size(), size_t(5));
+		Assert::AreEqual(*value.begin(), 0);
+		Assert::AreEqual(*std::prev(value.end()), 0);
+	}
+
+	TEST_METHOD(TestPropertyPointerMethods)
+	{
+		/*auto ptr	 = extensions::property<std::vector<int>*>(new std::vector<int>(5));
+		ptr->push_back(5);
+
+		auto pVector = new std::vector<int>(5);
+		pVector->push_back(5)
+		
+		
+
+		auto value = extensions::property<std::unique_ptr<int>>(5);
+		value->reset(new int(10));*/
+
+		//address operators
+		
+	}
+
+	TEST_METHOD(TestPropertyAddressMethods)
+	{
+		auto intPtr = std::make_shared<int>(5);
+		extensions::property<std::shared_ptr<int>> property(intPtr);
+		Assert::IsTrue(*&property == intPtr);
+
+		const auto propertyconst = property;
+		Assert::IsTrue(*&propertyconst == intPtr);
+	}
+
+	TEST_METHOD(TestPropertyAddressMethodsPrivate)
+	{
+		auto intPtr = std::make_shared<SimpleValue>(5);
+
+		struct PropertyHolderPtr
 		{
-		public:
-			extensions::property<std::vector<int>> Public;
+			PropertyHolderPtr(const std::shared_ptr<SimpleValue>& value)
+				: Value(value)
+			{
+			}
+
+			extensions::property<std::shared_ptr<SimpleValue>, PropertyHolderPtr, PropertyHolderPtr> Value;
+
+		const std::shared_ptr<SimpleValue>* operator&() const
+			{
+				return &Value;
+			}
 		};
 
-		PropertyTesting value;
-		value.Public->emplace_back(5);
+		PropertyHolderPtr property(intPtr);
 
-		Assert::AreEqual(value.Public->at(0), 5);
+		Assert::IsTrue(*&property == intPtr);
+
+		const auto propertyconst = property;
+		Assert::IsTrue(*&propertyconst == intPtr);
 	}
 
-	TEST_METHOD(TestPropertyVisibilityX)
-	{
-		TestGetterSetter visibility;
-		visibility.AllAccessible();
 
-		// int test scope
-		visibility.Int = 5;
-		// visibility.IntSetterPrivate = 6; //   -> private set
-		// visibility.IntBothPrivate = 6; //  -> private set and get
-
-		int i1 = visibility.Int;
-		int i2 = visibility.IntSetterPrivate; //   -> private set
-
-		// int i3 = visibility.IntBothPrivate; // -> private get and set
-
-		int& ilv1 = visibility.Int;
-		// int& ilv2 = visibility.IntSetterPrivate; //   -> private set
-		// int& ilv3 = visibility.IntBothPrivate;	 //  -> private get and set
-	}
-
-	TEST_METHOD(TestPropertyExplicitConversions)
-	{ // bool explicit conversions
-
-		TestGetterSetter visibility;
-		visibility.AllAccessible();
-
-		int iCondition = 0;
-		if (visibility.Bool) // -> non-const explicit bool
-			iCondition++;
-
-		if (const auto& constVisivility = visibility; constVisivility.Bool) // -> const explicit bool
-			iCondition++;
-
-		if (visibility.Int) // -> non-const explicit bool
-			iCondition++;
-
-		if (const auto& constVisivility = visibility; constVisivility.Int) // -> const explicit bool
-			iCondition++;
-
-		Assert::AreEqual(iCondition, 4);
-	}
-
-	TEST_METHOD(TestPropertyContainers)
-	{ // container tests
-		TestGetterSetter visibility;
-		visibility.AllAccessible();
-
-		auto beg1 = visibility.Vec.begin();
-		auto beg2 = visibility.VecSetterPrivate.begin();
-		// visibility.VecBothPrivate.begin(); -> private get
-
-		visibility.Vec->emplace_back(5);
-		// visibility.VecSetterPrivate->emplace_back(5);  -> private set
-		// visibility.VecBothPrivate->emplace_back(5);  -> private set
-	}
 };
 
 } // namespace FrameworkTesting
