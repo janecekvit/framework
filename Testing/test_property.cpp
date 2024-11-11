@@ -25,64 +25,6 @@ using namespace std::string_literals;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 // https://docs.microsoft.com/cs-cz/visualstudio/test/microsoft-visualstudio-testtools-cppunittestframework-api-reference?view=vs-2019
 
-class TestGetterSetter
-{
-public:
-	void AllAccessible()
-	{
-		{ // int test scope
-			Int				 = 5;
-			IntSetterPrivate = 6; //   -> private set
-			IntBothPrivate	 = 6; //  -> private set and get
-
-			int i1 = Int;
-			int i2 = IntSetterPrivate; // -> private set
-			int i3 = IntBothPrivate;   // -> private get and set
-
-			int& ilv1 = Int;
-			ilv1++;
-			int& ilv2 = IntSetterPrivate; //   -> private set
-			ilv2++;
-			int& ilv3 = IntBothPrivate; //  -> private get
-			ilv3++;
-		}
-
-		Bool = true; // private set
-
-		{
-			auto b1 = Vec.begin();
-			auto b2 = VecSetterPrivate.begin();
-			auto b3 = VecBothPrivate.begin(); // -> private get
-
-			Vec->emplace_back(5);
-			VecSetterPrivate->emplace_back(5); // -> private set
-			VecBothPrivate->emplace_back(5);   //-> private set
-		}
-	}
-
-public:
-	extensions::property<int> Int;
-	extensions::property<int, TestGetterSetter> IntSetterPrivate;
-	extensions::property<int, TestGetterSetter, TestGetterSetter> IntBothPrivate;
-
-	extensions::property<std::vector<int>> Vec;
-	extensions::property<std::vector<int>, TestGetterSetter> VecSetterPrivate;
-	extensions::property<std::vector<int>, TestGetterSetter, TestGetterSetter> VecBothPrivate;
-
-	extensions::property<bool, TestGetterSetter> Bool;
-};
-
-class PropertyTesting
-{
-public:
-	extensions::property<std::vector<int>> Public;
-
-protected:
-	extensions::property<std::vector<int>> Protected;
-
-private:
-	extensions::property<std::vector<int>> Private;
-};
 
 struct SimpleValue
 {
@@ -135,6 +77,16 @@ struct PropertyHolder
 	{
 		Value = std::move(value);
 		return *this;
+	}
+
+	SimpleValue* operator->()
+	{
+		return Value.operator->();
+	}
+
+	const SimpleValue* operator->() const
+	{
+		return Value.operator->();
 	}
 
 	bool CheckValue(const SimpleValue& value) const
@@ -281,22 +233,78 @@ public:
 		Assert::AreEqual(*value.begin(), 0);
 		Assert::AreEqual(*std::prev(value.end()), 0);
 	}
-
-	TEST_METHOD(TestPropertyPointerMethods)
+	TEST_METHOD(TestPropertyArrowOperator)
 	{
-		/*auto ptr	 = extensions::property<std::vector<int>*>(new std::vector<int>(5));
-		ptr->push_back(5);
+		auto property = extensions::property<std::vector<int>>(std::vector<int>(5));
+		property->emplace_back(10);
+		Assert::AreEqual(property->size(), size_t(6));
 
-		auto pVector = new std::vector<int>(5);
-		pVector->push_back(5)
-		
-		
+		const auto propertyConst = property;
+		Assert::AreEqual(propertyConst->at(5), 10);
+	}
+	
+	TEST_METHOD(TestPropertyArrowOperatorPrivate)
+	{
+		SimpleValue intHolder(5);
+		PropertyHolder property(intHolder);
 
-		auto value = extensions::property<std::unique_ptr<int>>(5);
-		value->reset(new int(10));*/
+		property->Value.emplace_back(10);
+		Assert::AreEqual(property->Value.size(), size_t(6));
 
-		//address operators
-		
+		const auto propertyConst = property;
+		Assert::AreEqual(propertyConst->Value.at(5), 10);
+	}
+
+	TEST_METHOD(TestPropertyArrowOperatorOnPointer)
+	{
+		auto vector = new std::vector<int>(5);
+		auto clean	= extensions::finally([&]
+			 {
+				 delete vector;
+			 });
+
+		auto property = extensions::property<std::vector<int>*>(vector);
+		property->emplace_back(10);
+		Assert::AreEqual(property->size(), size_t(6));
+
+		const auto propertyConst = property;
+		Assert::AreEqual(propertyConst->at(5), 10);
+	}
+
+	TEST_METHOD(TestPropertyArrowOperatorOnPointerPrivate)
+	{
+		struct PropertyHolderPtr
+		{
+			PropertyHolderPtr(std::vector<int>* value)
+				: Value(value)
+			{
+			}
+
+			std::vector<int>* operator->()
+			{
+				return Value.operator->();
+			}
+
+			const std::vector<int>* operator->() const
+			{
+				return Value.operator->();
+			}
+
+			extensions::property<std::vector<int>*, PropertyHolderPtr, PropertyHolderPtr> Value;
+		};
+
+		auto vector = new std::vector<int>(5);
+		auto clean	= extensions::finally([&]
+			 {
+				 delete vector;
+			 });
+
+		auto property = PropertyHolderPtr(vector);
+		property->emplace_back(10);
+		Assert::AreEqual(property->size(), size_t(6));
+
+		const auto propertyConst = property;
+		Assert::AreEqual(propertyConst->at(5), 10);
 	}
 
 	TEST_METHOD(TestPropertyAddressMethods)
@@ -329,7 +337,6 @@ public:
 		};
 
 		PropertyHolderPtr property(intPtr);
-
 		Assert::IsTrue(*&property == intPtr);
 
 		const auto propertyconst = property;
