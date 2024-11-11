@@ -120,9 +120,25 @@ private: // private set
 	// assign operators
 public: // public set
 	template <class _TModifier = _TSetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
+	property& operator=(const property& other)
+	{
+		_resource = other._resource;
+		return *this;
+	}
+
+private: // private set
+	template <class _TModifier = _TSetter, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	property& operator=(const property& other)
+	{
+		_resource = other._resource;
+		return *this;
+	}
+
+public: // public set
+	template <class _TModifier = _TSetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
 	property& operator=(property&& other)
 	{
-		_resource = std::forward<_Resource>(other._resource);
+		_resource = std::move(other._resource);
 		return *this;
 	}
 
@@ -130,7 +146,7 @@ private: // private set
 	template <class _TModifier = _TSetter, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
 	property& operator=(property&& other)
 	{
-		_resource = std::forward<_Resource>(other._resource);
+		_resource = std::move(other._resource);
 		return *this;
 	}
 
@@ -292,16 +308,30 @@ private: // private get
 	}
 
 	// Address accessors
-public: // public set
+public: // public get
 	template <class _TModifier = _TGetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
-	constexpr const _Resource* operator&() const& noexcept 
+	[[nodiscard]] constexpr const _Resource* operator&() const& noexcept 
+	{
+		return std::addressof(_resource);
+	}
+
+private: // private get
+	template <class _TModifier = _TGetter, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	[[nodiscard]] constexpr const _Resource* operator&() const& noexcept 
+	{
+		return std::addressof(_resource);
+	}
+
+public: // public set
+	template <class _TModifier = _TSetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
+	[[nodiscard]] constexpr _Resource* operator&() & noexcept
 	{
 		return std::addressof(_resource);
 	}
 
 private: // private set
-	template <class _TModifier = _TGetter, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
-	constexpr const _Resource* operator&() const& noexcept 
+	template <class _TModifier = _TSetter, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	[[nodiscard]] constexpr _Resource* operator&() & noexcept
 	{
 		return std::addressof(_resource);
 	}
