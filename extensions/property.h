@@ -249,60 +249,60 @@ private: // private get
 	}
 
 	// pointer accessors
-public: // public set
-	template <class _Quantified = _Resource, class _TModifier = _TSetter, std::enable_if_t<std::is_pointer_v<_Quantified> && std::is_same_v<_TModifier, public_access>, int> = 0>
-	[[nodiscard]] constexpr auto operator->() & noexcept -> _Resource&
+private:
+	// Helper for arrow operator
+	template <bool IsPointer>
+	[[nodiscard]] constexpr auto arrow_impl() const noexcept -> std::conditional_t<IsPointer, const _Resource&, const _Resource*>
 	{
-		return _resource;
+		if constexpr (IsPointer)
+		{
+			return _resource;
+		}
+		else
+		{
+			return std::addressof(_resource);
+		}
+	}
+
+	template <bool IsPointer>
+	[[nodiscard]] constexpr auto arrow_impl() noexcept -> std::conditional_t<IsPointer, _Resource&, _Resource*>
+	{
+		if constexpr (IsPointer)
+		{
+			return _resource;
+		}
+		else
+		{
+			return std::addressof(_resource);
+		}
+	}
+
+public: // public set
+	template <class _Quantified = _Resource, class _TModifier = _TSetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() & noexcept
+	{
+		return arrow_impl<std::is_pointer_v<_Quantified>>();
 	}
 
 private: // private set
-	template <class _Quantified = _Resource, class _TModifier = _TSetter, std::enable_if_t<std::is_pointer_v<_Quantified> && !std::is_same_v<_TModifier, public_access>, int> = 0>
-	[[nodiscard]] constexpr auto operator->() & noexcept -> _Resource&
+	template <class _Quantified = _Resource, class _TModifier = _TSetter, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() & noexcept
 	{
-		return _resource;
+		return arrow_impl<std::is_pointer_v<_Quantified>>();
 	}
 
 public: // public get
-	template <class _Quantified = _Resource, class _TModifier = _TGetter, std::enable_if_t<std::is_pointer_v<_Quantified> && std::is_same_v<_TModifier, public_access>, int> = 0>
-	[[nodiscard]] constexpr auto operator->() const& noexcept -> const _Resource&
+	template <class _Quantified = _Resource, class _TModifier = _TGetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() const& noexcept
 	{
-		return _resource;
+		return arrow_impl<std::is_pointer_v<_Quantified>>();
 	}
 
 private: // private get
-	template <class _Quantified = _Resource, class _TModifier = _TGetter, std::enable_if_t<std::is_pointer_v<_Quantified> && !std::is_same_v<_TModifier, public_access>, int> = 0>
-	[[nodiscard]] constexpr auto operator->() const& noexcept -> const _Resource&
+	template <class _Quantified = _Resource, class _TModifier = _TGetter, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	[[nodiscard]] constexpr auto operator->() const& noexcept
 	{
-		return _resource;
-	}
-
-public: // public set
-	template <class _Quantified = _Resource, class _TModifier = _TSetter, std::enable_if_t<!std::is_pointer_v<_Quantified> && std::is_same_v<_TModifier, public_access>, int> = 0>
-	[[nodiscard]] constexpr auto operator->() & noexcept -> _Resource*
-	{
-		return std::addressof(_resource);
-	}
-
-private: // private set
-	template <class _Quantified = _Resource, class _TModifier = _TSetter, std::enable_if_t<!std::is_pointer_v<_Quantified> && !std::is_same_v<_TModifier, public_access>, int> = 0>
-	[[nodiscard]] constexpr auto operator->() & noexcept -> _Resource*
-	{
-		return std::addressof(_resource);
-	}
-
-public: // public get
-	template <class _Quantified = _Resource, class _TModifier = _TGetter, std::enable_if_t<!std::is_pointer_v<_Quantified> && std::is_same_v<_TModifier, public_access>, int> = 0>
-	[[nodiscard]] constexpr auto operator->() const& noexcept -> const _Resource*
-	{
-		return std::addressof(_resource);
-	}
-
-private: // private get
-	template <class _Quantified = _Resource, class _TModifier = _TGetter, std::enable_if_t<!std::is_pointer_v<_Quantified> && !std::is_same_v<_TModifier, public_access>, int> = 0>
-	[[nodiscard]] constexpr auto operator->() const& noexcept -> const _Resource*
-	{
-		return std::addressof(_resource);
+		return arrow_impl<std::is_pointer_v<_Quantified>>();
 	}
 
 	// Address accessors
