@@ -149,20 +149,6 @@ private: // private get
 		return _resource;
 	}
 
-public: // public get
-	template <class _TModifier = _TGetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
-	[[nodiscard]] constexpr operator const _Resource&() & noexcept
-	{
-		return _resource;
-	}
-
-private: // private get
-	template <class _TModifier = _TGetter, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
-	[[nodiscard]] constexpr operator const _Resource&() & noexcept
-	{
-		return _resource;
-	}
-
 public: // public set
 	template <class _TModifier = _TSetter, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
 	[[nodiscard]] constexpr operator _Resource&() & noexcept
