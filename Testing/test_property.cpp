@@ -130,23 +130,6 @@ public:
 		Assert::AreEqual(valueByPropertyMove->Value.size(), size_t(15));
 	}
 
-	TEST_METHOD(TestPropertyConstructionLambda)
-	{
-		int hiddenValue = 5;
-		extensions::property<int> value([&]()
-			{
-				return hiddenValue + hiddenValue;
-			},
-			[&](int newValue)
-			{
-				hiddenValue = newValue * newValue;
-			});
-
-		Assert::AreEqual((int) value, 25);
-
-		value = 10;
-	}
-
 	TEST_METHOD(TestPropertyConstructionPrivate)
 	{
 		SimpleValue intHolder(5);
@@ -172,12 +155,6 @@ public:
 
 		PropertyHolder valueByPropertyMove(std::move(valueMove));
 		Assert::IsTrue(valueByPropertyMove.CheckValue(size_t(15)));
-
-		// do not work, private constructor
-		/*extensions::property<SimpleValue, PropertyHolder, PropertyHolder> value(intHolder);
-		const extensions::property<SimpleValue, PropertyHolder, PropertyHolder> valueConst(intHolderConst);
-		extensions::property<SimpleValue, PropertyHolder, PropertyHolder> valueMove(std::move(intHolderMove));*/
-
 	}
 
 	TEST_METHOD(TestPropertyAssign)
@@ -360,7 +337,104 @@ public:
 		Assert::IsTrue(*&propertyconst == intPtr);
 	}
 
+	TEST_METHOD(TestPropertyWithLambda)
+	{
+		struct PropertyHolderLambda
+		{
+			extensions::property<int> Value;
 
+			PropertyHolderLambda()
+				: Value([&]() -> const int&
+					  {
+						  return hiddenValue;
+					  },
+					  [&](int newValue)
+					  {
+						  hiddenValue = newValue * newValue;
+					  })
+			{
+			}
+
+			int hiddenValue = 10;
+		};
+
+		PropertyHolderLambda property;
+
+		Assert::AreEqual((int) property.Value, 10);
+		Assert::AreEqual((int) property.hiddenValue, 10);
+
+		property.Value = 10;
+		Assert::AreEqual((int) property.Value, 100);
+		Assert::AreEqual((int) property.hiddenValue, 100);
+	}
+
+	TEST_METHOD(TestPropertyWithLambdaPrivate)
+	{
+		struct PropertyHolderLambda
+		{
+			extensions::property<int, PropertyHolderLambda, PropertyHolderLambda> Value;
+
+			PropertyHolderLambda()
+				: Value([&]() -> const int&
+					  {
+						  return hiddenValue;
+					  },
+					  [&](int newValue)
+					  {
+						  hiddenValue = newValue * newValue;
+					  })
+			{
+			}
+
+			int GetValue() const
+			{
+				return Value;
+			}
+
+			void SetValue(int newValue)
+			{
+				Value = newValue;
+			}
+
+			int hiddenValue = 10;
+		};
+
+		PropertyHolderLambda property;
+		
+		Assert::AreEqual(property.GetValue(), 10);
+		Assert::AreEqual((int) property.hiddenValue, 10);
+
+		property.SetValue(10);
+		Assert::AreEqual(property.GetValue(), 100);
+		Assert::AreEqual((int) property.hiddenValue, 100);
+	}
+
+	TEST_METHOD(TestPropertyWithLambdaUserDefinedConversions)
+	{
+		std::vector<int> hiddenValue(10);
+		extensions::property<std::vector<int>> property([&]() -> const std::vector<int>&
+			{
+				return hiddenValue;
+			},
+			[&](const std::vector<int>& newValue)
+			{
+				hiddenValue = newValue;
+				hiddenValue.emplace_back(1);
+			});
+
+		Assert::AreEqual((int) property.size(), 10);
+		Assert::AreEqual((int) hiddenValue.size(), 10);
+
+		std::vector<int>& vec = property;
+		vec.emplace_back(1);
+
+		Assert::AreEqual((int) property.size(), 11);
+		Assert::AreEqual((int) hiddenValue.size(), 11);
+		
+		std::vector<int> vecMove = std::move(property);
+		Assert::AreEqual((int) vecMove.size(), 11);
+		Assert::AreEqual((int) hiddenValue.size(), 0);
+	}
 };
 
 } // namespace FrameworkTesting

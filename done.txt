@@ -19,7 +19,7 @@ lazy.h, test_lazy.cpp
 -> DONE, 
 
 property.h, test_property.cpp
--> WORKING ON IT, 
+-> DONE -> basic implemtation and tests, now use concepts
 
 
  == storage ==

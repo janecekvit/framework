@@ -47,7 +47,7 @@ KeepEmptyLinesAtTheStartOfBlocks: false
 NamespaceIndentation: None
 PointerAlignment: Left
 SortUsingDeclarations: true
-AlignConsecutiveAssignments: true
+AlignConsecutiveAssignments: false
 BreakConstructorInitializers: BeforeComma
 BreakInheritanceList: BeforeComma
 AlwaysBreakTemplateDeclarations: Yes
