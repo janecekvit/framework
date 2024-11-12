@@ -24,7 +24,7 @@ class public_access
 };
 
 template <class _Access>
-constexpr bool public_access_v = std::is_same_v<_Access, janecekvit::extensions::public_access>;
+constexpr bool public_access_v = std::is_same_v<_Access, public_access>;
 
 /// <summary>
 /// The property wrapper implements C++ like assessors to modify inner value of the defined resource type (_Resource).
@@ -259,15 +259,15 @@ private: // private set
 		return std::move(const_cast<_Resource&&>(get_detail()));
 	}
 
-public: // public get -> bool operator const: cannot be called for native bool to avoid interfering with operator auto()
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_convertible_v<_Quantified, bool> && public_access_v<_TModifier>, int> = 0>
+public: // public get
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<public_access_v<_TModifier> && constraints::is_convertible_v<_Quantified, bool>, int> = 0>
 	[[nodiscard]] constexpr explicit operator bool() const noexcept
 	{
 		return static_cast<bool>(get_detail());
 	}
 
-private: // private get -> bool operator const: cannot be called for native bool to avoid interfering with operator auto()
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_convertible_v<_Quantified, bool> && !public_access_v<_TModifier>, int> = 0>
+private: // private get
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<!public_access_v<_TModifier> && constraints::is_convertible_v<_Quantified, bool>, int> = 0>
 	[[nodiscard]] constexpr explicit operator bool() const noexcept
 	{
 		return static_cast<bool>(get_detail());
@@ -275,42 +275,42 @@ private: // private get -> bool operator const: cannot be called for native bool
 
 	// container accessors
 public: // public get
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && public_access_v<_TModifier>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<public_access_v<_TModifier> && constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) begin() const noexcept
 	{
 		return get_detail().begin();
 	}
 
 private: // private get
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && !public_access_v<_TModifier>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<!public_access_v<_TModifier> && constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) begin() const noexcept
 	{
 		return get_detail().begin();
 	}
 
 public: // public get
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && public_access_v<_TModifier>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<public_access_v<_TModifier> && constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) end() const noexcept
 	{
 		return get_detail().end();
 	}
 
 private: // private get
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && !public_access_v<_TModifier>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<!public_access_v<_TModifier> && constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) end() const noexcept
 	{
 		return get_detail().end();
 	}
 
 public: // public get
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && public_access_v<_TModifier>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<public_access_v<_TModifier> && constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) size() const noexcept
 	{
 		return get_detail().size();
 	}
 
 private: // private get
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && !public_access_v<_TModifier>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<!public_access_v<_TModifier> && constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) size() const noexcept
 	{
 		return get_detail().size();
