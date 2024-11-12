@@ -214,7 +214,7 @@ public:
 		return std::move(*_resource);
 	}
 
-	template <class _Quantified = _Resource, std::enable_if_t<constraints::is_explicitly_convertible_v<_Quantified, bool>, int> = 0>
+	template <class _Quantified = _Resource, std::enable_if_t<constraints::is_convertible_v<_Quantified, bool>, int> = 0>
 	[[nodiscard]] constexpr explicit operator bool() const noexcept
 	{
 		return static_cast<bool>(*_resource);

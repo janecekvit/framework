@@ -164,12 +164,15 @@ constexpr bool is_iterator_v = is_iterator<_T>::value;
 /// Helper structures to determine if template type <_T> is explicitly convertible
 /// </summary>
 template <class _T, class _U>
-struct is_explicitly_convertible : std::integral_constant<bool, std::is_constructible_v<_U, _T> && !std::is_convertible_v<_T, _U>>
+struct is_explicitly_convertible : std::integral_constant<bool, std::is_constructible_v<_U, _T> && !std::is_convertible_v<std::decay_t<_T>, _U>>
 {
 };
 
 template <class _T, class _U>
 constexpr bool is_explicitly_convertible_v = is_explicitly_convertible<_T, _U>::value;
+
+template <class _T, class _U>
+constexpr bool is_convertible_v = std::is_convertible_v<std::decay_t<_T>, _U> && !std::is_same_v<std::decay_t<_T>, _U>;
 
 #ifdef __cpp_lib_concepts
 

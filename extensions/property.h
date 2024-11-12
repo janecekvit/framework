@@ -23,6 +23,9 @@ class public_access
 {
 };
 
+template <class _Access>
+constexpr bool public_access_v = std::is_same_v<_Access, janecekvit::extensions::public_access>;
+
 /// <summary>
 /// The property wrapper implements C++ like assessors to modify inner value of the defined resource type (_Resource).
 /// Wrapper via accessors can modify the visibility of set and get methods.
@@ -68,14 +71,14 @@ public:
 
 	// Constructors
 public: // public set
-	template <class _FwdResource = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _FwdResource = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier>, int> = 0>
 	constexpr property(_FwdResource&& resource)
 		: _resource(std::forward<_FwdResource>(resource))
 	{
 	}
 
 private: // private set
-	template <class _FwdResource = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _FwdResource = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<!public_access_v<_TModifier>, int> = 0>
 	constexpr property(_FwdResource&& resource)
 		: _resource(std::forward<_FwdResource>(resource))
 	{
@@ -86,7 +89,7 @@ public: // public set
 		class _GetterFwd = getter,
 		class _SetterFwd = setter,
 		class _TModifier = _SetterAccess,
-		std::enable_if_t<std::is_same_v<_TModifier, public_access> && std::is_same_v<std::invoke_result_t<std::decay_t<_GetterFwd>>, const_resource> && std::is_invocable_r_v<void, _SetterFwd, const _Resource&>, int> = 0>
+		std::enable_if_t<public_access_v<_TModifier> && std::is_same_v<std::invoke_result_t<std::decay_t<_GetterFwd>>, const_resource> && std::is_invocable_r_v<void, _SetterFwd, const _Resource&>, int> = 0>
 	constexpr property(_GetterFwd&& get, _SetterFwd&& set)
 		: _getter(std::forward<_GetterFwd>(get))
 		, _setter(std::forward<_SetterFwd>(set))
@@ -98,7 +101,7 @@ private: // private set
 		class _GetterFwd = getter,
 		class _SetterFwd = setter,
 		class _TModifier = _SetterAccess,
-		std::enable_if_t<!std::is_same_v<_TModifier, public_access> && std::is_same_v<std::invoke_result_t<std::decay_t<_GetterFwd>>, const_resource> && std::is_invocable_r_v<void, _SetterFwd, const _Resource&>, int> = 0>
+		std::enable_if_t<!public_access_v<_TModifier> && std::is_same_v<std::invoke_result_t<std::decay_t<_GetterFwd>>, const_resource> && std::is_invocable_r_v<void, _SetterFwd, const _Resource&>, int> = 0>
 	constexpr property(_GetterFwd&& get, _SetterFwd&& set)
 		: _getter(std::forward<getter>(get))
 		, _setter(std::forward<setter>(set))
@@ -106,7 +109,7 @@ private: // private set
 	}
 
 public: // public set
-	template <class _TModifier = _SetterAccess, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier>, int> = 0>
 	property(property&& other)
 		: _resource(std::forward<_Resource>(other._resource))
 		, _getter(std::forward<getter>(other._getter))
@@ -115,7 +118,7 @@ public: // public set
 	}
 
 private: // private set
-	template <class _TModifier = _SetterAccess, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _TModifier = _SetterAccess, std::enable_if_t<!public_access_v<_TModifier>, int> = 0>
 	property(property&& other)
 		: _resource(std::forward<_Resource>(other._resource))
 		, _getter(std::forward<getter>(other._getter))
@@ -125,7 +128,7 @@ private: // private set
 
 	// assign operators
 public: // public set
-	template <class _TModifier = _SetterAccess, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier>, int> = 0>
 	property& operator=(const property& other)
 	{
 		_resource = other._resource;
@@ -135,7 +138,7 @@ public: // public set
 	}
 
 private: // private set
-	template <class _TModifier = _SetterAccess, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _TModifier = _SetterAccess, std::enable_if_t<!public_access_v<_TModifier>, int> = 0>
 	property& operator=(const property& other)
 	{
 		_resource = other._resource;
@@ -145,7 +148,7 @@ private: // private set
 	}
 
 public: // public set
-	template <class _TModifier = _SetterAccess, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier>, int> = 0>
 	property& operator=(property&& other)
 	{
 		_resource = std::move(other._resource);
@@ -155,7 +158,7 @@ public: // public set
 	}
 
 private: // private set
-	template <class _TModifier = _SetterAccess, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _TModifier = _SetterAccess, std::enable_if_t<!public_access_v<_TModifier>, int> = 0>
 	property& operator=(property&& other)
 	{
 		_resource = std::move(other._resource);
@@ -165,7 +168,7 @@ private: // private set
 	}
 
 public:
-	template <class _FwdResource = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<std::is_same_v<_TModifier, public_access> && std::is_convertible_v<std::decay_t<_FwdResource>, _Resource>, int> = 0>
+	template <class _FwdResource = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier> && std::is_convertible_v<std::decay_t<_FwdResource>, _Resource>, int> = 0>
 	property& operator=(_FwdResource&& value)
 	{
 		set_detail(std::forward<_FwdResource>(value));
@@ -173,7 +176,7 @@ public:
 	}
 
 private:
-	template <class _FwdResource = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<!std::is_same_v<_TModifier, public_access> && std::is_convertible_v<std::decay_t<_FwdResource>, _Resource>, int> = 0>
+	template <class _FwdResource = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<!public_access_v<_TModifier> && std::is_convertible_v<std::decay_t<_FwdResource>, _Resource>, int> = 0>
 	property& operator=(_FwdResource&& value)
 	{
 		set_detail(std::forward<_FwdResource>(value));
@@ -200,14 +203,14 @@ private:
 	}
 
 public: // public set
-	template <class _Input, class _TModifier = _SetterAccess, std::enable_if_t<std::is_same_v<_TModifier, public_access> && (std::is_same_v<_Input, _Resource> || std::is_same_v<_Input, setter>), int> = 0>
+	template <class _Input, class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier> && (std::is_same_v<_Input, _Resource> || std::is_same_v<_Input, setter>), int> = 0>
 	constexpr void set(_Input&& value)
 	{
 		set_detail(std::forward<_Input>(value));
 	}
 
 private: // private set
-	template <class _Input, class _TModifier = _SetterAccess, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _Input, class _TModifier = _SetterAccess, std::enable_if_t<!public_access_v<_TModifier>, int> = 0>
 	constexpr void set(_Input&& value)
 	{
 		set_detail(std::forward<_Input>(value));
@@ -215,56 +218,56 @@ private: // private set
 
 	// user-defined conversions
 public: // public get
-	template <class _TModifier = _GetterAccess, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _TModifier = _GetterAccess, std::enable_if_t<public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr operator const _Resource&() const& noexcept
 	{
 		return get_detail();
 	}
 
 private: // private get
-	template <class _TModifier = _GetterAccess, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _TModifier = _GetterAccess, std::enable_if_t<!public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr operator const _Resource&() const& noexcept
 	{
 		return get_detail();
 	}
 
 public: // public set
-	template <class _TModifier = _SetterAccess, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr operator _Resource&() & noexcept
 	{
 		return const_cast<_Resource&>(get_detail());
 	}
 
 private: // private set
-	template <class _TModifier = _SetterAccess, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _TModifier = _SetterAccess, std::enable_if_t<!public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr operator _Resource&() & noexcept
 	{
 		return const_cast<_Resource&>(get_detail());
 	}
 
 public: // public set
-	template <class _TModifier = _SetterAccess, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr operator _Resource&&() && noexcept
 	{
 		return std::move(const_cast<_Resource&&>(get_detail()));
 	}
 
 private: // private set
-	template <class _TModifier = _SetterAccess, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _TModifier = _SetterAccess, std::enable_if_t<!public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr operator _Resource&&() && noexcept
 	{
 		return std::move(const_cast<_Resource&&>(get_detail()));
 	}
 
 public: // public get -> bool operator const: cannot be called for native bool to avoid interfering with operator auto()
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<std::is_convertible_v<_Quantified, bool> && !std::is_same_v<_Quantified, bool> && std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_convertible_v<_Quantified, bool> && public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr explicit operator bool() const noexcept
 	{
 		return static_cast<bool>(get_detail());
 	}
 
 private: // private get -> bool operator const: cannot be called for native bool to avoid interfering with operator auto()
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<std::is_convertible_v<_Quantified, bool> && !std::is_same_v<_Quantified, bool> && !std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_convertible_v<_Quantified, bool> && !public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr explicit operator bool() const noexcept
 	{
 		return static_cast<bool>(get_detail());
@@ -272,42 +275,42 @@ private: // private get -> bool operator const: cannot be called for native bool
 
 	// container accessors
 public: // public get
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) begin() const noexcept
 	{
 		return get_detail().begin();
 	}
 
 private: // private get
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && !std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && !public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) begin() const noexcept
 	{
 		return get_detail().begin();
 	}
 
 public: // public get
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) end() const noexcept
 	{
 		return get_detail().end();
 	}
 
 private: // private get
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && !std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && !public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) end() const noexcept
 	{
 		return get_detail().end();
 	}
 
 public: // public get
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) size() const noexcept
 	{
 		return get_detail().size();
 	}
 
 private: // private get
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && !std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<constraints::is_container_v<_Quantified> && !public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) size() const noexcept
 	{
 		return get_detail().size();
@@ -330,7 +333,7 @@ private:
 	}
 
 public: // public set
-	template <class _Quantified = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr auto operator->() & noexcept
 	{
 		constexpr auto is_pointer = std::is_pointer_v<_Quantified>;
@@ -338,7 +341,7 @@ public: // public set
 	}
 
 private: // private set
-	template <class _Quantified = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<!public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr auto operator->() & noexcept
 	{
 		constexpr auto is_pointer = std::is_pointer_v<_Quantified>;
@@ -346,14 +349,14 @@ private: // private set
 	}
 
 public: // public get
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr auto operator->() const& noexcept
 	{
 		return get_pointer<std::is_pointer_v<_Quantified>>();
 	}
 
 private: // private get
-	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _Quantified = _Resource, class _TModifier = _GetterAccess, std::enable_if_t<!public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr auto operator->() const& noexcept
 	{
 		return get_pointer<std::is_pointer_v<_Quantified>>();
@@ -361,28 +364,28 @@ private: // private get
 
 	// Address accessors
 public: // public get
-	template <class _TModifier = _GetterAccess, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _TModifier = _GetterAccess, std::enable_if_t<public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr const _Resource* operator&() const& noexcept
 	{
 		return std::addressof(get_detail());
 	}
 
 private: // private get
-	template <class _TModifier = _GetterAccess, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _TModifier = _GetterAccess, std::enable_if_t<!public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr const _Resource* operator&() const& noexcept
 	{
 		return std::addressof(get_detail());
 	}
 
 public: // public set
-	template <class _TModifier = _SetterAccess, std::enable_if_t<std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr _Resource* operator&() & noexcept
 	{
 		return std::addressof(const_cast<_Resource&>(get_detail()));
 	}
 
 private: // private set
-	template <class _TModifier = _SetterAccess, std::enable_if_t<!std::is_same_v<_TModifier, public_access>, int> = 0>
+	template <class _TModifier = _SetterAccess, std::enable_if_t<!public_access_v<_TModifier>, int> = 0>
 	[[nodiscard]] constexpr _Resource* operator&() & noexcept
 	{
 		return std::addressof(const_cast<_Resource&>(get_detail()));
