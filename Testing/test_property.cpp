@@ -130,6 +130,23 @@ public:
 		Assert::AreEqual(valueByPropertyMove->Value.size(), size_t(15));
 	}
 
+	TEST_METHOD(TestPropertyConstructionLambda)
+	{
+		int hiddenValue = 5;
+		extensions::property<int> value([&]()
+			{
+				return hiddenValue + hiddenValue;
+			},
+			[&](int newValue)
+			{
+				hiddenValue = newValue * newValue;
+			});
+
+		Assert::AreEqual((int) value, 25);
+
+		value = 10;
+	}
+
 	TEST_METHOD(TestPropertyConstructionPrivate)
 	{
 		SimpleValue intHolder(5);
