@@ -6,6 +6,24 @@
 #include <fstream>
 #include <iostream>
 
+
+namespace Microsoft::VisualStudio::CppUnitTestFramework
+{
+
+template <>
+static std::wstring ToString<std::list<int>>(const std::list<int>& t)
+{
+	return L"ListInts";
+}
+
+template <>
+static std::wstring ToString<std::list<const char*>>(const std::list<const char*>& t)
+{
+	return L"ListInts";
+}
+
+} // namespace Microsoft::VisualStudio::CppUnitTestFramework
+
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 using namespace janecekvit;
 using namespace std::string_literals;
@@ -193,6 +211,13 @@ public:
 		// Test container in nested class
 		TestHeterogeneousContainer oTestContainer;
 		Assert::AreEqual(10, oTestContainer.call());
+	}
+
+	TEST_METHOD(TestTupleUnpackHeterogeneousContainer)
+	{
+		auto oHeterogeneousContainer = extensions::tuple::unpack(std::make_tuple(1, 2, 3, "1", "10"));
+		Assert::AreEqual(oHeterogeneousContainer.get<int>(), std::list<int>{ 1, 2, 3 });
+		Assert::AreEqual(oHeterogeneousContainer.get<const char*>(), std::list<const char*>{ "1", "10" });
 	}
 };
 } // namespace FrameworkTesting

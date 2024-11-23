@@ -85,6 +85,9 @@
     <ClCompile Include="test_constraints.cpp">
       <Filter>extensions</Filter>
     </ClCompile>
+    <ClCompile Include="test_cloneable.cpp">
+      <Filter>extensions</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\done.txt" />

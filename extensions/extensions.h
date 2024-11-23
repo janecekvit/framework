@@ -108,8 +108,8 @@ constexpr decltype(auto) execute_on_container(
 /// </summary>
 /// <typeparam name="_From">The type of the original pointer</typeparam>
 /// <typeparam name="_To">The type of the target pointer</typeparam>
-/// <param name="item">The unique pointer to be recasted</param>
-/// <returns>returns the recasted memory-safe pointer</returns>
+/// <param name="item">The unique pointer to be re-casted</param>
+/// <returns>returns the re-casted memory-safe pointer</returns>
 template <class _From, class _To>
 [[nodiscard]] constexpr std::unique_ptr<_To> recast(std::unique_ptr<_From>&& item)
 	requires (std::derived_from<_To, _From> || std::derived_from<_From, _To>) && (!std::is_same_v<_From, _To>)

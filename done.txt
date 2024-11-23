@@ -16,10 +16,10 @@ finally.h, test_finally.cpp
 -> DONE, 
 
 lazy.h, test_lazy.cpp
--> DONE, 
+-> DONE
 
 property.h, test_property.cpp
--> DONE -> basic implemtation and tests, now use concepts
+-> DONE ?? possible lambdas could be defined by template class
 
 
  == storage ==
