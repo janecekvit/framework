@@ -161,7 +161,7 @@ public:
 		Assert::AreEqual(oContainer.contains<std::function<std::string(std::string&&)>>(), true);
 
 		// Test size and reset (2)
-		oContainer.reset<std::function<void(int&)>>();
+		oContainer.clear<std::function<void(int&)>>();
 
 		Assert::AreEqual(oContainer.size<std::function<void(int&)>>(), size_t(0));
 		Assert::AreEqual(oContainer.contains<std::function<void(int&)>>(), false);
@@ -170,7 +170,7 @@ public:
 		Assert::AreEqual(oContainer.contains<std::function<std::string(std::string&&)>>(), true);
 
 		// Test size and reset (3)
-		oContainer.reset();
+		oContainer.clear();
 
 		Assert::AreEqual(oContainer.size<std::function<void(int&)>>(), size_t(0));
 		Assert::AreEqual(oContainer.contains<std::function<void(int&)>>(), false);

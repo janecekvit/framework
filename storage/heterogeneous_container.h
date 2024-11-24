@@ -56,6 +56,16 @@ public:
 		std::string _message;
 	};
 
+	template <typename _T>
+	struct TypeKey
+	{
+		inline static size_t value = []() -> size_t
+		{
+			static const size_t id = reinterpret_cast<size_t>(&id);
+			return id;
+		}();
+	};
+
 public:
 	~heterogeneous_container() = default;
 
@@ -65,25 +75,22 @@ public:
 	constexpr heterogeneous_container(
 		const _Args&... args)
 	{
-		_serialize(args...);
+		_insert(args...);
 	}
 
 	template <class... _Args>
 	constexpr void emplace(const _Args&... args)
 	{
-		_serialize(args...);
+		_insert(args...);
 	}
 
 	template <class _T>
-	constexpr void reset()
+	constexpr void clear()
 	{
-		extensions::execute_on_container(m_umapArgs, std::type_index(typeid(_T)), [](std::list<std::any>& listInput)
-			{
-				listInput.clear();
-			});
+		m_umapArgs[TypeKey<_T>::value].clear();
 	}
 
-	void reset()
+	void clear()
 	{
 		m_umapArgs.clear();
 	}
@@ -124,10 +131,7 @@ public:
 	template <class _T>
 	[[nodiscard]] constexpr size_t size() const noexcept
 	{
-		return extensions::execute_on_container(m_umapArgs, std::type_index(typeid(_T)), [](const std::list<std::any>& listInput)
-			{
-				return listInput.size();
-			});
+		return m_umapArgs[TypeKey<_T>::value].size();
 	}
 
 	template <class _T>
@@ -157,33 +161,35 @@ public:
 	template <class _T>
 	constexpr void visit(std::function<void(const _T&)>&& fnCallback) const
 	{
-		_visit<_T>(std::move(fnCallback));
+		_get<_T>(std::move(fnCallback));
 	}
 
 	template <class _T>
 	constexpr void visit(std::function<void(_T&)>&& fnCallback)
 	{
-		_visit<_T>(std::move(fnCallback));
+		_get<_T>(std::move(fnCallback));
 	}
 
 private:
-	template <class _T, class... _Rest>
-	constexpr void _serialize(
-		const _T& first,
-		const _Rest&... rest)
+	template <class... _Args>
+	constexpr void _insert(_Args&&... args)
 	{
-		static_assert(std::is_copy_constructible<_T>::value, "Cannot assign <_T> type, because isn't CopyConstructible!");
-		m_umapArgs[std::type_index(typeid(_T))].emplace_back(std::make_any<_T>(first));
+		auto process = [&](auto&& value)
+		{
+			using _T = std::decay_t<decltype(value)>;
+			static_assert(std::is_copy_constructible<_T>::value, "Cannot assign <_T> type, because isn't CopyConstructible!");
 
-		if constexpr (sizeof...(_Rest) > 0)
-			_serialize(rest...);
+			m_umapArgs[TypeKey<_T>::value].emplace_back(std::make_any<_T>(std::forward<decltype(value)>(value)));
+		};
+
+		(process(std::forward<_Args>(args)), ...);
 	}
 
 	template <class _T>
 	[[nodiscard]] constexpr decltype(auto) _deserialize() const
 	{
 		std::list<_T> oList = {};
-		_visit<_T>([&oList](const _T& input)
+		_get<_T>([&oList](const _T& input)
 			{
 				oList.emplace_back(input);
 			});
@@ -195,7 +201,7 @@ private:
 	{
 		size_t uCounter = 0;
 		std::optional<_T> oValue = std::nullopt;
-		_visit<_T>([&](const _T& input)
+		_get<_T>([&](const _T& input)
 			{
 				if (uCounter == uPosition)
 					oValue = std::make_optional<_T>(input);
@@ -208,15 +214,13 @@ private:
 	}
 
 	template <class _T>
-	constexpr void _visit(std::function<void(_T&)>&& fnCallback) const
+	constexpr void _get(std::function<void(_T&)>&& fnCallback) const
 	{
 		try
 		{
-			extensions::execute_on_container(m_umapArgs, std::type_index(typeid(_T)), [&fnCallback](std::list<std::any>& listInput)
-				{
-					for (auto&& item : listInput)
-						fnCallback(std::any_cast<_T&>(item));
-				});
+			for (auto&& item : m_umapArgs[TypeKey<_T>::value])
+				fnCallback(std::any_cast<_T&>(item));
+			
 		}
 		catch (const std::bad_any_cast& ex)
 		{
@@ -225,7 +229,7 @@ private:
 	}
 
 protected:
-	mutable std::unordered_map<std::type_index, std::list<std::any>> m_umapArgs;
+	mutable std::unordered_map<size_t, std::vector<std::any>> m_umapArgs;
 };
 
 } // namespace storage
