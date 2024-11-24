@@ -29,27 +29,31 @@ public:
 	class heterogeneous_container_exception : public std::exception
 	{
 	public:
-		heterogeneous_container_exception(const std::type_info& typeInfo, const std::string& sError) noexcept
+		heterogeneous_container_exception(const std::type_info& typeInfo, const std::string& error)
+			: _typeInfo(typeInfo)
+			, _message("heterogeneous_container: " + error + " with type: " + typeInfo.name())
 		{
-			using namespace std::string_literals;
-			_text = "heterogeneous_container: "s + sError + " with specified type: "s + typeInfo.name();
 		}
 
-		heterogeneous_container_exception(const std::type_info& typeInfo, const std::bad_any_cast& ex) noexcept
+		heterogeneous_container_exception(const std::type_info& typeInfo, const std::bad_any_cast& ex)
+			: _typeInfo(typeInfo)
+			, _message("heterogeneous_container: " + std::string(ex.what()) + " with type: " + typeInfo.name())
 		{
-			using namespace std::string_literals;
-			_text = "heterogeneous_container: "s + ex.what() + " to: "s + typeInfo.name();
 		}
 
-		~heterogeneous_container_exception() = default;
-
-		const char* what() const override
+		const std::type_info& type_info() const noexcept
 		{
-			return _text.c_str();
+			return _typeInfo;
 		}
 
-	protected:
-		std::string _text;
+		const char* what() const noexcept override
+		{
+			return _message.c_str();
+		}
+
+	private:
+		const std::type_info& _typeInfo;
+		std::string _message;
 	};
 
 public:
@@ -73,8 +77,7 @@ public:
 	template <class _T>
 	constexpr void reset()
 	{
-		auto oScope = m_umapArgs.exclusive();
-		extensions::execute_on_container(oScope.get(), std::type_index(typeid(_T)), [](std::list<std::any>& listInput)
+		extensions::execute_on_container(m_umapArgs, std::type_index(typeid(_T)), [](std::list<std::any>& listInput)
 			{
 				listInput.clear();
 			});
@@ -82,7 +85,7 @@ public:
 
 	void reset()
 	{
-		m_umapArgs.exclusive()->clear();
+		m_umapArgs.clear();
 	}
 
 public:
@@ -121,8 +124,7 @@ public:
 	template <class _T>
 	[[nodiscard]] constexpr size_t size() const noexcept
 	{
-		auto oScope = m_umapArgs.concurrent();
-		return extensions::execute_on_container(oScope.get(), std::type_index(typeid(_T)), [](const std::list<std::any>& listInput)
+		return extensions::execute_on_container(m_umapArgs, std::type_index(typeid(_T)), [](const std::list<std::any>& listInput)
 			{
 				return listInput.size();
 			});
@@ -171,7 +173,7 @@ private:
 		const _Rest&... rest)
 	{
 		static_assert(std::is_copy_constructible<_T>::value, "Cannot assign <_T> type, because isn't CopyConstructible!");
-		m_umapArgs.exclusive()[std::type_index(typeid(_T))].emplace_back(std::make_any<_T>(first));
+		m_umapArgs[std::type_index(typeid(_T))].emplace_back(std::make_any<_T>(first));
 
 		if constexpr (sizeof...(_Rest) > 0)
 			_serialize(rest...);
@@ -191,7 +193,7 @@ private:
 	template <class _T>
 	[[nodiscard]] constexpr decltype(auto) _deserialize(size_t uPosition) const
 	{
-		size_t uCounter			 = 0;
+		size_t uCounter = 0;
 		std::optional<_T> oValue = std::nullopt;
 		_visit<_T>([&](const _T& input)
 			{
@@ -210,8 +212,7 @@ private:
 	{
 		try
 		{
-			auto oScope = m_umapArgs.exclusive();
-			extensions::execute_on_container(oScope.get(), std::type_index(typeid(_T)), [&fnCallback](std::list<std::any>& listInput)
+			extensions::execute_on_container(m_umapArgs, std::type_index(typeid(_T)), [&fnCallback](std::list<std::any>& listInput)
 				{
 					for (auto&& item : listInput)
 						fnCallback(std::any_cast<_T&>(item));
@@ -224,7 +225,7 @@ private:
 	}
 
 protected:
-	mutable synchronization::concurrent::unordered_map<std::type_index, std::list<std::any>> m_umapArgs;
+	mutable std::unordered_map<std::type_index, std::list<std::any>> m_umapArgs;
 };
 
 } // namespace storage

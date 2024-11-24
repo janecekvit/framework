@@ -5,6 +5,8 @@
 
 #include <fstream>
 #include <iostream>
+#include <variant>
+#include <any>
 
 
 namespace Microsoft::VisualStudio::CppUnitTestFramework
@@ -34,6 +36,8 @@ namespace FrameworkTesting
 ONLY_USED_AT_NAMESPACE_SCOPE class test_heterogeneous_container : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_heterogeneous_container> // expanded TEST_CLASS() macro due wrong formatting of clangformat
 {
 public:
+	constexpr static const size_t N = 100'000'000;
+
 
 	storage::heterogeneous_container InitializeHeterogeneousContainer()
 	{
@@ -83,7 +87,7 @@ public:
 		}
 		catch (const std::exception& ex)
 		{
-			Assert::AreEqual(ex.what(), "heterogeneous_container: Cannot retrieve value on position 2 with specified type: int");
+			Assert::AreEqual(ex.what(), "heterogeneous_container: Cannot retrieve value on position 2 with type: int");
 		}
 
 		Assert::AreEqual(oContainer.get<std::string>(0), "string"s);
@@ -137,7 +141,7 @@ public:
 		}
 		catch (const std::exception& ex)
 		{
-			std::string error = "heterogeneous_container: Cannot retrieve value on position 0 with specified type: "s + typeid(std::function<void(std::string&&)>).name();
+			std::string error = "heterogeneous_container: Cannot retrieve value on position 0 with type: "s + typeid(std::function<void(std::string&&)>).name();
 			Assert::AreEqual(ex.what(), error.data());
 		}
 
@@ -218,6 +222,41 @@ public:
 		auto oHeterogeneousContainer = extensions::tuple::unpack(std::make_tuple(1, 2, 3, "1", "10"));
 		Assert::AreEqual(oHeterogeneousContainer.get<int>(), std::list<int>{ 1, 2, 3 });
 		Assert::AreEqual(oHeterogeneousContainer.get<const char*>(), std::list<const char*>{ "1", "10" });
+	}
+
+	TEST_METHOD(PerformanceVariant)
+	{
+		std::variant<int, std::string> value = 5;
+		std::variant<int, std::string> value2 = std::string("ANO");
+
+		for (size_t i = 0; i < N; i++)
+		{
+			auto result = std::get<int>(value);
+			auto result2 = std::get<std::string>(value2);
+		}
+	}
+
+	TEST_METHOD(PerformanceAnyCast)
+	{
+		std::any value = 5;
+		std::any value2 = std::string("ANO");
+		for (size_t i = 0; i < N; i++)
+		{
+			auto result = std::any_cast<int>(value);
+			auto result2 = std::any_cast<std::string>(value2);
+		}
+	}
+
+	TEST_METHOD(PerformanceHeterogenousContainer)
+	{
+		storage::heterogeneous_container value(5, std::string("ANO"));
+		for (size_t i = 0; i < N; i++)
+		{
+			
+			auto result = value.first<int>();
+			auto result2 = value.first<std::string>();
+
+		}
 	}
 };
 } // namespace FrameworkTesting
