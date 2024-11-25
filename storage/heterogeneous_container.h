@@ -57,15 +57,9 @@ public:
 	};
 
 private:
+	
 	template <typename _T>
-	struct TypeKey
-	{
-		inline static size_t value = []() -> size_t
-		{
-			static const size_t id = reinterpret_cast<size_t>(&id);
-			return id;
-		}();
-	};
+	inline static size_t TypeKey = reinterpret_cast<size_t>(&TypeKey<_T>);
 
 	struct CustomHasher
 	{
@@ -97,7 +91,7 @@ public:
 	template <class _T>
 	constexpr void clear()
 	{
-		m_umapArgs[TypeKey<_T>::value].clear();
+		m_umapArgs[TypeKey<_T>].clear();
 	}
 
 	void clear()
@@ -141,7 +135,7 @@ public:
 	template <class _T>
 	[[nodiscard]] constexpr size_t size() const noexcept
 	{
-		return m_umapArgs[TypeKey<_T>::value].size();
+		return m_umapArgs[TypeKey<_T>].size();
 	}
 
 	template <class _T>
@@ -156,7 +150,7 @@ public:
 		std::list<_T> values = {};
 		try
 		{
-			for (auto&& item : m_umapArgs[TypeKey<_T>::value])
+			for (auto&& item : m_umapArgs[TypeKey<_T>])
 				values.emplace_back(std::any_cast<_T&>(item));
 		}
 		catch (const std::bad_any_cast& ex)
@@ -172,11 +166,11 @@ public:
 	{
 		try
 		{
-			return std::any_cast<_T&>(m_umapArgs[TypeKey<_T>::value].at(position));
-		}
-		catch (const std::out_of_range&)
-		{
-			throw heterogeneous_container_exception(typeid(_T), "Cannot retrieve value on position " + std::to_string(position));
+			auto&& values = m_umapArgs[TypeKey<_T>];
+			if (values.size() <= position)
+				throw heterogeneous_container_exception(typeid(_T), "Cannot retrieve value on position " + std::to_string(position));
+
+			return std::any_cast<_T&>(values[position]);
 		}
 		catch (const std::bad_any_cast& ex)
 		{
@@ -208,7 +202,7 @@ private:
 	{
 		try
 		{
-			auto it = m_umapArgs.find(TypeKey<_T>::value);
+			auto it = m_umapArgs.find(TypeKey<_T>);
 			if (it == m_umapArgs.end())
 				return;
 
@@ -234,7 +228,7 @@ private:
 			using _T = std::decay_t<decltype(value)>;
 			static_assert(std::is_copy_constructible<_T>::value, "Cannot assign <_T> type, because isn't CopyConstructible!");
 
-			m_umapArgs[TypeKey<_T>::value].emplace_back(std::make_any<_T>(std::forward<decltype(value)>(value)));
+			m_umapArgs[TypeKey<_T>].emplace_back(std::make_any<_T>(std::forward<decltype(value)>(value)));
 		};
 
 		(process(std::forward<_Args>(args)), ...);
