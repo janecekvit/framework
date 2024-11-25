@@ -69,55 +69,80 @@ public:
 		return storage::heterogeneous_container(25, 331, 1.1, "string"s, "kase"s, std::make_tuple(25, 333), fnCallbackInt, fnCallbackInt2, fnCallbackString, fnCallbackString2);
 	}
 
-	TEST_METHOD(TestGetAndFirstMethods)
+	TEST_METHOD(TestGet)
 	{
 		using namespace std::string_literals;
 
-		// Test Get and First methods
 		auto oContainer = InitializeHeterogeneousContainer();
 		auto oResult	= oContainer.get<std::string>();
 		auto oResultInt = oContainer.get<int>();
-		Assert::AreEqual(*oResultInt.begin(), 25);
-		Assert::AreEqual(*++oResultInt.begin(), 331);
+		Assert::AreEqual(oResultInt, std::list<int>{25 , 331});
 
 		Assert::AreEqual(oContainer.get<int>(0), 25);
 		Assert::AreEqual(oContainer.get<int>(1), 331);
-		Assert::AreEqual(oContainer.first<int>(), 25);
 
-		try
-		{
-			Assert::AreEqual(oContainer.get<int>(2), 331);
-		}
-		catch (const std::exception& ex)
-		{
-			Assert::AreEqual(ex.what(), "heterogeneous_container: Cannot retrieve value on position 2 with type: int");
-		}
+		// out of range
+		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
+			{
+				std::ignore = oContainer.get<int>(2);
+			});
 
 		Assert::AreEqual(oContainer.get<std::string>(0), "string"s);
 		Assert::AreEqual(oContainer.get<std::string>(1), "kase"s);
-		Assert::AreEqual(oContainer.first<std::string>(), "string"s);
 	}
+
+	TEST_METHOD(TestFirst)
+	{
+		auto oContainer = InitializeHeterogeneousContainer();
+		Assert::AreEqual(oContainer.first<int>(), 25);
+		Assert::AreEqual(oContainer.first<std::string>(), "string"s);
+
+		// no item
+		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]() 
+		{
+				std::ignore = oContainer.first<float>();
+		});
+	}
+	TEST_METHOD(TestSize)
+	{
+		auto oContainer = InitializeHeterogeneousContainer();
+		Assert::AreEqual(size_t(2), oContainer.size<int>());
+		Assert::AreEqual(size_t(1), oContainer.size<double>());
+		Assert::AreEqual(size_t(2), oContainer.size<std::string>());
+		Assert::AreEqual(size_t(0), oContainer.size<float>());
+	}
+
+	TEST_METHOD(TestContains)
+	{
+		auto oContainer = InitializeHeterogeneousContainer();
+		Assert::IsTrue(oContainer.contains<int>());
+		Assert::IsTrue(oContainer.contains<double>());
+		Assert::IsTrue(oContainer.contains<std::string>());
+		Assert::IsFalse(oContainer.contains<float>());
+	}
+
 	
 	TEST_METHOD(TestVisitMethods)
 	{
 		auto oContainer = InitializeHeterogeneousContainer();
+		auto oResultInt = oContainer.get<int>();
+		Assert::AreEqual(oResultInt, std::list<int>{ 25, 331 });
 
-		// Test visit methods
 		oContainer.visit<int>([&](int& i)
 			{
 				i += 100;
 			});
 
-		bool bFirst = true;
+		oResultInt = oContainer.get<int>();
+		Assert::AreEqual(oResultInt, std::list<int>{ 125, 431 });
+
+		std::list<int> results;
 		oContainer.visit<int>([&](const int& i)
 			{
-				Assert::AreEqual(i, bFirst ? 125 : 431);
-				bFirst = false;
+				results.emplace_back(i);
 			});
 
-		auto oResultIntNew = oContainer.get<int>();
-		Assert::AreEqual(*oResultIntNew.begin(), 125);
-		Assert::AreEqual(*++oResultIntNew.begin(), 431);
+		Assert::AreEqual(results, std::list<int>{ 25, 331 });
 	}
 
 	TEST_METHOD(TestCallMethods)

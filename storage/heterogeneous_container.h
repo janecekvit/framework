@@ -21,21 +21,21 @@ namespace storage
 /// <summary>
 /// Heterogeneous Container store any copy constructible object for the future processing
 ///  Heterogeneous Container implement lazy evaluation idiom to enable processing input arguments as late as possible
-/// <exception cref="heterogeneous_container_exception">When cast to the input type failed.</exception>
+/// <exception cref="bad_access">When cast to the input type failed.</exception>
 /// </summary>
 class heterogeneous_container final
 {
 public:
-	class heterogeneous_container_exception : public std::exception
+	class bad_access : public std::exception
 	{
 	public:
-		heterogeneous_container_exception(const std::type_info& typeInfo, const std::string& error)
+		bad_access(const std::type_info& typeInfo, const std::string& error)
 			: _typeInfo(typeInfo)
 			, _message("heterogeneous_container: " + error + " with type: " + typeInfo.name())
 		{
 		}
 
-		heterogeneous_container_exception(const std::type_info& typeInfo, const std::bad_any_cast& ex)
+		bad_access(const std::type_info& typeInfo, const std::bad_any_cast& ex)
 			: _typeInfo(typeInfo)
 			, _message("heterogeneous_container: " + std::string(ex.what()) + " with type: " + typeInfo.name())
 		{
@@ -144,6 +144,13 @@ public:
 		return size<_T>() > 0;
 	}
 
+	
+	template <class _T>
+	[[nodiscard]] constexpr decltype(auto) first() const
+	{
+		return get<_T>(0);
+	}
+
 	template <class _T>
 	[[nodiscard]] constexpr decltype(auto) get() const
 	{
@@ -151,11 +158,11 @@ public:
 		try
 		{
 			for (auto&& item : m_umapArgs[TypeKey<_T>])
-				values.emplace_back(std::any_cast<_T&>(item));
+				values.emplace_back(std::any_cast<const _T&>(item));
 		}
 		catch (const std::bad_any_cast& ex)
 		{
-			throw heterogeneous_container_exception(typeid(_T), ex);
+			throw bad_access(typeid(_T), ex);
 		};
 
 		return values;
@@ -168,20 +175,14 @@ public:
 		{
 			auto&& values = m_umapArgs[TypeKey<_T>];
 			if (values.size() <= position)
-				throw heterogeneous_container_exception(typeid(_T), "Cannot retrieve value on position " + std::to_string(position));
+				throw bad_access(typeid(_T), "Cannot retrieve value on position " + std::to_string(position));
 
-			return std::any_cast<_T&>(values[position]);
+			return std::any_cast<const _T&>(values[position]);
 		}
 		catch (const std::bad_any_cast& ex)
 		{
-			throw heterogeneous_container_exception(typeid(_T), ex);
+			throw bad_access(typeid(_T), ex);
 		};
-	}
-
-	template <class _T>
-	[[nodiscard]] constexpr decltype(auto) first() const
-	{
-		return get<_T>(0);
 	}
 
 	template <class _T, class _Callable>
@@ -216,7 +217,7 @@ private:
 		}
 		catch (const std::bad_any_cast& ex)
 		{
-			throw heterogeneous_container_exception(typeid(_T), ex);
+			throw bad_access(typeid(_T), ex);
 		}
 	}
 
