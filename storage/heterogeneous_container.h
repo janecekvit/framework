@@ -56,6 +56,7 @@ public:
 		std::string _message;
 	};
 
+private:
 	template <typename _T>
 	struct TypeKey
 	{
@@ -65,6 +66,15 @@ public:
 			return id;
 		}();
 	};
+
+	struct CustomHasher
+	{
+		std::size_t operator()(size_t key) const noexcept
+		{
+			return key ^ (key >> 16);
+		}
+	};
+
 
 public:
 	~heterogeneous_container() = default;
@@ -164,7 +174,7 @@ public:
 		{
 			return std::any_cast<_T&>(m_umapArgs[TypeKey<_T>::value].at(position));
 		}
-		catch (const std::out_of_range& ex)
+		catch (const std::out_of_range&)
 		{
 			throw heterogeneous_container_exception(typeid(_T), "Cannot retrieve value on position " + std::to_string(position));
 		}
@@ -231,7 +241,7 @@ private:
 	}
 
 protected:
-	mutable std::unordered_map<size_t, std::vector<std::any>> m_umapArgs;
+	mutable std::unordered_map<size_t, std::vector<std::any>, CustomHasher> m_umapArgs;
 };
 
 } // namespace storage
