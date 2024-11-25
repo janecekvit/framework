@@ -180,35 +180,42 @@ public:
 		return get<_T>(0);
 	}
 
-	template <class _T>
-	constexpr void visit(std::function<void(const _T&)>&& fnCallback) const
+	template <class _T, class _Callable>
+	constexpr void visit(_Callable&& fnCallback)
 	{
-		try
-		{
-			for (auto&& item : m_umapArgs[TypeKey<_T>::value])
-				fnCallback(std::any_cast<_T&>(item));
-		}
-		catch (const std::bad_any_cast& ex)
-		{
-			throw heterogeneous_container_exception(typeid(_T), ex);
-		};
+		_visit<_T, false>(std::forward<_Callable>(fnCallback));
 	}
 
-	template <class _T>
-	constexpr void visit(std::function<void(_T&)>&& fnCallback)
+	template <class _T, class _Callable>
+	constexpr void visit(_Callable&& fnCallback) const
 	{
-		try
-		{
-			for (auto&& item : m_umapArgs[TypeKey<_T>::value])
-				fnCallback(std::any_cast<_T&>(item));
-		}
-		catch (const std::bad_any_cast& ex)
-		{
-			throw heterogeneous_container_exception(typeid(_T), ex);
-		};
+		_visit<_T, true>(std::forward<_Callable>(fnCallback));
 	}
 
 private:
+	template <class _T, bool _IsConst, class _Callable>
+	constexpr void _visit(_Callable&& fnCallback) const
+	{
+		try
+		{
+			auto it = m_umapArgs.find(TypeKey<_T>::value);
+			if (it == m_umapArgs.end())
+				return;
+
+			for (auto&& item : it->second)
+			{
+				if constexpr (_IsConst)
+					std::invoke(std::forward<_Callable>(fnCallback), std::any_cast<const _T&>(item));
+				else
+					std::invoke(std::forward<_Callable>(fnCallback), std::any_cast<_T&>(item));
+			}
+		}
+		catch (const std::bad_any_cast& ex)
+		{
+			throw heterogeneous_container_exception(typeid(_T), ex);
+		}
+	}
+
 	template <class... _Args>
 	constexpr void _insert(_Args&&... args)
 	{
