@@ -143,31 +143,69 @@ public:
 	template <class _T>
 	[[nodiscard]] constexpr decltype(auto) get() const
 	{
-		return _deserialize<_T>();
+		std::list<_T> values = {};
+		try
+		{
+			for (auto&& item : m_umapArgs[TypeKey<_T>::value])
+				values.emplace_back(std::any_cast<_T&>(item));
+		}
+		catch (const std::bad_any_cast& ex)
+		{
+			throw heterogeneous_container_exception(typeid(_T), ex);
+		};
+
+		return values;
 	}
 
 	template <class _T>
-	[[nodiscard]] constexpr decltype(auto) get(size_t uPosition) const
+	[[nodiscard]] constexpr decltype(auto) get(size_t position) const
 	{
-		return _deserialize<_T>(uPosition);
+		try
+		{
+			return std::any_cast<_T&>(m_umapArgs[TypeKey<_T>::value].at(position));
+		}
+		catch (const std::out_of_range& ex)
+		{
+			throw heterogeneous_container_exception(typeid(_T), "Cannot retrieve value on position " + std::to_string(position));
+		}
+		catch (const std::bad_any_cast& ex)
+		{
+			throw heterogeneous_container_exception(typeid(_T), ex);
+		};
 	}
 
 	template <class _T>
 	[[nodiscard]] constexpr decltype(auto) first() const
 	{
-		return _deserialize<_T>(0);
+		return get<_T>(0);
 	}
 
 	template <class _T>
 	constexpr void visit(std::function<void(const _T&)>&& fnCallback) const
 	{
-		_get<_T>(std::move(fnCallback));
+		try
+		{
+			for (auto&& item : m_umapArgs[TypeKey<_T>::value])
+				fnCallback(std::any_cast<_T&>(item));
+		}
+		catch (const std::bad_any_cast& ex)
+		{
+			throw heterogeneous_container_exception(typeid(_T), ex);
+		};
 	}
 
 	template <class _T>
 	constexpr void visit(std::function<void(_T&)>&& fnCallback)
 	{
-		_get<_T>(std::move(fnCallback));
+		try
+		{
+			for (auto&& item : m_umapArgs[TypeKey<_T>::value])
+				fnCallback(std::any_cast<_T&>(item));
+		}
+		catch (const std::bad_any_cast& ex)
+		{
+			throw heterogeneous_container_exception(typeid(_T), ex);
+		};
 	}
 
 private:
@@ -183,49 +221,6 @@ private:
 		};
 
 		(process(std::forward<_Args>(args)), ...);
-	}
-
-	template <class _T>
-	[[nodiscard]] constexpr decltype(auto) _deserialize() const
-	{
-		std::list<_T> oList = {};
-		_get<_T>([&oList](const _T& input)
-			{
-				oList.emplace_back(input);
-			});
-		return oList;
-	}
-
-	template <class _T>
-	[[nodiscard]] constexpr decltype(auto) _deserialize(size_t uPosition) const
-	{
-		size_t uCounter = 0;
-		std::optional<_T> oValue = std::nullopt;
-		_get<_T>([&](const _T& input)
-			{
-				if (uCounter == uPosition)
-					oValue = std::make_optional<_T>(input);
-				uCounter++;
-			});
-
-		if (!oValue)
-			throw heterogeneous_container_exception(typeid(_T), "Cannot retrieve value on position " + std::to_string(uPosition));
-		return static_cast<_T>(std::move(oValue.value()));
-	}
-
-	template <class _T>
-	constexpr void _get(std::function<void(_T&)>&& fnCallback) const
-	{
-		try
-		{
-			for (auto&& item : m_umapArgs[TypeKey<_T>::value])
-				fnCallback(std::any_cast<_T&>(item));
-			
-		}
-		catch (const std::bad_any_cast& ex)
-		{
-			throw heterogeneous_container_exception(typeid(_T), ex);
-		};
 	}
 
 protected:

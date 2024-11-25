@@ -36,8 +36,11 @@ namespace FrameworkTesting
 ONLY_USED_AT_NAMESPACE_SCOPE class test_heterogeneous_container : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_heterogeneous_container> // expanded TEST_CLASS() macro due wrong formatting of clangformat
 {
 public:
+#ifdef _DEBUG
+	constexpr static const size_t N = 1'000'000;
+#else
 	constexpr static const size_t N = 100'000'000;
-
+#endif // DEBUG
 
 	storage::heterogeneous_container InitializeHeterogeneousContainer()
 	{
@@ -231,8 +234,8 @@ public:
 
 		for (size_t i = 0; i < N; i++)
 		{
-			auto result = std::get<int>(value);
-			auto result2 = std::get<std::string>(value2);
+			int& result = std::get<int>(value);
+			std::string& result2 = std::get<std::string>(value2);
 		}
 	}
 
@@ -242,8 +245,8 @@ public:
 		std::any value2 = std::string("ANO");
 		for (size_t i = 0; i < N; i++)
 		{
-			auto result = std::any_cast<int>(value);
-			auto result2 = std::any_cast<std::string>(value2);
+			auto result = std::any_cast<int&>(value);
+			auto result2 = std::any_cast<std::string&>(value2);
 		}
 	}
 
