@@ -96,40 +96,7 @@ public:
 			m_umapArgs.clear();
 	}
 
-
 public:
-	template <class _Func, class... _Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<_Func, _Args...>, _Func, _Args...>, int> = 0>
-	constexpr decltype(auto) call_first(_Args&&... args) const
-	{
-		auto&& oFunc = first<_Func>();
-		return std::invoke(oFunc, std::forward<_Args>(args)...); // NVRO
-	}
-
-	template <class _Func, class... _Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<_Func, _Args...>, _Func, _Args...>, int> = 0>
-	constexpr decltype(auto) call(size_t uPosition, _Args&&... args) const
-	{
-		auto&& oFunc = get<_Func>(uPosition);
-		return std::invoke(oFunc, std::forward<_Args>(args)...); // NVRO
-	}
-
-	template <class _Func, class... _Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<_Func, _Args...>, _Func, _Args...>, int> = 0>
-	constexpr decltype(auto) call_all(_Args&&... args) const
-	{
-		using RetType = std::invoke_result_t<_Func, _Args...>;
-		if constexpr (std::is_void_v<RetType>)
-		{
-			for (auto&& func : get<_Func>())
-				std::invoke(func, std::forward<_Args>(args)...);
-		}
-		else
-		{
-			std::list<RetType> oList = {};
-			for (auto&& func : get<_Func>())
-				oList.emplace_back(std::invoke(func, std::forward<_Args>(args)...));
-			return oList;
-		}
-	}
-
 	template <class _T = void>
 	[[nodiscard]] constexpr size_t size() const noexcept
 	{
@@ -205,6 +172,38 @@ public:
 	constexpr void visit(_Callable&& fnCallback) const
 	{
 		_visit<_T, true>(std::forward<_Callable>(fnCallback));
+	}
+
+	template <class _Func, class... _Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<_Func, _Args...>, _Func, _Args...>, int> = 0>
+	constexpr decltype(auto) call_first(_Args&&... args) const
+	{
+		auto&& oFunc = first<_Func>();
+		return std::invoke(oFunc, std::forward<_Args>(args)...);
+	}
+
+	template <class _Func, class... _Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<_Func, _Args...>, _Func, _Args...>, int> = 0>
+	constexpr decltype(auto) call(size_t uPosition, _Args&&... args) const
+	{
+		auto&& oFunc = get<_Func>(uPosition);
+		return std::invoke(oFunc, std::forward<_Args>(args)...);
+	}
+
+	template <class _Func, class... _Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<_Func, _Args...>, _Func, _Args...>, int> = 0>
+	constexpr decltype(auto) call_all(_Args&&... args) const
+	{
+		using RetType = std::invoke_result_t<_Func, _Args...>;
+		if constexpr (std::is_void_v<RetType>)
+		{
+			for (auto&& func : get<_Func>())
+				std::invoke(func, std::forward<_Args>(args)...);
+		}
+		else
+		{
+			std::list<RetType> oList = {};
+			for (auto&& func : get<_Func>())
+				oList.emplace_back(std::invoke(func, std::forward<_Args>(args)...));
+			return oList;
+		}
 	}
 
 private:

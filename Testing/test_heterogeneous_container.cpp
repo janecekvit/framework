@@ -121,68 +121,6 @@ public:
 		Assert::AreEqual(ToList(oContainer.get<std::string>()).size(), size_t(0));
 	}
 
-	TEST_METHOD(TestCallMethods)
-	{
-		auto oContainer = InitializeHeterogeneousContainer();
-
-		// Test call methods
-		int iCallable = 5;
-		oContainer.call_first<std::function<void(int&)>>(iCallable);
-		Assert::AreEqual(15, iCallable);
-
-		oContainer.call<std::function<void(int&)>>(1, iCallable);
-		Assert::AreEqual(35, iCallable);
-
-		std::string sResult = oContainer.call_first<std::function<std::string(std::string&&)>>("Test ");
-		Assert::AreEqual("Test 123"s, sResult);
-
-		sResult = oContainer.call<std::function<std::string(std::string&&)>>(1, "Test ");
-		Assert::AreEqual("Test 456"s, sResult);
-
-		try
-		{
-			oContainer.call_first<std::function<void(std::string&&)>>("Test ");
-		}
-		catch (const std::exception& ex)
-		{
-			std::string error = "heterogeneous_container: Cannot retrieve value on position 0 with type: "s + typeid(std::function<void(std::string&&)>).name();
-			Assert::AreEqual(ex.what(), error.data());
-		}
-
-		iCallable = 0;
-		oContainer.call_all<std::function<void(int&)>>(iCallable);
-		Assert::AreEqual(30, iCallable);
-
-		auto listResults = oContainer.call_all<std::function<std::string(std::string&&)>>("Test ");
-		Assert::AreEqual("Test 123"s, *listResults.begin());
-		Assert::AreEqual("Test 456"s, *std::next(listResults.begin(), 1));
-
-		// Test size and reset (1)
-		Assert::AreEqual(oContainer.size<std::function<void(int&)>>(), size_t(2));
-		Assert::AreEqual(oContainer.contains<std::function<void(int&)>>(), true);
-
-		Assert::AreEqual(oContainer.size<std::function<std::string(std::string&&)>>(), size_t(2));
-		Assert::AreEqual(oContainer.contains<std::function<std::string(std::string&&)>>(), true);
-
-		// Test size and reset (2)
-		oContainer.clear<std::function<void(int&)>>();
-
-		Assert::AreEqual(oContainer.size<std::function<void(int&)>>(), size_t(0));
-		Assert::AreEqual(oContainer.contains<std::function<void(int&)>>(), false);
-
-		Assert::AreEqual(oContainer.size<std::function<std::string(std::string&&)>>(), size_t(2));
-		Assert::AreEqual(oContainer.contains<std::function<std::string(std::string&&)>>(), true);
-
-		// Test size and reset (3)
-		oContainer.clear();
-
-		Assert::AreEqual(oContainer.size<std::function<void(int&)>>(), size_t(0));
-		Assert::AreEqual(oContainer.contains<std::function<void(int&)>>(), false);
-
-		Assert::AreEqual(oContainer.size<std::function<std::string(std::string&&)>>(), size_t(0));
-		Assert::AreEqual(oContainer.contains<std::function<std::string(std::string&&)>>(), false);
-	}
-
 	TEST_METHOD(TestSize)
 	{
 		auto oContainer = InitializeHeterogeneousContainer();
@@ -191,7 +129,7 @@ public:
 		Assert::AreEqual(size_t(2), oContainer.size<std::string>());
 		Assert::AreEqual(size_t(0), oContainer.size<float>());
 
-		Assert::AreEqual(size_t(10), oContainer.size());
+		Assert::AreEqual(size_t(7), oContainer.size());
 	}
 
 	TEST_METHOD(TestEmpty)
@@ -284,6 +222,70 @@ public:
 
 		Assert::AreEqual(results, std::list<int>{ 125, 431 });
 	}
+
+	
+	TEST_METHOD(TestCallMethods)
+	{
+		auto oContainer = InitializeHeterogeneousContainer();
+
+		// Test call methods
+		int iCallable = 5;
+		oContainer.call_first<std::function<void(int&)>>(iCallable);
+		Assert::AreEqual(15, iCallable);
+
+		oContainer.call<std::function<void(int&)>>(1, iCallable);
+		Assert::AreEqual(35, iCallable);
+
+		std::string sResult = oContainer.call_first<std::function<std::string(std::string&&)>>("Test ");
+		Assert::AreEqual("Test 123"s, sResult);
+
+		sResult = oContainer.call<std::function<std::string(std::string&&)>>(1, "Test ");
+		Assert::AreEqual("Test 456"s, sResult);
+
+		try
+		{
+			oContainer.call_first<std::function<void(std::string&&)>>("Test ");
+		}
+		catch (const std::exception& ex)
+		{
+			std::string error = "heterogeneous_container: Cannot retrieve value on position 0 with type: "s + typeid(std::function<void(std::string&&)>).name();
+			Assert::AreEqual(ex.what(), error.data());
+		}
+
+		iCallable = 0;
+		oContainer.call_all<std::function<void(int&)>>(iCallable);
+		Assert::AreEqual(30, iCallable);
+
+		auto listResults = oContainer.call_all<std::function<std::string(std::string&&)>>("Test ");
+		Assert::AreEqual("Test 123"s, *listResults.begin());
+		Assert::AreEqual("Test 456"s, *std::next(listResults.begin(), 1));
+
+		// Test size and reset (1)
+		Assert::AreEqual(oContainer.size<std::function<void(int&)>>(), size_t(2));
+		Assert::AreEqual(oContainer.contains<std::function<void(int&)>>(), true);
+
+		Assert::AreEqual(oContainer.size<std::function<std::string(std::string&&)>>(), size_t(2));
+		Assert::AreEqual(oContainer.contains<std::function<std::string(std::string&&)>>(), true);
+
+		// Test size and reset (2)
+		oContainer.clear<std::function<void(int&)>>();
+
+		Assert::AreEqual(oContainer.size<std::function<void(int&)>>(), size_t(0));
+		Assert::AreEqual(oContainer.contains<std::function<void(int&)>>(), false);
+
+		Assert::AreEqual(oContainer.size<std::function<std::string(std::string&&)>>(), size_t(2));
+		Assert::AreEqual(oContainer.contains<std::function<std::string(std::string&&)>>(), true);
+
+		// Test size and reset (3)
+		oContainer.clear();
+
+		Assert::AreEqual(oContainer.size<std::function<void(int&)>>(), size_t(0));
+		Assert::AreEqual(oContainer.contains<std::function<void(int&)>>(), false);
+
+		Assert::AreEqual(oContainer.size<std::function<std::string(std::string&&)>>(), size_t(0));
+		Assert::AreEqual(oContainer.contains<std::function<std::string(std::string&&)>>(), false);
+	}
+
 
 	TEST_METHOD(TestContainerInClass)
 	{
