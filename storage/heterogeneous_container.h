@@ -88,16 +88,14 @@ public:
 		_insert(args...);
 	}
 
-	template <class _T>
+	template <class _T = void>
 	constexpr void clear()
 	{
 		m_umapArgs[TypeKey<_T>].clear();
+		if constexpr (std::is_same_v<_T, void>)
+			m_umapArgs.clear();
 	}
 
-	void clear()
-	{
-		m_umapArgs.clear();
-	}
 
 public:
 	template <class _Func, class... _Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<_Func, _Args...>, _Func, _Args...>, int> = 0>
@@ -132,10 +130,22 @@ public:
 		}
 	}
 
-	template <class _T>
+	template <class _T = void>
 	[[nodiscard]] constexpr size_t size() const noexcept
 	{
+		if constexpr (std::is_same_v<_T, void>)
+			return m_umapArgs.size();
+
 		return m_umapArgs[TypeKey<_T>].size();
+	}
+
+	template <class _T = void>
+	[[nodiscard]] constexpr bool empty() const noexcept
+	{
+		if constexpr (std::is_same_v<_T, void>)
+			return size() == 0;
+
+		return size<_T>() == 0;
 	}
 
 	template <class _T>
@@ -144,7 +154,6 @@ public:
 		return size<_T>() > 0;
 	}
 
-	
 	template <class _T>
 	[[nodiscard]] constexpr decltype(auto) first() const
 	{
@@ -154,18 +163,13 @@ public:
 	template <class _T>
 	[[nodiscard]] constexpr decltype(auto) get() const
 	{
-		std::list<_T> values = {};
-		try
-		{
-			for (auto&& item : m_umapArgs[TypeKey<_T>])
-				values.emplace_back(std::any_cast<const _T&>(item));
-		}
-		catch (const std::bad_any_cast& ex)
-		{
-			throw bad_access(typeid(_T), ex);
-		};
+		return _get<_T, true>();
+	}
 
-		return values;
+	template <class _T>
+	[[nodiscard]] constexpr decltype(auto) get()
+	{
+		return _get<_T, false>();
 	}
 
 	template <class _T>
@@ -185,6 +189,12 @@ public:
 		};
 	}
 
+	template <class _T>
+	[[nodiscard]] constexpr decltype(auto) get(size_t position)
+	{
+		return const_cast<_T&>(std::as_const(*this).get<_T>(position));
+	}
+
 	template <class _T, class _Callable>
 	constexpr void visit(_Callable&& fnCallback)
 	{
@@ -198,6 +208,37 @@ public:
 	}
 
 private:
+	template <class... _Args>
+	constexpr void _insert(_Args&&... args)
+	{
+		auto process = [&](auto&& value)
+		{
+			using _T = std::decay_t<decltype(value)>;
+			static_assert(std::is_copy_constructible<_T>::value, "Cannot assign <_T> type, because isn't CopyConstructible!");
+
+			m_umapArgs[TypeKey<_T>].emplace_back(std::make_any<_T>(std::forward<decltype(value)>(value)));
+		};
+
+		(process(std::forward<_Args>(args)), ...);
+	}
+
+	template <class _T, bool _IsConst>
+	[[nodiscard]] constexpr decltype(auto) _get() const
+	{
+		try
+		{
+			using Value = std::conditional_t<_IsConst, const _T, _T>;
+			std::list<std::reference_wrapper<Value>> values = {};
+			for (auto&& item : m_umapArgs[TypeKey<_T>])
+				values.emplace_back(std::any_cast<Value&>(item));
+			return values;
+		}
+		catch (const std::bad_any_cast& ex)
+		{
+			throw bad_access(typeid(_T), ex);
+		};
+	}
+
 	template <class _T, bool _IsConst, class _Callable>
 	constexpr void _visit(_Callable&& fnCallback) const
 	{
@@ -219,20 +260,6 @@ private:
 		{
 			throw bad_access(typeid(_T), ex);
 		}
-	}
-
-	template <class... _Args>
-	constexpr void _insert(_Args&&... args)
-	{
-		auto process = [&](auto&& value)
-		{
-			using _T = std::decay_t<decltype(value)>;
-			static_assert(std::is_copy_constructible<_T>::value, "Cannot assign <_T> type, because isn't CopyConstructible!");
-
-			m_umapArgs[TypeKey<_T>].emplace_back(std::make_any<_T>(std::forward<decltype(value)>(value)));
-		};
-
-		(process(std::forward<_Args>(args)), ...);
 	}
 
 protected:
