@@ -57,7 +57,6 @@ public:
 	};
 
 private:
-	
 	template <typename _T>
 	inline static size_t TypeKey = reinterpret_cast<size_t>(&TypeKey<_T>);
 
@@ -68,7 +67,6 @@ private:
 			return key ^ (key >> 16);
 		}
 	};
-
 
 public:
 	~heterogeneous_container() = default;
@@ -144,11 +142,11 @@ public:
 	{
 		try
 		{
-			auto&& values = m_umapArgs[TypeKey<_T>];
-			if (values.size() <= position)
+			auto it = m_umapArgs.find(TypeKey<_T>);
+			if (it == m_umapArgs.end() || it->second.size() <= position)
 				throw bad_access(typeid(_T), "Cannot retrieve value on position " + std::to_string(position));
 
-			return std::any_cast<const _T&>(values[position]);
+			return std::any_cast<const _T&>(it->second[position]);
 		}
 		catch (const std::bad_any_cast& ex)
 		{
@@ -213,9 +211,23 @@ private:
 		auto process = [&](auto&& value)
 		{
 			using _T = std::decay_t<decltype(value)>;
-			static_assert(std::is_copy_constructible<_T>::value, "Cannot assign <_T> type, because isn't CopyConstructible!");
-
-			m_umapArgs[TypeKey<_T>].emplace_back(std::make_any<_T>(std::forward<decltype(value)>(value)));
+			if constexpr (constraints::is_tuple_v<_T>)
+			{
+				std::apply([&](auto&&... tupleArgs)
+					{
+						_insert(std::forward<decltype(tupleArgs)>(tupleArgs)...);
+					},
+					value);
+			}
+			else if constexpr (constraints::is_initializer_list_v<_T>)
+			{
+				for (auto&& item : value)
+					_insert(std::forward<decltype(item)>(item));
+			}
+			else
+			{
+				m_umapArgs[TypeKey<_T>].emplace_back(std::make_any<_T>(std::forward<decltype(value)>(value)));
+			}
 		};
 
 		(process(std::forward<_Args>(args)), ...);

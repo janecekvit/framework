@@ -161,6 +161,38 @@ template <class _T>
 constexpr bool is_iterator_v = is_iterator<_T>::value;
 
 /// <summary>
+/// Helper structures to determine if template type <_T> is tuple
+/// </summary>
+template <typename T>
+struct is_tuple : std::false_type
+{
+};
+
+template <typename... Args>
+struct is_tuple<std::tuple<Args...>> : std::true_type
+{
+};
+
+template <typename T>
+constexpr bool is_tuple_v = is_tuple<T>::value;
+
+/// <summary>
+/// Helper structures to determine if template type <_T> is initializer_list
+/// </summary>
+template <typename T>
+struct is_initializer_list : std::false_type
+{
+};
+
+template <typename T>
+struct is_initializer_list<std::initializer_list<T>> : std::true_type
+{
+};
+
+template <typename T>
+constexpr bool is_initializer_list_v = is_initializer_list<T>::value;
+
+/// <summary>
 /// Helper structures to determine if template type <_T> is explicitly convertible
 /// </summary>
 template <class _T, class _U>

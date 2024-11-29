@@ -20,6 +20,9 @@ static std::wstring ToString<std::list<int>>(const std::list<int>& t)
 		return a + b;
 	};
 
+	if (t.empty())
+		return L"";
+
 	return std::to_wstring(std::accumulate(std::next(t.begin()), t.end(), t.front(), dashFold));
 }
 
@@ -36,6 +39,9 @@ static std::wstring ToString<std::list<std::string>>(const std::list<std::string
 	{
 		return a + '-' + b;
 	};
+
+	if (t.empty())
+		return L"";
 
 	auto result = std::accumulate(std::next(t.begin()), t.end(), t.front(), dashFold);
 	return std::wstring(result.begin(), result.end());
@@ -101,13 +107,26 @@ public:
 			return s;
 		};
 
-		return storage::heterogeneous_container(25, 331, 1.1, "string"s, "kase"s, std::make_tuple(25, 333), fnCallbackInt, fnCallbackInt2, fnCallbackString, fnCallbackString2);
+		return storage::heterogeneous_container(25, 331, 1.1, "string"s, "kase"s, std::make_tuple(25.1, 333.1), fnCallbackInt, fnCallbackInt2, fnCallbackString, fnCallbackString2);
+	}
+
+	TEST_METHOD(TestConstruction)
+	{
+		storage::heterogeneous_container oContainer(10, 20, 30, 40, "ANO"s, "NE"s, "NEVIM"s, std::make_tuple(50, 60, 70, 80, 90), std::initializer_list<int>{ 100, 110 });
+		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110 });
+		Assert::AreEqual(ToList(oContainer.get<std::string>()), std::list<std::string>{ "ANO", "NE", "NEVIM" });
+	}
+
+	TEST_METHOD(TestEmplace)
+	{
+		storage::heterogeneous_container oContainer;
+		oContainer.emplace(10, 20, 30, 40, "ANO"s, "NE"s, "NEVIM"s, std::make_tuple(50, 60, 70, 80, 90), std::initializer_list<int>{100, 110});
+		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110 });
+		Assert::AreEqual(ToList(oContainer.get<std::string>()), std::list<std::string>{ "ANO", "NE", "NEVIM" });
 	}
 
 	TEST_METHOD(TestClear)
 	{
-		using namespace std::string_literals;
-
 		auto oContainer = InitializeHeterogeneousContainer();
 		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 25, 331 });
 		Assert::AreEqual(ToList(oContainer.get<std::string>()), std::list<std::string>{ "string", "kase" });
@@ -125,11 +144,11 @@ public:
 	{
 		auto oContainer = InitializeHeterogeneousContainer();
 		Assert::AreEqual(size_t(2), oContainer.size<int>());
-		Assert::AreEqual(size_t(1), oContainer.size<double>());
+		Assert::AreEqual(size_t(3), oContainer.size<double>());
 		Assert::AreEqual(size_t(2), oContainer.size<std::string>());
 		Assert::AreEqual(size_t(0), oContainer.size<float>());
 
-		Assert::AreEqual(size_t(7), oContainer.size());
+		Assert::AreEqual(size_t(6), oContainer.size());
 	}
 
 	TEST_METHOD(TestEmpty)
@@ -223,7 +242,6 @@ public:
 		Assert::AreEqual(results, std::list<int>{ 125, 431 });
 	}
 
-	
 	TEST_METHOD(TestCallMethods)
 	{
 		auto oContainer = InitializeHeterogeneousContainer();
@@ -285,7 +303,6 @@ public:
 		Assert::AreEqual(oContainer.size<std::function<std::string(std::string&&)>>(), size_t(0));
 		Assert::AreEqual(oContainer.contains<std::function<std::string(std::string&&)>>(), false);
 	}
-
 
 	TEST_METHOD(TestContainerInClass)
 	{
