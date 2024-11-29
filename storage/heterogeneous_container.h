@@ -22,12 +22,11 @@ namespace storage
 /// <summary>
 /// Heterogeneous Container store any copy constructible object for the future processing
 ///  Heterogeneous Container implement lazy evaluation idiom to enable processing input arguments as late as possible
-/// <exception cref="bad_access">When cast to the input type failed.</exception>
 /// </summary>
 class heterogeneous_container final
 {
 public:
-	using KnownTypes = std::variant<bool, int, long, double, size_t, std::string, std::wstring, std::u16string, std::u32string>;
+	using KnownTypes = std::variant<bool, short, unsigned short, int, unsigned int, long, unsigned long, float, double, size_t, std::byte, std::string, std::wstring, std::u16string, std::u32string>;
 
 	template <typename _T>
 	static constexpr bool is_known_type = constraints::is_type_in_variant_v<_T, KnownTypes>;
