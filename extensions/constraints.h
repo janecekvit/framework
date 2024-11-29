@@ -25,6 +25,7 @@ Purpose:	header file contains set of extended constraints to describe stl contai
 #include <tuple>
 #include <type_traits>
 #include <typeindex>
+#include <variant>
 
 /// Namespace owns set of extended constraints to describe stl containers
 namespace janecekvit::constraints
@@ -175,6 +176,35 @@ struct is_tuple<std::tuple<Args...>> : std::true_type
 
 template <typename T>
 constexpr bool is_tuple_v = is_tuple<T>::value;
+
+/// <summary>
+/// Helper structures to determine if template type <_T> is in std::tuple
+/// </summary>
+template <typename T, typename Tuple>
+struct is_type_in_tuple;
+
+template <typename T, typename... Types>
+struct is_type_in_tuple<T, std::tuple<Types...>> : std::disjunction<std::is_same<T, Types>...>
+{
+};
+
+template <typename T, typename Tuple>
+constexpr bool is_type_in_tuple_v = is_type_in_tuple<T, Tuple>::value;
+
+
+/// <summary>
+/// Helper structures to determine if template type <_T> is in std::variant
+/// </summary>
+template <typename T, typename Variant>
+struct is_type_in_variant;
+
+template <typename T, typename... Types>
+struct is_type_in_variant<T, std::variant<Types...>> : std::disjunction<std::is_same<T, Types>...>
+{
+};
+
+template <typename T, typename Variant>
+inline constexpr bool is_type_in_variant_v = is_type_in_variant<T, Variant>::value;
 
 /// <summary>
 /// Helper structures to determine if template type <_T> is initializer_list

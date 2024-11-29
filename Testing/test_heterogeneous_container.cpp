@@ -182,6 +182,9 @@ public:
 			{
 				std::ignore = oContainer.first<float>();
 			});
+
+		std::variant<int, std::string> bb;
+		auto cc = std::get<int>(bb);
 	}
 
 	TEST_METHOD(TestGet)

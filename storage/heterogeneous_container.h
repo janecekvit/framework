@@ -11,6 +11,7 @@
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
+#include <iostream>
 
 namespace janecekvit
 {
@@ -26,6 +27,12 @@ namespace storage
 class heterogeneous_container final
 {
 public:
+	using KnownTypes = std::variant<bool, int, long, double, size_t, std::string, std::wstring, std::u16string, std::u32string>;
+
+	template <typename _T>
+	static constexpr bool is_known_type = constraints::is_type_in_variant_v<_T, KnownTypes>;
+
+public:
 	class bad_access : public std::exception
 	{
 	public:
@@ -35,7 +42,7 @@ public:
 		{
 		}
 
-		bad_access(const std::type_info& typeInfo, const std::bad_any_cast& ex)
+		bad_access(const std::type_info& typeInfo, const std::exception& ex)
 			: _typeInfo(typeInfo)
 			, _message("heterogeneous_container: " + std::string(ex.what()) + " with type: " + typeInfo.name())
 		{
@@ -54,18 +61,6 @@ public:
 	private:
 		const std::type_info& _typeInfo;
 		std::string _message;
-	};
-
-private:
-	template <typename _T>
-	inline static size_t TypeKey = reinterpret_cast<size_t>(&TypeKey<_T>);
-
-	struct CustomHasher
-	{
-		std::size_t operator()(size_t key) const noexcept
-		{
-			return key ^ (key >> 16);
-		}
 	};
 
 public:
@@ -89,27 +84,30 @@ public:
 	template <class _T = void>
 	constexpr void clear()
 	{
-		m_umapArgs[TypeKey<_T>].clear();
 		if constexpr (std::is_same_v<_T, void>)
-			m_umapArgs.clear();
+		{
+			_knownTypes.clear();
+			_unknownTypes.clear();
+		}
+		else
+		{
+			_get_storage<_T>().clear();
+		}
 	}
 
 public:
 	template <class _T = void>
 	[[nodiscard]] constexpr size_t size() const noexcept
 	{
-		if constexpr (std::is_same_v<_T, void>)
-			return m_umapArgs.size();
-
-		return m_umapArgs[TypeKey<_T>].size();
+		if constexpr (!std::is_same_v<_T, void>)
+			return _get_storage<_T>().size();
+		
+		return _knownTypes.size() + _unknownTypes.size();
 	}
 
 	template <class _T = void>
 	[[nodiscard]] constexpr bool empty() const noexcept
 	{
-		if constexpr (std::is_same_v<_T, void>)
-			return size() == 0;
-
 		return size<_T>() == 0;
 	}
 
@@ -140,24 +138,13 @@ public:
 	template <class _T>
 	[[nodiscard]] constexpr decltype(auto) get(size_t position) const
 	{
-		try
-		{
-			auto it = m_umapArgs.find(TypeKey<_T>);
-			if (it == m_umapArgs.end() || it->second.size() <= position)
-				throw bad_access(typeid(_T), "Cannot retrieve value on position " + std::to_string(position));
-
-			return std::any_cast<const _T&>(it->second[position]);
-		}
-		catch (const std::bad_any_cast& ex)
-		{
-			throw bad_access(typeid(_T), ex);
-		};
+		return _get<_T>(position);
 	}
 
 	template <class _T>
 	[[nodiscard]] constexpr decltype(auto) get(size_t position)
 	{
-		return const_cast<_T&>(std::as_const(*this).get<_T>(position));
+		return const_cast<_T&>(std::as_const(*this)._get<_T>(position));
 	}
 
 	template <class _T, class _Callable>
@@ -226,7 +213,10 @@ private:
 			}
 			else
 			{
-				m_umapArgs[TypeKey<_T>].emplace_back(std::make_any<_T>(std::forward<decltype(value)>(value)));
+				if constexpr (heterogeneous_container::is_known_type<_T>)
+					_knownTypes[TypeKey<_T>].emplace_back(std::forward<decltype(value)>(value));
+				else
+					_unknownTypes[TypeKey<_T>].emplace_back(std::make_any<_T>(std::forward<decltype(value)>(value)));
 			}
 		};
 
@@ -240,9 +230,45 @@ private:
 		{
 			using Value = std::conditional_t<_IsConst, const _T, _T>;
 			std::list<std::reference_wrapper<Value>> values = {};
-			for (auto&& item : m_umapArgs[TypeKey<_T>])
-				values.emplace_back(std::any_cast<Value&>(item));
+
+			auto& storage = _get_storage<_T>();
+			for (auto&& item : storage)
+			{
+				if constexpr (heterogeneous_container::is_known_type<_T>)
+					values.emplace_back(std::get<_T>(item));				
+				else
+					values.emplace_back(std::any_cast<Value&>(item));
+			}
+
 			return values;
+		}
+		catch (const std::bad_variant_access& ex)
+		{
+			throw bad_access(typeid(_T), ex);
+		}
+		catch (const std::bad_any_cast& ex)
+		{
+			throw bad_access(typeid(_T), ex);
+		};
+	}
+
+	template <class _T>
+	[[nodiscard]] constexpr decltype(auto) _get(size_t position) const
+	{
+		try
+		{
+			auto& storage = _get_storage<_T>();
+			if (storage.size() <= position)
+				throw bad_access(typeid(_T), "Cannot retrieve value on position " + std::to_string(position));
+
+			if constexpr (heterogeneous_container::is_known_type<_T>)
+				return std::as_const(std::get<_T>(storage[position]));
+			else
+				return std::any_cast<const _T&>(storage[position]);
+		}
+		catch (const std::bad_variant_access& ex)
+		{
+			throw bad_access(typeid(_T), ex);
 		}
 		catch (const std::bad_any_cast& ex)
 		{
@@ -255,16 +281,24 @@ private:
 	{
 		try
 		{
-			auto it = m_umapArgs.find(TypeKey<_T>);
-			if (it == m_umapArgs.end())
-				return;
+			auto& storage = _get_storage<_T>();
 
-			for (auto&& item : it->second)
+			for (auto&& item : storage)
 			{
-				if constexpr (_IsConst)
-					std::invoke(std::forward<_Callable>(fnCallback), std::any_cast<const _T&>(item));
+				if constexpr (heterogeneous_container::is_known_type<_T>)
+				{
+					if constexpr (_IsConst)
+						std::invoke(std::forward<_Callable>(fnCallback), std::as_const(std::get<_T>(item)));
+					else
+						std::invoke(std::forward<_Callable>(fnCallback), std::get<_T>(item));	
+				}
 				else
-					std::invoke(std::forward<_Callable>(fnCallback), std::any_cast<_T&>(item));
+				{
+					if constexpr (_IsConst)
+						std::invoke(std::forward<_Callable>(fnCallback), std::any_cast<const _T&>(item));
+					else
+						std::invoke(std::forward<_Callable>(fnCallback), std::any_cast<_T&>(item));
+				}
 			}
 		}
 		catch (const std::bad_any_cast& ex)
@@ -273,8 +307,30 @@ private:
 		}
 	}
 
-protected:
-	mutable std::unordered_map<size_t, std::vector<std::any>, CustomHasher> m_umapArgs;
+	template <typename _T>
+	auto& _get_storage() const
+	{
+		if constexpr (heterogeneous_container::is_known_type<_T>)
+			return _knownTypes[TypeKey<_T>];
+		else
+			return _unknownTypes[TypeKey<_T>];
+		
+	}
+
+private:
+	template <typename _T>
+	inline static size_t TypeKey = reinterpret_cast<size_t>(&TypeKey<_T>);
+
+	struct CustomHasher
+	{
+		std::size_t operator()(size_t key) const noexcept
+		{
+			return key ^ (key >> 16);
+		}
+	};
+
+	mutable std::unordered_map<size_t, std::vector<KnownTypes>, CustomHasher> _knownTypes;
+	mutable std::unordered_map<size_t, std::vector<std::any>, CustomHasher> _unknownTypes;
 };
 
 } // namespace storage
