@@ -65,6 +65,49 @@ public:
 	constexpr static const size_t N = 100'000'000;
 #endif // DEBUG
 
+	
+	struct unknown_type_test
+	{
+		int _value = 0;
+
+		unknown_type_test(int value)
+			: _value(value)
+		{
+		}
+
+		constexpr int operator()()
+		{
+			return _value;
+		}
+
+		constexpr operator int() const
+		{
+			return _value;
+		}
+
+		constexpr operator int&()
+		{
+			return _value;
+		}
+	};
+
+	std::list<int> ToList(const std::list<std::reference_wrapper<unknown_type_test>>& values)
+	{
+		std::list<int> result;
+		for (const auto& value : values)
+			result.emplace_back((int)value.get());
+		return result;
+	}
+
+	std::list<int> ToList(const std::list<std::reference_wrapper<const unknown_type_test>>& values)
+	{
+		std::list<int> result;
+		for (const auto& value : values)
+			result.emplace_back((int) value.get());
+		return result;
+	}
+
+
 	template <typename _T>
 	std::list<_T> ToList(const std::list<std::reference_wrapper<const _T>>& values)
 	{
@@ -107,7 +150,7 @@ public:
 			return s;
 		};
 
-		return storage::heterogeneous_container(25, 331, 1.1, "string"s, "kase"s, std::make_tuple(25.1, 333.1), fnCallbackInt, fnCallbackInt2, fnCallbackString, fnCallbackString2);
+		return storage::heterogeneous_container(25, 331, 1.1, "string"s, "kase"s, std::make_tuple(25.1, 333.1), fnCallbackInt, fnCallbackInt2, fnCallbackString, fnCallbackString2, unknown_type_test(5), unknown_type_test(10));
 	}
 
 	TEST_METHOD(TestConstruction)
@@ -148,7 +191,7 @@ public:
 		Assert::AreEqual(size_t(2), oContainer.size<std::string>());
 		Assert::AreEqual(size_t(0), oContainer.size<float>());
 
-		Assert::AreEqual(size_t(6), oContainer.size());
+		Assert::AreEqual(size_t(7), oContainer.size());
 	}
 
 	TEST_METHOD(TestEmpty)
@@ -174,17 +217,33 @@ public:
 	TEST_METHOD(TestFirst)
 	{
 		auto oContainer = InitializeHeterogeneousContainer();
-		Assert::AreEqual(oContainer.first<int>(), 25);
-		Assert::AreEqual(oContainer.first<std::string>(), "string"s);
+		oContainer.first<int>() = 40;
+		oContainer.first<std::string>() = "XXX";
+		oContainer.first<unknown_type_test>() = 100;
+
+		Assert::AreEqual(oContainer.first<int>(), 40);
+		Assert::AreEqual(oContainer.first<std::string>(), "XXX"s);
+		Assert::AreEqual((int)oContainer.first<unknown_type_test>(), 100);
 
 		// no item
 		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
 			{
 				std::ignore = oContainer.first<float>();
 			});
+	}
 
-		std::variant<int, std::string> bb;
-		auto cc = std::get<int>(bb);
+	TEST_METHOD(TestFirstConst)
+	{
+		const auto oContainer = InitializeHeterogeneousContainer();
+		Assert::AreEqual(oContainer.first<int>(), 25);
+		Assert::AreEqual(oContainer.first<std::string>(), "string"s);
+		Assert::AreEqual((int) oContainer.first<unknown_type_test>(), 5);
+
+		// no item
+		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
+			{
+				std::ignore = oContainer.first<float>();
+			});
 	}
 
 	TEST_METHOD(TestGet)
@@ -192,25 +251,38 @@ public:
 		auto oContainer = InitializeHeterogeneousContainer();
 		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 25, 331 });
 		Assert::AreEqual(ToList(oContainer.get<std::string>()), std::list<std::string>{ "string", "kase" });
+		Assert::AreEqual(ToList(oContainer.get<unknown_type_test>()), std::list<int>{ 5, 10 });
+
 
 		oContainer.get<int>(0) = 100;
 		oContainer.get<int>(1) = 200;
+		oContainer.get<unknown_type_test>(1) = 500;
+
 		Assert::AreEqual(oContainer.get<int>(0), 100);
 		Assert::AreEqual(oContainer.get<int>(1), 200);
+		Assert::AreEqual((int)oContainer.get<unknown_type_test>(1), 500);
 
 		auto&& values = oContainer.get<int>();
 		values.begin()->get() = 1000;
 		std::next(values.begin())->get() = 2000;
 		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 1000, 2000 });
+
+		auto&& uknownValues = oContainer.get<unknown_type_test>();
+		uknownValues.begin()->get() = 1000;
+		std::next(uknownValues.begin())->get() = 2000;
+		Assert::AreEqual(ToList(oContainer.get<unknown_type_test>()), std::list<int>{ 1000, 2000 });
 	}
+
 	TEST_METHOD(TestGetConst)
 	{
 		const auto oContainer = InitializeHeterogeneousContainer();
 		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 25, 331 });
 		Assert::AreEqual(ToList(oContainer.get<std::string>()), std::list<std::string>{ "string", "kase" });
+		Assert::AreEqual(ToList(oContainer.get<unknown_type_test>()), std::list<int>{ 5, 10 });
 
 		Assert::AreEqual(oContainer.get<int>(0), 25);
 		Assert::AreEqual(oContainer.get<int>(1), 331);
+		Assert::AreEqual((int) oContainer.get<unknown_type_test>(1), 10);
 
 		// out of range
 		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
@@ -222,27 +294,45 @@ public:
 		Assert::AreEqual(oContainer.get<std::string>(1), "kase"s);
 	}
 
-	TEST_METHOD(TestVisitMethods)
+	TEST_METHOD(TestVisit)
 	{
 		auto oContainer = InitializeHeterogeneousContainer();
-		auto oResultInt = ToList(oContainer.get<int>());
-		Assert::AreEqual(oResultInt, std::list<int>{ 25, 331 });
+		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 25, 331 });
+		Assert::AreEqual(ToList(oContainer.get<unknown_type_test>()), std::list<int>{ 5, 10 });
 
 		oContainer.visit<int>([&](int& i)
 			{
 				i += 100;
 			});
+		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 125, 431 });
 
-		oResultInt = ToList(oContainer.get<int>());
-		Assert::AreEqual(oResultInt, std::list<int>{ 125, 431 });
+		oContainer.visit<unknown_type_test>([&](unknown_type_test& i)
+			{
+				i += 100;
+			});
+		Assert::AreEqual(ToList(oContainer.get<unknown_type_test>()), std::list<int>{ 105, 110 });
+	}
+
+	TEST_METHOD(TestVisitConst)
+	{
+		const auto oContainer = InitializeHeterogeneousContainer();
+		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 25, 331 });
+		Assert::AreEqual(ToList(oContainer.get<unknown_type_test>()), std::list<int>{ 5, 10 });
 
 		std::list<int> results;
 		oContainer.visit<int>([&](const int& i)
 			{
 				results.emplace_back(i);
 			});
+		Assert::AreEqual(results, std::list<int>{ 25, 331 });
 
-		Assert::AreEqual(results, std::list<int>{ 125, 431 });
+		std::list<int> resultsUnknown;
+		oContainer.visit<unknown_type_test>([&](const unknown_type_test& i)
+			{
+				resultsUnknown.emplace_back(i);
+			});
+		Assert::AreEqual(resultsUnknown, std::list<int>{ 5, 10 });
+
 	}
 
 	TEST_METHOD(TestCallMethods)
@@ -380,8 +470,8 @@ public:
 		storage::heterogeneous_container value(5, std::string("ANO"));
 		for (size_t i = 0; i < N; i++)
 		{
-			auto result = value.first<int>();
-			auto result2 = value.first<std::string>();
+			auto& result = value.first<int>();
+			auto& result2 = value.first<std::string>();
 		}
 	}
 };

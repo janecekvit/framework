@@ -124,6 +124,12 @@ public:
 	}
 
 	template <class _T>
+	[[nodiscard]] constexpr decltype(auto) first()
+	{
+		return get<_T>(0);
+	}
+
+	template <class _T>
 	[[nodiscard]] constexpr decltype(auto) get() const
 	{
 		return _get<_T, true>();
