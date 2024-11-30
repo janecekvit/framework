@@ -437,29 +437,29 @@ public:
 	}
 
 private:
-	void constexpr _push_exclusive_lock_details(std::source_location&& srcl)
+	void _push_exclusive_lock_details(std::source_location&& srcl)
 	{
 		_exlusiveLockDetails = std::move(srcl);
 	}
 
-	void constexpr _pop_exclusive_lock_details() noexcept
+	void _pop_exclusive_lock_details() noexcept
 	{
 		_exlusiveLockDetails.reset();
 	}
 
-	void constexpr _push_concurrent_lock_details(concurrent_resource_holder<_Type, false>* wrapper, std::source_location&& srcl) const
+	void _push_concurrent_lock_details(concurrent_resource_holder<_Type, false>* wrapper, std::source_location&& srcl) const
 	{
 		std::unique_lock lck(*_mutexLockDetails);
 		_concurrentLockDetails.emplace(wrapper, std::move(srcl));
 	}
 
-	void constexpr _pop_concurrent_lock_details(concurrent_resource_holder<_Type, false>* wrapper) const noexcept
+	void _pop_concurrent_lock_details(concurrent_resource_holder<_Type, false>* wrapper) const noexcept
 	{
 		std::unique_lock lck(*_mutexLockDetails);
 		_concurrentLockDetails.erase(wrapper);
 	}
 
-	void constexpr _move_concurrent_lock_details(concurrent_resource_holder<_Type, false>* old, concurrent_resource_holder<_Type, false>* newone) const
+	void _move_concurrent_lock_details(concurrent_resource_holder<_Type, false>* old, concurrent_resource_holder<_Type, false>* newone) const
 	{
 		std::unique_lock lck(*_mutexLockDetails);
 		auto&& node = _concurrentLockDetails.extract(old);
@@ -570,7 +570,7 @@ private:
 		return std::move(*_resource);
 	}
 
-	[[nodiscard]] constexpr const std::shared_ptr<std::shared_mutex> _get_mutex() const noexcept
+	[[nodiscard]] const std::shared_ptr<std::shared_mutex> _get_mutex() const noexcept
 	{
 		return _mutex;
 	}

@@ -155,179 +155,188 @@ public:
 
 	TEST_METHOD(TestConstruction)
 	{
-		storage::heterogeneous_container oContainer(10, 20, 30, 40, "ANO"s, "NE"s, "NEVIM"s, std::make_tuple(50, 60, 70, 80, 90), std::initializer_list<int>{ 100, 110 });
-		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110 });
-		Assert::AreEqual(ToList(oContainer.get<std::string>()), std::list<std::string>{ "ANO", "NE", "NEVIM" });
+		storage::heterogeneous_container container(10, 20, 30, 40, "ANO"s, "NE"s, "NEVIM"s, std::make_tuple(50, 60, 70, 80, 90), std::initializer_list<int>{ 100, 110 });
+		Assert::AreEqual(ToList(container.get<int>()), std::list<int>{ 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110 });
+		Assert::AreEqual(ToList(container.get<std::string>()), std::list<std::string>{ "ANO", "NE", "NEVIM" });
 	}
 
 	TEST_METHOD(TestEmplace)
 	{
-		storage::heterogeneous_container oContainer;
-		oContainer.emplace(10, 20, 30, 40, "ANO"s, "NE"s, "NEVIM"s, std::make_tuple(50, 60, 70, 80, 90), std::initializer_list<int>{100, 110});
-		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110 });
-		Assert::AreEqual(ToList(oContainer.get<std::string>()), std::list<std::string>{ "ANO", "NE", "NEVIM" });
+		storage::heterogeneous_container container;
+		container.emplace(10, 20, 30, 40, "ANO"s, "NE"s, "NEVIM"s, std::make_tuple(50, 60, 70, 80, 90), std::initializer_list<int>{100, 110});
+		Assert::AreEqual(ToList(container.get<int>()), std::list<int>{ 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110 });
+		Assert::AreEqual(ToList(container.get<std::string>()), std::list<std::string>{ "ANO", "NE", "NEVIM" });
 	}
 
 	TEST_METHOD(TestClear)
 	{
-		auto oContainer = InitializeHeterogeneousContainer();
-		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 25, 331 });
-		Assert::AreEqual(ToList(oContainer.get<std::string>()), std::list<std::string>{ "string", "kase" });
+		auto container = InitializeHeterogeneousContainer();
+		Assert::AreEqual(ToList(container.get<int>()), std::list<int>{ 25, 331 });
+		Assert::AreEqual(ToList(container.get<std::string>()), std::list<std::string>{ "string", "kase" });
 
-		oContainer.clear<int>();
-		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{});
-		Assert::AreEqual(ToList(oContainer.get<std::string>()), std::list<std::string>{ "string", "kase" });
+		container.clear<int>();
+		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
+			{
+				std::ignore = container.first<int>();
+			});
+		Assert::AreEqual(ToList(container.get<std::string>()), std::list<std::string>{ "string", "kase" });
 
-		oContainer.clear();
-		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{});
-		Assert::AreEqual(ToList(oContainer.get<std::string>()).size(), size_t(0));
+		container.clear();
+		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
+			{
+				std::ignore = container.first<int>();
+			});
+		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
+			{
+				std::ignore = container.first<std::string>();
+			});
 	}
 
 	TEST_METHOD(TestSize)
 	{
-		auto oContainer = InitializeHeterogeneousContainer();
-		Assert::AreEqual(size_t(2), oContainer.size<int>());
-		Assert::AreEqual(size_t(3), oContainer.size<double>());
-		Assert::AreEqual(size_t(2), oContainer.size<std::string>());
-		Assert::AreEqual(size_t(0), oContainer.size<float>());
+		auto container = InitializeHeterogeneousContainer();
+		Assert::AreEqual(size_t(2), container.size<int>());
+		Assert::AreEqual(size_t(3), container.size<double>());
+		Assert::AreEqual(size_t(2), container.size<std::string>());
+		Assert::AreEqual(size_t(0), container.size<float>());
 
-		Assert::AreEqual(size_t(7), oContainer.size());
+		Assert::AreEqual(size_t(7), container.size());
 	}
 
 	TEST_METHOD(TestEmpty)
 	{
-		auto oContainer = InitializeHeterogeneousContainer();
-		Assert::IsFalse(oContainer.empty<int>());
-		Assert::IsFalse(oContainer.empty<double>());
-		Assert::IsFalse(oContainer.empty<std::string>());
-		Assert::IsTrue(oContainer.empty<float>());
+		auto container = InitializeHeterogeneousContainer();
+		Assert::IsFalse(container.empty<int>());
+		Assert::IsFalse(container.empty<double>());
+		Assert::IsFalse(container.empty<std::string>());
+		Assert::IsTrue(container.empty<float>());
 
-		Assert::IsFalse(oContainer.empty());
+		Assert::IsFalse(container.empty());
 	}
 
 	TEST_METHOD(TestContains)
 	{
-		auto oContainer = InitializeHeterogeneousContainer();
-		Assert::IsTrue(oContainer.contains<int>());
-		Assert::IsTrue(oContainer.contains<double>());
-		Assert::IsTrue(oContainer.contains<std::string>());
-		Assert::IsFalse(oContainer.contains<float>());
+		auto container = InitializeHeterogeneousContainer();
+		Assert::IsTrue(container.contains<int>());
+		Assert::IsTrue(container.contains<double>());
+		Assert::IsTrue(container.contains<std::string>());
+		Assert::IsFalse(container.contains<float>());
 	}
 
 	TEST_METHOD(TestFirst)
 	{
-		auto oContainer = InitializeHeterogeneousContainer();
-		oContainer.first<int>() = 40;
-		oContainer.first<std::string>() = "XXX";
-		oContainer.first<unknown_type_test>() = 100;
+		auto container = InitializeHeterogeneousContainer();
+		container.first<int>() = 40;
+		container.first<std::string>() = "XXX";
+		container.first<unknown_type_test>() = 100;
 
-		Assert::AreEqual(oContainer.first<int>(), 40);
-		Assert::AreEqual(oContainer.first<std::string>(), "XXX"s);
-		Assert::AreEqual((int)oContainer.first<unknown_type_test>(), 100);
+		Assert::AreEqual(container.first<int>(), 40);
+		Assert::AreEqual(container.first<std::string>(), "XXX"s);
+		Assert::AreEqual((int)container.first<unknown_type_test>(), 100);
 
 		// no item
 		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
 			{
-				std::ignore = oContainer.first<float>();
+				std::ignore = container.first<float>();
 			});
 	}
 
 	TEST_METHOD(TestFirstConst)
 	{
-		const auto oContainer = InitializeHeterogeneousContainer();
-		Assert::AreEqual(oContainer.first<int>(), 25);
-		Assert::AreEqual(oContainer.first<std::string>(), "string"s);
-		Assert::AreEqual((int) oContainer.first<unknown_type_test>(), 5);
+		const auto container = InitializeHeterogeneousContainer();
+		Assert::AreEqual(container.first<int>(), 25);
+		Assert::AreEqual(container.first<std::string>(), "string"s);
+		Assert::AreEqual((int) container.first<unknown_type_test>(), 5);
 
 		// no item
 		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
 			{
-				std::ignore = oContainer.first<float>();
+				std::ignore = container.first<float>();
 			});
 	}
 
 	TEST_METHOD(TestGet)
 	{
-		auto oContainer = InitializeHeterogeneousContainer();
-		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 25, 331 });
-		Assert::AreEqual(ToList(oContainer.get<std::string>()), std::list<std::string>{ "string", "kase" });
-		Assert::AreEqual(ToList(oContainer.get<unknown_type_test>()), std::list<int>{ 5, 10 });
+		auto container = InitializeHeterogeneousContainer();
+		Assert::AreEqual(ToList(container.get<int>()), std::list<int>{ 25, 331 });
+		Assert::AreEqual(ToList(container.get<std::string>()), std::list<std::string>{ "string", "kase" });
+		Assert::AreEqual(ToList(container.get<unknown_type_test>()), std::list<int>{ 5, 10 });
 
 
-		oContainer.get<int>(0) = 100;
-		oContainer.get<int>(1) = 200;
-		oContainer.get<unknown_type_test>(1) = 500;
+		container.get<int>(0) = 100;
+		container.get<int>(1) = 200;
+		container.get<unknown_type_test>(1) = 500;
 
-		Assert::AreEqual(oContainer.get<int>(0), 100);
-		Assert::AreEqual(oContainer.get<int>(1), 200);
-		Assert::AreEqual((int)oContainer.get<unknown_type_test>(1), 500);
+		Assert::AreEqual(container.get<int>(0), 100);
+		Assert::AreEqual(container.get<int>(1), 200);
+		Assert::AreEqual((int)container.get<unknown_type_test>(1), 500);
 
-		auto&& values = oContainer.get<int>();
+		auto&& values = container.get<int>();
 		values.begin()->get() = 1000;
 		std::next(values.begin())->get() = 2000;
-		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 1000, 2000 });
+		Assert::AreEqual(ToList(container.get<int>()), std::list<int>{ 1000, 2000 });
 
-		auto&& uknownValues = oContainer.get<unknown_type_test>();
+		auto&& uknownValues = container.get<unknown_type_test>();
 		uknownValues.begin()->get() = 1000;
 		std::next(uknownValues.begin())->get() = 2000;
-		Assert::AreEqual(ToList(oContainer.get<unknown_type_test>()), std::list<int>{ 1000, 2000 });
+		Assert::AreEqual(ToList(container.get<unknown_type_test>()), std::list<int>{ 1000, 2000 });
 	}
 
 	TEST_METHOD(TestGetConst)
 	{
-		const auto oContainer = InitializeHeterogeneousContainer();
-		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 25, 331 });
-		Assert::AreEqual(ToList(oContainer.get<std::string>()), std::list<std::string>{ "string", "kase" });
-		Assert::AreEqual(ToList(oContainer.get<unknown_type_test>()), std::list<int>{ 5, 10 });
+		const auto container = InitializeHeterogeneousContainer();
+		Assert::AreEqual(ToList(container.get<int>()), std::list<int>{ 25, 331 });
+		Assert::AreEqual(ToList(container.get<std::string>()), std::list<std::string>{ "string", "kase" });
+		Assert::AreEqual(ToList(container.get<unknown_type_test>()), std::list<int>{ 5, 10 });
 
-		Assert::AreEqual(oContainer.get<int>(0), 25);
-		Assert::AreEqual(oContainer.get<int>(1), 331);
-		Assert::AreEqual((int) oContainer.get<unknown_type_test>(1), 10);
+		Assert::AreEqual(container.get<int>(0), 25);
+		Assert::AreEqual(container.get<int>(1), 331);
+		Assert::AreEqual((int) container.get<unknown_type_test>(1), 10);
 
 		// out of range
 		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
 			{
-				std::ignore = oContainer.get<int>(2);
+				std::ignore = container.get<int>(2);
 			});
 
-		Assert::AreEqual(oContainer.get<std::string>(0), "string"s);
-		Assert::AreEqual(oContainer.get<std::string>(1), "kase"s);
+		Assert::AreEqual(container.get<std::string>(0), "string"s);
+		Assert::AreEqual(container.get<std::string>(1), "kase"s);
 	}
 
 	TEST_METHOD(TestVisit)
 	{
-		auto oContainer = InitializeHeterogeneousContainer();
-		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 25, 331 });
-		Assert::AreEqual(ToList(oContainer.get<unknown_type_test>()), std::list<int>{ 5, 10 });
+		auto container = InitializeHeterogeneousContainer();
+		Assert::AreEqual(ToList(container.get<int>()), std::list<int>{ 25, 331 });
+		Assert::AreEqual(ToList(container.get<unknown_type_test>()), std::list<int>{ 5, 10 });
 
-		oContainer.visit<int>([&](int& i)
+		container.visit<int>([&](int& i)
 			{
 				i += 100;
 			});
-		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 125, 431 });
+		Assert::AreEqual(ToList(container.get<int>()), std::list<int>{ 125, 431 });
 
-		oContainer.visit<unknown_type_test>([&](unknown_type_test& i)
+		container.visit<unknown_type_test>([&](unknown_type_test& i)
 			{
 				i += 100;
 			});
-		Assert::AreEqual(ToList(oContainer.get<unknown_type_test>()), std::list<int>{ 105, 110 });
+		Assert::AreEqual(ToList(container.get<unknown_type_test>()), std::list<int>{ 105, 110 });
 	}
 
 	TEST_METHOD(TestVisitConst)
 	{
-		const auto oContainer = InitializeHeterogeneousContainer();
-		Assert::AreEqual(ToList(oContainer.get<int>()), std::list<int>{ 25, 331 });
-		Assert::AreEqual(ToList(oContainer.get<unknown_type_test>()), std::list<int>{ 5, 10 });
+		const auto container = InitializeHeterogeneousContainer();
+		Assert::AreEqual(ToList(container.get<int>()), std::list<int>{ 25, 331 });
+		Assert::AreEqual(ToList(container.get<unknown_type_test>()), std::list<int>{ 5, 10 });
 
 		std::list<int> results;
-		oContainer.visit<int>([&](const int& i)
+		container.visit<int>([&](const int& i)
 			{
 				results.emplace_back(i);
 			});
 		Assert::AreEqual(results, std::list<int>{ 25, 331 });
 
 		std::list<int> resultsUnknown;
-		oContainer.visit<unknown_type_test>([&](const unknown_type_test& i)
+		container.visit<unknown_type_test>([&](const unknown_type_test& i)
 			{
 				resultsUnknown.emplace_back(i);
 			});
@@ -337,64 +346,60 @@ public:
 
 	TEST_METHOD(TestCallMethods)
 	{
-		auto oContainer = InitializeHeterogeneousContainer();
+		auto container = InitializeHeterogeneousContainer();
 
 		// Test call methods
 		int iCallable = 5;
-		oContainer.call_first<std::function<void(int&)>>(iCallable);
+		container.call_first<std::function<void(int&)>>(iCallable);
 		Assert::AreEqual(15, iCallable);
 
-		oContainer.call<std::function<void(int&)>>(1, iCallable);
+		container.call<std::function<void(int&)>>(1, iCallable);
 		Assert::AreEqual(35, iCallable);
 
-		std::string sResult = oContainer.call_first<std::function<std::string(std::string&&)>>("Test ");
+		std::string sResult = container.call_first<std::function<std::string(std::string&&)>>("Test ");
 		Assert::AreEqual("Test 123"s, sResult);
 
-		sResult = oContainer.call<std::function<std::string(std::string&&)>>(1, "Test ");
+		sResult = container.call<std::function<std::string(std::string&&)>>(1, "Test ");
 		Assert::AreEqual("Test 456"s, sResult);
 
-		try
-		{
-			oContainer.call_first<std::function<void(std::string&&)>>("Test ");
-		}
-		catch (const std::exception& ex)
-		{
-			std::string error = "heterogeneous_container: Cannot retrieve value on position 0 with type: "s + typeid(std::function<void(std::string&&)>).name();
-			Assert::AreEqual(ex.what(), error.data());
-		}
+		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
+			{
+				container.call_first<std::function<void(std::string&&)>>("Test ");
+			});
+
 
 		iCallable = 0;
-		oContainer.call_all<std::function<void(int&)>>(iCallable);
+		container.call_all<std::function<void(int&)>>(iCallable);
 		Assert::AreEqual(30, iCallable);
 
-		auto listResults = oContainer.call_all<std::function<std::string(std::string&&)>>("Test ");
+		auto listResults = container.call_all<std::function<std::string(std::string&&)>>("Test ");
 		Assert::AreEqual("Test 123"s, *listResults.begin());
 		Assert::AreEqual("Test 456"s, *std::next(listResults.begin(), 1));
 
 		// Test size and reset (1)
-		Assert::AreEqual(oContainer.size<std::function<void(int&)>>(), size_t(2));
-		Assert::AreEqual(oContainer.contains<std::function<void(int&)>>(), true);
+		Assert::AreEqual(container.size<std::function<void(int&)>>(), size_t(2));
+		Assert::AreEqual(container.contains<std::function<void(int&)>>(), true);
 
-		Assert::AreEqual(oContainer.size<std::function<std::string(std::string&&)>>(), size_t(2));
-		Assert::AreEqual(oContainer.contains<std::function<std::string(std::string&&)>>(), true);
+		Assert::AreEqual(container.size<std::function<std::string(std::string&&)>>(), size_t(2));
+		Assert::AreEqual(container.contains<std::function<std::string(std::string&&)>>(), true);
 
 		// Test size and reset (2)
-		oContainer.clear<std::function<void(int&)>>();
+		container.clear<std::function<void(int&)>>();
 
-		Assert::AreEqual(oContainer.size<std::function<void(int&)>>(), size_t(0));
-		Assert::AreEqual(oContainer.contains<std::function<void(int&)>>(), false);
+		Assert::AreEqual(container.size<std::function<void(int&)>>(), size_t(0));
+		Assert::AreEqual(container.contains<std::function<void(int&)>>(), false);
 
-		Assert::AreEqual(oContainer.size<std::function<std::string(std::string&&)>>(), size_t(2));
-		Assert::AreEqual(oContainer.contains<std::function<std::string(std::string&&)>>(), true);
+		Assert::AreEqual(container.size<std::function<std::string(std::string&&)>>(), size_t(2));
+		Assert::AreEqual(container.contains<std::function<std::string(std::string&&)>>(), true);
 
 		// Test size and reset (3)
-		oContainer.clear();
+		container.clear();
 
-		Assert::AreEqual(oContainer.size<std::function<void(int&)>>(), size_t(0));
-		Assert::AreEqual(oContainer.contains<std::function<void(int&)>>(), false);
+		Assert::AreEqual(container.size<std::function<void(int&)>>(), size_t(0));
+		Assert::AreEqual(container.contains<std::function<void(int&)>>(), false);
 
-		Assert::AreEqual(oContainer.size<std::function<std::string(std::string&&)>>(), size_t(0));
-		Assert::AreEqual(oContainer.contains<std::function<std::string(std::string&&)>>(), false);
+		Assert::AreEqual(container.size<std::function<std::string(std::string&&)>>(), size_t(0));
+		Assert::AreEqual(container.contains<std::function<std::string(std::string&&)>>(), false);
 	}
 
 	TEST_METHOD(TestContainerInClass)
@@ -434,12 +439,17 @@ public:
 		Assert::AreEqual(10, oTestContainer.call());
 	}
 
-	TEST_METHOD(TestTupleUnpackHeterogeneousContainer)
+	TEST_METHOD(TestTupleUnpack)
 	{
-		auto oHeterogeneousContainer = extensions::tuple::unpack(std::make_tuple(1, 2, 3, "1", "10"));
-		Assert::AreEqual(ToList(oHeterogeneousContainer.get<int>()), std::list<int>{ 1, 2, 3 });
-		Assert::AreEqual(ToList(oHeterogeneousContainer.get<const char*>()), std::list<const char*>{ "1", "10" });
-		auto&& bb = oHeterogeneousContainer.get<int>();
+		auto container = storage::heterogeneous_container(std::make_tuple(1, 2, 3, "1", "10"));
+		Assert::AreEqual(ToList(container.get<int>()), std::list<int>{ 1, 2, 3 });
+		Assert::AreEqual(ToList(container.get<const char*>()), std::list<const char*>{ "1", "10" });
+	}
+
+	TEST_METHOD(TestUserDefinedTypes)
+	{
+		static_assert(storage::heterogeneous_container::IsKnownType<int>, "T must be integral type.");
+		static_assert(!storage::heterogeneous_container::IsKnownType<std::shared_ptr<int>>, "T must be shared_ptr type.");
 	}
 
 	TEST_METHOD(PerformanceVariant)

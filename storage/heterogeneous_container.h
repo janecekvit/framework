@@ -18,7 +18,6 @@ namespace janecekvit
 
 namespace storage
 {
-
 /// <summary>
 /// Heterogeneous Container store any copy constructible object for the future processing
 ///  Heterogeneous Container implement lazy evaluation idiom to enable processing input arguments as late as possible
@@ -26,10 +25,14 @@ namespace storage
 class heterogeneous_container final
 {
 public:
-	using KnownTypes = std::variant<bool, short, unsigned short, int, unsigned int, long, unsigned long, float, double, size_t, std::byte, std::string, std::wstring, std::u16string, std::u32string>;
+
+	using KnownTypes  = std::variant<
+		bool, short, unsigned short, int, unsigned int, long, unsigned long, float, double, size_t, std::byte, 
+		char, char*, const char*, wchar_t, wchar_t*, const wchar_t*, std::string, std::wstring, std::u8string, std::u16string, std::u32string
+	>;
 
 	template <typename _T>
-	static constexpr bool is_known_type = constraints::is_type_in_variant_v<_T, KnownTypes>;
+	static constexpr bool IsKnownType = constraints::is_type_in_variant_v<_T, KnownTypes>;
 
 public:
 	class bad_access : public std::exception
@@ -218,7 +221,7 @@ private:
 			}
 			else
 			{
-				if constexpr (heterogeneous_container::is_known_type<_T>)
+				if constexpr (heterogeneous_container::IsKnownType<_T>)
 					_knownTypes[TypeKey<_T>].emplace_back(std::forward<decltype(value)>(value));
 				else
 					_unknownTypes[TypeKey<_T>].emplace_back(std::make_any<_T>(std::forward<decltype(value)>(value)));
@@ -236,10 +239,10 @@ private:
 			using Value = std::conditional_t<_IsConst, const _T, _T>;
 			std::list<std::reference_wrapper<Value>> values = {};
 
-			auto& storage = _get_storage<_T>();
+			auto& storage = _get_storage_by_find<_T>();
 			for (auto&& item : storage)
 			{
-				if constexpr (heterogeneous_container::is_known_type<_T>)
+				if constexpr (heterogeneous_container::IsKnownType<_T>)
 					values.emplace_back(std::get<_T>(item));				
 				else
 					values.emplace_back(std::any_cast<Value&>(item));
@@ -262,11 +265,11 @@ private:
 	{
 		try
 		{
-			auto& storage = _get_storage<_T>();
+			auto& storage = _get_storage_by_find<_T>();
 			if (storage.size() <= position)
 				throw bad_access(typeid(_T), "Cannot retrieve value on position " + std::to_string(position));
 
-			if constexpr (heterogeneous_container::is_known_type<_T>)
+			if constexpr (heterogeneous_container::IsKnownType<_T>)
 				return std::as_const(std::get<_T>(storage[position]));
 			else
 				return std::any_cast<const _T&>(storage[position]);
@@ -286,23 +289,22 @@ private:
 	{
 		try
 		{
-			auto& storage = _get_storage<_T>();
-
+			auto& storage = _get_storage_by_find<_T>();
 			for (auto&& item : storage)
 			{
-				if constexpr (heterogeneous_container::is_known_type<_T>)
+				if constexpr (heterogeneous_container::IsKnownType<_T>)
 				{
 					if constexpr (_IsConst)
-						std::invoke(std::forward<_Callable>(fnCallback), std::as_const(std::get<_T>(item)));
+						std::invoke(fnCallback, std::as_const(std::get<_T>(item)));
 					else
-						std::invoke(std::forward<_Callable>(fnCallback), std::get<_T>(item));	
+						std::invoke(fnCallback, std::get<_T>(item));	
 				}
 				else
 				{
 					if constexpr (_IsConst)
-						std::invoke(std::forward<_Callable>(fnCallback), std::any_cast<const _T&>(item));
+						std::invoke(fnCallback, std::any_cast<const _T&>(item));
 					else
-						std::invoke(std::forward<_Callable>(fnCallback), std::any_cast<_T&>(item));
+						std::invoke(fnCallback, std::any_cast<_T&>(item));
 				}
 			}
 		}
@@ -313,13 +315,31 @@ private:
 	}
 
 	template <typename _T>
-	auto& _get_storage() const
+	constexpr auto& _get_storage() const
 	{
-		if constexpr (heterogeneous_container::is_known_type<_T>)
+		if constexpr (heterogeneous_container::IsKnownType<_T>)
 			return _knownTypes[TypeKey<_T>];
 		else
 			return _unknownTypes[TypeKey<_T>];
-		
+	}
+
+	template <typename _T, bool _ThrowException = true>
+	constexpr auto& _get_storage_by_find() const
+	{
+		if constexpr (heterogeneous_container::IsKnownType<_T>)
+		{
+			auto&& it = _knownTypes.find(TypeKey<_T>);
+			if (it == _knownTypes.end())
+				throw bad_access(typeid(_T), "Cannot find type in container.");
+			return it->second;
+		}
+		else
+		{
+			auto&& it = _unknownTypes.find(TypeKey<_T>);
+			if (it == _unknownTypes.end())
+				throw bad_access(typeid(_T), "Cannot find type in container.");
+			return it->second;
+		}
 	}
 
 private:
@@ -339,29 +359,5 @@ private:
 };
 
 } // namespace storage
-
-namespace extensions::tuple
-{
-namespace details
-{
-
-template <class _Tuple, std::size_t... _I>
-constexpr storage::heterogeneous_container unpack(_Tuple&& t, std::index_sequence<_I...>)
-{
-	return storage::heterogeneous_container{ std::get<_I>(t)... };
-}
-
-} // namespace details
-
-/// <summary>
-/// unpack tuple to the Heterogeneous container
-/// </summary>
-template <class _Tuple>
-[[nodiscard]] constexpr storage::heterogeneous_container unpack(_Tuple&& t)
-{
-	return details::unpack(std::forward<_Tuple>(t), std::make_index_sequence<std::tuple_size_v<std::remove_reference_t<_Tuple>>>{});
-}
-
-} // namespace extensions::tuple
 
 } // namespace janecekvit
