@@ -22,14 +22,20 @@ namespace storage
 /// Heterogeneous Container store any copy constructible object for the future processing
 ///  Heterogeneous Container implement lazy evaluation idiom to enable processing input arguments as late as possible
 /// </summary>
+template <class ... _UserDefinedTypes>
 class heterogeneous_container final
 {
 public:
 
-	using KnownTypes  = std::variant<
+	using DefaultKnownTypes  = std::variant<
 		bool, short, unsigned short, int, unsigned int, long, unsigned long, float, double, size_t, std::byte, 
 		char, char*, const char*, wchar_t, wchar_t*, const wchar_t*, std::string, std::wstring, std::u8string, std::u16string, std::u32string
 	>;
+
+	using KnownTypes = std::conditional_t<
+	sizeof...(_UserDefinedTypes) == 0,
+	DefaultKnownTypes,
+	constraints::unify_variant_t<DefaultKnownTypes, std::variant<_UserDefinedTypes...>>>;
 
 	template <typename _T>
 	static constexpr bool IsKnownType = constraints::is_type_in_variant_v<_T, KnownTypes>;

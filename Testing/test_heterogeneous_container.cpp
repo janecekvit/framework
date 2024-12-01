@@ -126,7 +126,7 @@ public:
 		return result;
 	}
 
-	storage::heterogeneous_container InitializeHeterogeneousContainer()
+	storage::heterogeneous_container<> InitializeHeterogeneousContainer()
 	{
 		std::function<void(int&)> fnCallbackInt = [this](int& i)
 		{
@@ -175,18 +175,18 @@ public:
 		Assert::AreEqual(ToList(container.get<std::string>()), std::list<std::string>{ "string", "kase" });
 
 		container.clear<int>();
-		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
+		Assert::ExpectException<storage::heterogeneous_container<>::bad_access>([&]()
 			{
 				std::ignore = container.first<int>();
 			});
 		Assert::AreEqual(ToList(container.get<std::string>()), std::list<std::string>{ "string", "kase" });
 
 		container.clear();
-		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
+		Assert::ExpectException<storage::heterogeneous_container<>::bad_access>([&]()
 			{
 				std::ignore = container.first<int>();
 			});
-		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
+		Assert::ExpectException<storage::heterogeneous_container<>::bad_access>([&]()
 			{
 				std::ignore = container.first<std::string>();
 			});
@@ -235,7 +235,7 @@ public:
 		Assert::AreEqual((int)container.first<unknown_type_test>(), 100);
 
 		// no item
-		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
+		Assert::ExpectException<storage::heterogeneous_container<>::bad_access>([&]()
 			{
 				std::ignore = container.first<float>();
 			});
@@ -249,7 +249,7 @@ public:
 		Assert::AreEqual((int) container.first<unknown_type_test>(), 5);
 
 		// no item
-		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
+		Assert::ExpectException<storage::heterogeneous_container<>::bad_access>([&]()
 			{
 				std::ignore = container.first<float>();
 			});
@@ -294,7 +294,7 @@ public:
 		Assert::AreEqual((int) container.get<unknown_type_test>(1), 10);
 
 		// out of range
-		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
+		Assert::ExpectException<storage::heterogeneous_container<>::bad_access>([&]()
 			{
 				std::ignore = container.get<int>(2);
 			});
@@ -362,7 +362,7 @@ public:
 		sResult = container.call<std::function<std::string(std::string&&)>>(1, "Test ");
 		Assert::AreEqual("Test 456"s, sResult);
 
-		Assert::ExpectException<storage::heterogeneous_container::bad_access>([&]()
+		Assert::ExpectException<storage::heterogeneous_container<>::bad_access>([&]()
 			{
 				container.call_first<std::function<void(std::string&&)>>("Test ");
 			});
@@ -419,7 +419,7 @@ public:
 					i += 20;
 				};
 
-				m_pContainer = std::make_unique<storage::heterogeneous_container>(fnCallbackInt, fnCallbackInt2);
+				m_pContainer = std::make_unique<storage::heterogeneous_container<>>(fnCallbackInt, fnCallbackInt2);
 			}
 			virtual ~TestHeterogeneousContainer() = default;
 
@@ -431,7 +431,7 @@ public:
 			}
 
 		private:
-			std::unique_ptr<storage::heterogeneous_container> m_pContainer = nullptr;
+			std::unique_ptr<storage::heterogeneous_container<>> m_pContainer = nullptr;
 		};
 
 		// Test container in nested class
@@ -446,10 +446,21 @@ public:
 		Assert::AreEqual(ToList(container.get<const char*>()), std::list<const char*>{ "1", "10" });
 	}
 
+	TEST_METHOD(TestInitializerListUnpack)
+	{
+		auto container = storage::heterogeneous_container(std::initializer_list<int>{ 1, 2, 3 });
+		Assert::AreEqual(ToList(container.get<int>()), std::list<int>{ 1, 2, 3 });
+	}
+
 	TEST_METHOD(TestUserDefinedTypes)
 	{
-		static_assert(storage::heterogeneous_container::IsKnownType<int>, "T must be integral type.");
-		static_assert(!storage::heterogeneous_container::IsKnownType<std::shared_ptr<int>>, "T must be shared_ptr type.");
+		static_assert(storage::heterogeneous_container<>::IsKnownType<int>, "T must be integral type.");
+		static_assert(!storage::heterogeneous_container<>::IsKnownType<std::shared_ptr<int>>, "T must be shared_ptr type.");
+
+		static_assert(storage::heterogeneous_container<std::shared_ptr<int>, std::shared_ptr<char>>::IsKnownType<int>, "T must be integral type.");
+		static_assert(storage::heterogeneous_container<std::shared_ptr<int>, std::shared_ptr<char>>::IsKnownType<std::shared_ptr<int>>, "T must be shared_ptr type.");
+		auto container = storage::heterogeneous_container<std::shared_ptr<int>, std::shared_ptr<char>>(std::make_tuple(1, 2, 3, "1", "10"), std::make_shared<int>(5));
+		Assert::AreEqual(*container.first<std::shared_ptr<int>>(), 5);
 	}
 
 	TEST_METHOD(PerformanceVariant)

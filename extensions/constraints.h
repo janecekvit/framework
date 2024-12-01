@@ -191,7 +191,6 @@ struct is_type_in_tuple<T, std::tuple<Types...>> : std::disjunction<std::is_same
 template <typename T, typename Tuple>
 constexpr bool is_type_in_tuple_v = is_type_in_tuple<T, Tuple>::value;
 
-
 /// <summary>
 /// Helper structures to determine if template type <_T> is in std::variant
 /// </summary>
@@ -205,6 +204,21 @@ struct is_type_in_variant<T, std::variant<Types...>> : std::disjunction<std::is_
 
 template <typename T, typename Variant>
 inline constexpr bool is_type_in_variant_v = is_type_in_variant<T, Variant>::value;
+
+/// <summary>
+/// Helper structures to unite two std::variants if template type <_T> is in std::variant
+/// </summary>
+template <class... _Args>
+struct unify_variant;
+
+template <class... _Types1, class... _Types2>
+struct unify_variant<std::variant<_Types1...>, std::variant<_Types2...>>
+{
+	using type = std::variant<_Types1..., _Types2...>;
+};
+
+template <class _Variant1, class _Variant2>
+using unify_variant_t = typename unify_variant<_Variant1, _Variant2>::type;
 
 /// <summary>
 /// Helper structures to determine if template type <_T> is initializer_list
