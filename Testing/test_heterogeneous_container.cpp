@@ -349,12 +349,12 @@ public:
 		auto container = InitializeHeterogeneousContainer();
 
 		// Test call methods
-		int iCallable = 5;
-		container.call_first<std::function<void(int&)>>(iCallable);
-		Assert::AreEqual(15, iCallable);
+		int result = 5;
+		container.call_first<std::function<void(int&)>>(result);
+		Assert::AreEqual(15, result);
 
-		container.call<std::function<void(int&)>>(1, iCallable);
-		Assert::AreEqual(35, iCallable);
+		container.call<std::function<void(int&)>>(1, result);
+		Assert::AreEqual(35, result);
 
 		std::string sResult = container.call_first<std::function<std::string(std::string&&)>>("Test ");
 		Assert::AreEqual("Test 123"s, sResult);
@@ -368,13 +368,12 @@ public:
 			});
 
 
-		iCallable = 0;
-		container.call_all<std::function<void(int&)>>(iCallable);
-		Assert::AreEqual(30, iCallable);
+		result = 0;
+		container.call_all<std::function<void(int&)>>(result);
+		Assert::AreEqual(30, result);
 
 		auto listResults = container.call_all<std::function<std::string(std::string&&)>>("Test ");
-		Assert::AreEqual("Test 123"s, *listResults.begin());
-		Assert::AreEqual("Test 456"s, *std::next(listResults.begin(), 1));
+		Assert::AreEqual(listResults, std::list<std::string>{ "Test 123", "Test 456" });
 
 		// Test size and reset (1)
 		Assert::AreEqual(container.size<std::function<void(int&)>>(), size_t(2));
@@ -414,12 +413,7 @@ public:
 					i += 10;
 				};
 
-				std::function<void(int&)> fnCallbackInt2 = [this](int& i)
-				{
-					i += 20;
-				};
-
-				m_pContainer = std::make_unique<storage::heterogeneous_container<>>(fnCallbackInt, fnCallbackInt2);
+				m_pContainer = std::make_unique<storage::heterogeneous_container<>>(fnCallbackInt);
 			}
 			virtual ~TestHeterogeneousContainer() = default;
 
