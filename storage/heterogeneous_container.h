@@ -11,7 +11,6 @@
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
-#include <iostream>
 
 namespace janecekvit
 {
@@ -22,20 +21,18 @@ namespace storage
 /// Heterogeneous Container store any copy constructible object for the future processing
 ///  Heterogeneous Container implement lazy evaluation idiom to enable processing input arguments as late as possible
 /// </summary>
-template <class ... _UserDefinedTypes>
+template <class... _UserDefinedTypes>
 class heterogeneous_container final
 {
 public:
-
-	using DefaultKnownTypes  = std::variant<
-		bool, short, unsigned short, int, unsigned int, long, unsigned long, float, double, size_t, std::byte, 
-		char, char*, const char*, wchar_t, wchar_t*, const wchar_t*, std::string, std::wstring, std::u8string, std::u16string, std::u32string
-	>;
+	using DefaultKnownTypes = std::variant<
+		bool, short, unsigned short, int, unsigned int, long, unsigned long, float, double, size_t, std::byte,
+		char, char*, const char*, wchar_t, wchar_t*, const wchar_t*, std::string, std::wstring, std::u8string, std::u16string, std::u32string>;
 
 	using KnownTypes = std::conditional_t<
-	sizeof...(_UserDefinedTypes) == 0,
-	DefaultKnownTypes,
-	constraints::unify_variant_t<DefaultKnownTypes, std::variant<_UserDefinedTypes...>>>;
+		sizeof...(_UserDefinedTypes) == 0,
+		DefaultKnownTypes,
+		constraints::unify_variant_t<DefaultKnownTypes, std::variant<_UserDefinedTypes...>>>;
 
 	template <typename _T>
 	static constexpr bool IsKnownType = constraints::is_type_in_variant_v<_T, KnownTypes>;
@@ -72,6 +69,41 @@ public:
 	};
 
 public:
+	class item
+	{
+	public:
+		template <typename _T, std::enable_if_t<constraints::is_type_in_variant_v<std::decay_t<_T>, KnownTypes>, int> = 0>
+		item(_T&& value)
+			: _value(std::in_place_type<KnownTypes>, KnownTypes(std::in_place_type<std::decay_t<_T>>, std::forward<_T>(value)))
+		{
+		}
+
+		template <typename _T, std::enable_if_t<!constraints::is_type_in_variant_v<std::decay_t<_T>, KnownTypes>, int> = 0>
+		item(_T&& value)
+			: _value(std::in_place_type<std::any>, std::make_any<_T>(std::forward<_T>(value)))
+		{
+		}
+
+		template <typename _T>
+		constexpr auto& get()
+		{
+			return const_cast<_T&>(std::as_const(*this).get<_T>());
+		}
+
+		template <typename _T>
+		constexpr const auto& get() const
+		{
+			if constexpr (heterogeneous_container::IsKnownType<_T>)
+				return std::as_const(std::get<_T>(std::get<KnownTypes>(_value)));
+			else
+				return std::any_cast<const _T&>(std::get<std::any>(_value));
+		}
+
+	private:
+		std::variant<KnownTypes, std::any> _value;
+	};
+
+public:
 	~heterogeneous_container() = default;
 
 	heterogeneous_container() noexcept = default;
@@ -93,14 +125,9 @@ public:
 	constexpr void clear()
 	{
 		if constexpr (std::is_same_v<_T, void>)
-		{
-			_knownTypes.clear();
-			_unknownTypes.clear();
-		}
+			_values.clear();
 		else
-		{
 			_get_storage<_T>().clear();
-		}
 	}
 
 public:
@@ -109,8 +136,8 @@ public:
 	{
 		if constexpr (!std::is_same_v<_T, void>)
 			return _get_storage<_T>().size();
-		
-		return _knownTypes.size() + _unknownTypes.size();
+
+		return _values.size();
 	}
 
 	template <class _T = void>
@@ -242,10 +269,7 @@ private:
 			}
 			else
 			{
-				if constexpr (heterogeneous_container::IsKnownType<_T>)
-					_knownTypes[TypeKey<_T>].emplace_back(std::forward<decltype(value)>(value));
-				else
-					_unknownTypes[TypeKey<_T>].emplace_back(std::make_any<_T>(std::forward<decltype(value)>(value)));
+				_values[TypeKey<_T>].emplace_back(std::forward<decltype(value)>(value));
 			}
 		};
 
@@ -262,12 +286,7 @@ private:
 
 			auto& storage = _get_storage_by_find<_T>();
 			for (auto&& item : storage)
-			{
-				if constexpr (heterogeneous_container::IsKnownType<_T>)
-					values.emplace_back(std::get<_T>(item));				
-				else
-					values.emplace_back(std::any_cast<Value&>(item));
-			}
+				values.emplace_back(item.get<_T>());
 
 			return values;
 		}
@@ -290,10 +309,7 @@ private:
 			if (storage.size() <= position)
 				throw bad_access(typeid(_T), "Cannot retrieve value on position " + std::to_string(position));
 
-			if constexpr (heterogeneous_container::IsKnownType<_T>)
-				return std::as_const(std::get<_T>(storage[position]));
-			else
-				return std::any_cast<const _T&>(storage[position]);
+			return storage[position].get<_T>();
 		}
 		catch (const std::bad_variant_access& ex)
 		{
@@ -313,20 +329,10 @@ private:
 			auto& storage = _get_storage_by_find<_T>();
 			for (auto&& item : storage)
 			{
-				if constexpr (heterogeneous_container::IsKnownType<_T>)
-				{
-					if constexpr (_IsConst)
-						std::invoke(fnCallback, std::as_const(std::get<_T>(item)));
-					else
-						std::invoke(fnCallback, std::get<_T>(item));	
-				}
+				if constexpr (_IsConst)
+					std::invoke(fnCallback, std::as_const(item.get<_T>()));
 				else
-				{
-					if constexpr (_IsConst)
-						std::invoke(fnCallback, std::any_cast<const _T&>(item));
-					else
-						std::invoke(fnCallback, std::any_cast<_T&>(item));
-				}
+					std::invoke(fnCallback, item.get<_T>());
 			}
 		}
 		catch (const std::bad_any_cast& ex)
@@ -338,29 +344,16 @@ private:
 	template <typename _T>
 	constexpr auto& _get_storage() const
 	{
-		if constexpr (heterogeneous_container::IsKnownType<_T>)
-			return _knownTypes[TypeKey<_T>];
-		else
-			return _unknownTypes[TypeKey<_T>];
+		return _values[TypeKey<_T>];
 	}
 
 	template <typename _T, bool _ThrowException = true>
 	constexpr auto& _get_storage_by_find() const
 	{
-		if constexpr (heterogeneous_container::IsKnownType<_T>)
-		{
-			auto&& it = _knownTypes.find(TypeKey<_T>);
-			if (it == _knownTypes.end())
-				throw bad_access(typeid(_T), "Cannot find type in container.");
-			return it->second;
-		}
-		else
-		{
-			auto&& it = _unknownTypes.find(TypeKey<_T>);
-			if (it == _unknownTypes.end())
-				throw bad_access(typeid(_T), "Cannot find type in container.");
-			return it->second;
-		}
+		auto&& it = _values.find(TypeKey<_T>);
+		if (it == _values.end())
+			throw bad_access(typeid(_T), "Cannot find type in container.");
+		return it->second;
 	}
 
 private:
@@ -375,8 +368,7 @@ private:
 		}
 	};
 
-	mutable std::unordered_map<size_t, std::vector<KnownTypes>, CustomHasher> _knownTypes;
-	mutable std::unordered_map<size_t, std::vector<std::any>, CustomHasher> _unknownTypes;
+	mutable std::unordered_map<size_t, std::vector<item>, CustomHasher> _values;
 };
 
 } // namespace storage
