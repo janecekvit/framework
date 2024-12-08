@@ -457,6 +457,28 @@ public:
 		Assert::AreEqual(*container.first<std::shared_ptr<int>>(), 5);
 	}
 
+	TEST_METHOD(TestIteratorsUserDefinedTypes)
+	{
+		int count = 0;
+		int intCount = 0;
+		int unknownTypeCount = 0;
+		auto container = InitializeHeterogeneousContainer();
+		for (auto&& item : container)
+		{
+			if (item.is_type<int>())
+				intCount++;
+
+			if (item.is_type<unknown_type_test>())
+				unknownTypeCount++;
+
+			count++;
+		}
+
+		Assert::AreEqual(count, 13);
+		Assert::AreEqual(intCount, 2);
+		Assert::AreEqual(unknownTypeCount, 2);
+	}
+
 	TEST_METHOD(PerformanceVariant)
 	{
 		std::variant<int, std::string> value = 5;

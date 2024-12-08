@@ -74,14 +74,35 @@ public:
 	public:
 		template <typename _T, std::enable_if_t<constraints::is_type_in_variant_v<std::decay_t<_T>, KnownTypes>, int> = 0>
 		item(_T&& value)
-			: _value(std::in_place_type<KnownTypes>, KnownTypes(std::in_place_type<std::decay_t<_T>>, std::forward<_T>(value)))
+			: _key(TypeKey<std::decay_t<_T>>)
+			,_value(std::in_place_type<KnownTypes>, KnownTypes(std::in_place_type<std::decay_t<_T>>, std::forward<_T>(value)))
 		{
 		}
 
 		template <typename _T, std::enable_if_t<!constraints::is_type_in_variant_v<std::decay_t<_T>, KnownTypes>, int> = 0>
 		item(_T&& value)
-			: _value(std::in_place_type<std::any>, std::make_any<_T>(std::forward<_T>(value)))
+			: _key(TypeKey<std::decay_t<_T>>)
+			, _value(std::in_place_type<std::any>, std::make_any<_T>(std::forward<_T>(value)))
 		{
+		}
+		template <typename _T>
+		[[nodiscard]] constexpr bool is_type() const
+		{
+			return TypeKey<_T> == _key;
+			/*constexpr const auto fnCallback = [](auto&& value) -> const bool
+			{
+				return std::visit([](auto&& value) -> const bool
+					{
+						using T = std::decay_t<decltype(value)>;
+						return typeid(T) == typeid(_T);
+					}, value);
+			};
+
+			if constexpr (heterogeneous_container::IsKnownType<_T>)
+				return fnCallback(std::get<KnownTypes>(_value));
+			else
+				return (std::get<std::any>(_value).type() == typeid(_T));*/
+
 		}
 
 		template <typename _T>
@@ -99,8 +120,93 @@ public:
 				return std::any_cast<const _T&>(std::get<std::any>(_value));
 		}
 
-	private:
+	private:	
+		const size_t _key = 0;
 		std::variant<KnownTypes, std::any> _value;
+	};
+
+public:
+	class iterator
+	{
+	public:
+		using map_type = std::unordered_map<size_t, std::vector<item>>;
+
+		using iterator_category = std::bidirectional_iterator_tag;
+		using value_type = item;
+		using difference_type = std::ptrdiff_t;
+		using pointer = item*;
+		using reference = item&;
+
+		iterator(map_type::iterator mapIt, map_type::iterator mapEnd, size_t vectorIndex = 0)
+			: _mapIt(mapIt)
+			, _mapEnd(mapEnd)
+			, _vectorIndex(vectorIndex)
+		{
+		}
+
+		reference operator*() const
+		{
+			return _mapIt->second[_vectorIndex];
+		}
+
+		pointer operator->() const
+		{
+			return &(_mapIt->second[_vectorIndex]);
+		}
+
+		iterator& operator++()
+		{
+			++_vectorIndex;
+			if (_mapIt != _mapEnd && _vectorIndex >= _mapIt->second.size())
+			{
+				++_mapIt;
+				_vectorIndex = 0;
+			}
+			return *this;
+		}
+
+		iterator operator++(int)
+		{
+			auto tmp = *this;
+			++(*this);
+			return tmp;
+		}
+
+		iterator& operator--()
+		{
+			if (_mapIt == _mapEnd || _vectorIndex == 0)
+			{
+				--_mapIt;
+				_vectorIndex = _mapIt->second.size() - 1;
+			}
+			else
+			{
+				--_vectorIndex;
+			}
+			return *this;
+		}
+
+		iterator operator--(int)
+		{
+			auto tmp = *this;
+			--(*this);
+			return tmp;
+		}
+
+		bool operator==(const iterator& other) const
+		{
+			return _mapIt == other._mapIt && _vectorIndex == other._vectorIndex;
+		}
+
+		bool operator!=(const iterator& other) const
+		{
+			return !(*this == other);
+		}
+
+	private:
+		map_type::iterator _mapIt;
+		map_type::iterator _mapEnd;
+		size_t _vectorIndex;
 	};
 
 public:
@@ -245,6 +351,26 @@ public:
 				oList.emplace_back(std::invoke(func, std::forward<_Args>(args)...));
 			return oList;
 		}
+	}
+
+	iterator begin()
+	{
+		return iterator(_values.begin(), _values.end());
+	}
+
+	iterator end()
+	{
+		return iterator(_values.end(), _values.end());
+	}
+
+	std::reverse_iterator<iterator> rbegin()
+	{
+		return std::make_reverse_iterator(end());
+	}
+
+	std::reverse_iterator<iterator> rend()
+	{
+		return std::make_reverse_iterator(begin());
 	}
 
 private:
