@@ -457,12 +457,33 @@ public:
 		Assert::AreEqual(*container.first<std::shared_ptr<int>>(), 5);
 	}
 
-	TEST_METHOD(TestIteratorsUserDefinedTypes)
+	TEST_METHOD(TestIterators)
+	{
+		int count = 0;
+		int intCount = 0;
+		auto container = InitializeHeterogeneousContainer();
+		for (auto&& item : container)
+		{
+			if (item.is_type<int>())
+			{
+				item.get<int>() += 100;
+				intCount++;
+			}
+
+			count++;
+		}
+
+		Assert::AreEqual(count, 13);
+		Assert::AreEqual(intCount, 2);
+		Assert::AreEqual(ToList(container.get<int>()), std::list<int>{ 125, 431 });
+	}
+
+	TEST_METHOD(TestIteratorsConst)
 	{
 		int count = 0;
 		int intCount = 0;
 		int unknownTypeCount = 0;
-		auto container = InitializeHeterogeneousContainer();
+		const auto container = InitializeHeterogeneousContainer();
 		for (auto&& item : container)
 		{
 			if (item.is_type<int>())

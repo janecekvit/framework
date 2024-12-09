@@ -125,19 +125,31 @@ public:
 		std::variant<KnownTypes, std::any> _value;
 	};
 
+private:
+	struct CustomHasher
+	{
+		std::size_t operator()(size_t key) const noexcept
+		{
+			return key ^ (key >> 16);
+		}
+	};
+
+	using Container = std::unordered_map<size_t, std::vector<item>, CustomHasher>;
+
 public:
-	class iterator
+	
+	template <bool _IsConst>
+	class base_iterator
 	{
 	public:
-		using map_type = std::unordered_map<size_t, std::vector<item>>;
-
 		using iterator_category = std::bidirectional_iterator_tag;
 		using value_type = item;
 		using difference_type = std::ptrdiff_t;
-		using pointer = item*;
-		using reference = item&;
+		using pointer = std::conditional_t<_IsConst, const item*, item*>;
+		using reference = std::conditional_t<_IsConst, const item&, item&>;
 
-		iterator(map_type::iterator mapIt, map_type::iterator mapEnd, size_t vectorIndex = 0)
+	public:
+		base_iterator(Container::iterator mapIt, Container::iterator mapEnd, size_t vectorIndex = 0)
 			: _mapIt(mapIt)
 			, _mapEnd(mapEnd)
 			, _vectorIndex(vectorIndex)
@@ -146,15 +158,15 @@ public:
 
 		reference operator*() const
 		{
-			return _mapIt->second[_vectorIndex];
+			return const_cast<reference>(_mapIt->second[_vectorIndex]);
 		}
 
 		pointer operator->() const
 		{
-			return &(_mapIt->second[_vectorIndex]);
+			return const_cast<pointer>(&(_mapIt->second[_vectorIndex]));
 		}
 
-		iterator& operator++()
+		base_iterator& operator++()
 		{
 			++_vectorIndex;
 			if (_mapIt != _mapEnd && _vectorIndex >= _mapIt->second.size())
@@ -165,14 +177,14 @@ public:
 			return *this;
 		}
 
-		iterator operator++(int)
+		base_iterator operator++(int)
 		{
 			auto tmp = *this;
 			++(*this);
 			return tmp;
 		}
 
-		iterator& operator--()
+		base_iterator& operator--()
 		{
 			if (_mapIt == _mapEnd || _vectorIndex == 0)
 			{
@@ -186,27 +198,39 @@ public:
 			return *this;
 		}
 
-		iterator operator--(int)
+		base_iterator operator--(int)
 		{
 			auto tmp = *this;
 			--(*this);
 			return tmp;
 		}
 
-		bool operator==(const iterator& other) const
+		bool operator==(const base_iterator& other) const
 		{
 			return _mapIt == other._mapIt && _vectorIndex == other._vectorIndex;
 		}
 
-		bool operator!=(const iterator& other) const
+		bool operator!=(const base_iterator& other) const
 		{
 			return !(*this == other);
 		}
 
-	private:
-		map_type::iterator _mapIt;
-		map_type::iterator _mapEnd;
+	protected:
+		Container::iterator _mapIt;
+		Container::iterator _mapEnd;
 		size_t _vectorIndex;
+	};
+
+	class iterator : public base_iterator<false>
+	{
+	public:
+		using base_iterator<false>::base_iterator;
+	};
+
+	class const_iterator : public base_iterator<true>
+	{
+	public:
+		using base_iterator<true>::base_iterator;
 	};
 
 public:
@@ -358,9 +382,19 @@ public:
 		return iterator(_values.begin(), _values.end());
 	}
 
-	iterator end()
+	const_iterator begin() const 
+	{
+		return const_iterator(_values.begin(), _values.end());
+	}
+
+	iterator end() 
 	{
 		return iterator(_values.end(), _values.end());
+	}
+
+	const const_iterator end() const
+	{
+		return const_iterator(_values.end(), _values.end());
 	}
 
 	std::reverse_iterator<iterator> rbegin()
@@ -368,7 +402,17 @@ public:
 		return std::make_reverse_iterator(end());
 	}
 
+	std::reverse_iterator<const_iterator> rbegin() const
+	{
+		return std::make_reverse_iterator(end());
+	}
+
 	std::reverse_iterator<iterator> rend()
+	{
+		return std::make_reverse_iterator(begin());
+	}
+
+	std::reverse_iterator<const_iterator> rend() const
 	{
 		return std::make_reverse_iterator(begin());
 	}
@@ -486,15 +530,7 @@ private:
 	template <typename _T>
 	inline static size_t TypeKey = reinterpret_cast<size_t>(&TypeKey<_T>);
 
-	struct CustomHasher
-	{
-		std::size_t operator()(size_t key) const noexcept
-		{
-			return key ^ (key >> 16);
-		}
-	};
-
-	mutable std::unordered_map<size_t, std::vector<item>, CustomHasher> _values;
+	mutable Container _values;
 };
 
 } // namespace storage
