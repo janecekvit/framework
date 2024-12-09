@@ -7,85 +7,18 @@
 #include <tuple>
 #include <type_traits>
 
+#include "extensions/constraints.h"
+
 namespace janecekvit::storage
 {
 
 /// <summary>
-/// parameter pack class can forward input variadic argument's list to the any object for future processing
+/// parameter pack class can forward input Variadic argument's list to the any object for future processing
 /// parameter pack implement lazy evaluation idiom to enable processing input arguments as late as possible
 /// Packed parameters can be retrieved from pack by out parameters for C++14 and below
 /// Packed parameters can be retrieved from pack by return value through std::tuple for C++17 and above
 /// </summary>
 /// <exception cref="std::invalid_argument">When bad number of arguments received in Get methods.</exception>
-/// <example>
-/// <code>
-///
-/*
-///
-/// struct IInterface
-/// {
-/// 	virtual ~IInterface() = default;
-/// 	virtual int Do() = 0;
-/// };
-///
-/// struct CInterface : public virtual IInterface
-/// {
-/// 	CInterface() = default;
-/// 	virtual ~CInterface() = default;
-/// 	virtual int Do() final override { return 1111; }
-/// };
-///
-///
-/// struct IParamTest
-/// {
-/// 	virtual ~IParamTest() = default;
-/// 	virtual void Run(extensions::Storage::parameter_pack&& oPack) = 0;
-/// };
-/// struct CParamTest : public virtual IParamTest
-/// {
-/// 	CParamTest() = default;
-/// 	virtual ~CParamTest() = default;
-/// 	virtual void Run(extensions::Storage::ParemeterPack22&& oPack) override
-/// 	{
-///#if __cplusplus >= 201703L
-/// 	    int a = 0;
-/// 		int b = 0;
-/// 		int *c = nullptr;
-/// 		std::shared_ptr<int> d = nullptr;
-/// 		CInterface* pInt = nullptr;
-///
-///			//Use unpack by output parameters
-/// 		oPack.get_pack(a, b, c, d, pInt);
-///
-///			//TODO: ANY STUFF
-///
-///#else
-/// 		auto [iNumber1, iNumber2, pNumber, pShared, pInterface] = oPack.get_pack<int, int, int*, std::shared_ptr<int>, CInterface*>();
-///
-///			//TODO: ANY STUFF
-///
-///#endif
-///		}
-/// };
-///
-///
-/// void SomeFunc()
-/// {
-///		CParamTest oTest;
-///
-///		int* pInt = new int(666);
-///		auto pShared = std::make_shared<int>(777);
-///		CInterface oInt;
-///
-///		// Initialize parameter pack
-///		auto oPack = extensions::parameter_pack(25, 333, pInt, pShared, &oInt);
-///		oTest.Run(std::move(oPack));
-/// }
-///
-*/
-///
-/// </code>
-/// </example>
 
 class parameter_pack
 {
@@ -96,10 +29,9 @@ public:
 	virtual ~parameter_pack() = default;
 
 	template <class... _Args>
-	constexpr parameter_pack(
-		const _Args&... args)
+	constexpr parameter_pack(_Args&&... args)
 	{
-		_serialize(args...);
+		_insert(std::forward<_Args>(args)...);
 	}
 
 	template <class... _Args>
@@ -108,8 +40,8 @@ public:
 		if (_arguments.size() != sizeof...(_Args))
 			throw std::invalid_argument("Bad number of input arguments!");
 
-		auto args = _arguments;
-		return _deserialize<_Args...>(std::move(args));
+		auto it = _arguments.begin();
+		return _deserialize<_Args...>(it);
 	}
 
 	[[nodiscard]] size_t size() const noexcept
@@ -118,37 +50,50 @@ public:
 	}
 
 protected:
-	template <class _T, class... _Rest>
-	[[nodiscard]] constexpr void _serialize(
-		const _T& first,
-		const _Rest&... rest)
+	template <class... _Args>
+	constexpr void _insert(_Args&&... args)
 	{
-		static_assert(std::is_copy_constructible<_T>::value, "Cannot assign <_T> type, because isn't CopyConstructible!");
-		_arguments.emplace_back(std::make_any<_T>(first));
+		auto process = [&](auto&& value)
+		{
+			using _T = std::decay_t<decltype(value)>;
+			if constexpr (constraints::is_tuple_v<_T>)
+			{
+				std::apply([&](auto&&... tupleArgs)
+					{
+						_insert(std::forward<decltype(tupleArgs)>(tupleArgs)...);
+					},
+					value);
+			}
+			else if constexpr (constraints::is_initializer_list_v<_T>)
+			{
+				for (auto&& item : value)
+					_insert(std::forward<decltype(item)>(item));
+			}
+			else
+			{
+				_arguments.emplace_back(std::make_any<_T>(std::forward<decltype(value)>(value)));
+			}
+		};
 
-		if constexpr (sizeof...(_Rest) > 0)
-			_serialize(rest...);
+		(process(std::forward<_Args>(args)), ...);
 	}
 
 	template <class _T, class... _Rest>
-	[[nodiscard]] constexpr std::tuple<_T, _Rest...> _deserialize(
-		Parameters&& args) const
+	[[nodiscard]] constexpr std::tuple<_T, _Rest...> _deserialize(typename Parameters::const_iterator& it) const
 	{
 		try
 		{
-			auto oValue = std::any_cast<_T>(args.front());
-			auto oTuple = std::make_tuple(oValue);
-			args.pop_front();
-
+			_T oValue = std::any_cast<_T>(*it);
+			++it;
+			
 			if constexpr (sizeof...(_Rest) > 0)
-				return std::tuple_cat(oTuple, _deserialize<_Rest...>(std::move(args)));
-
-			return std::tuple_cat(oTuple, std::tuple<_Rest...>());
+				return std::tuple_cat(std::make_tuple(oValue), _deserialize<_Rest...>(it));
+			else
+				return std::make_tuple(oValue);
 		}
 		catch (const std::bad_any_cast& ex)
 		{
-			using namespace std::string_literals;
-			throw std::invalid_argument("Wrong input type "s + ex.what() + "!");
+			throw std::invalid_argument("Wrong input type: " + std::string(ex.what()));
 		}
 	}
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "extensions/extensions.h"
+#include "exception/exception.h"
 #include "synchronization/concurrent.h"
 
 #include <any>
@@ -38,18 +39,18 @@ public:
 	static constexpr bool IsKnownType = constraints::is_type_in_variant_v<_T, KnownTypes>;
 
 public:
-	class bad_access : public std::exception
+	class bad_access : public exception::exception
 	{
 	public:
-		bad_access(const std::type_info& typeInfo, const std::string& error)
-			: _typeInfo(typeInfo)
-			, _message("heterogeneous_container: " + error + " with type: " + typeInfo.name())
+		bad_access(const std::type_info& typeInfo, const std::string& error, std::source_location&& srcl = std::source_location::current())
+			: exception::exception(std::move(srcl), "heterogeneous_container: {} with type: {}", error, typeInfo.name())
+			, _typeInfo(typeInfo)
 		{
 		}
 
-		bad_access(const std::type_info& typeInfo, const std::exception& ex)
-			: _typeInfo(typeInfo)
-			, _message("heterogeneous_container: " + std::string(ex.what()) + " with type: " + typeInfo.name())
+		bad_access(const std::type_info& typeInfo, const std::exception& ex, std::source_location&& srcl = std::source_location::current())
+			: exception::exception(std::move(srcl), "heterogeneous_container: {} with type: {}", std::string(ex.what()), typeInfo.name())
+			, _typeInfo(typeInfo)
 		{
 		}
 
@@ -58,14 +59,8 @@ public:
 			return _typeInfo;
 		}
 
-		const char* what() const noexcept override
-		{
-			return _message.c_str();
-		}
-
 	private:
 		const std::type_info& _typeInfo;
-		std::string _message;
 	};
 
 public:
@@ -377,42 +372,62 @@ public:
 		}
 	}
 
-	iterator begin()
+	iterator begin() noexcept
 	{
 		return iterator(_values.begin(), _values.end());
 	}
 
-	const_iterator begin() const 
+	const_iterator begin() const noexcept
 	{
 		return const_iterator(_values.begin(), _values.end());
 	}
 
-	iterator end() 
+	const_iterator cbegin() const noexcept
+	{
+		return const_iterator(_values.begin(), _values.end());
+	}
+
+	iterator end() noexcept
 	{
 		return iterator(_values.end(), _values.end());
 	}
 
-	const const_iterator end() const
+	const const_iterator end() const noexcept
 	{
 		return const_iterator(_values.end(), _values.end());
 	}
 
-	std::reverse_iterator<iterator> rbegin()
+	const const_iterator cend() const noexcept
+	{
+		return const_iterator(_values.end(), _values.end());
+	}
+
+	std::reverse_iterator<iterator> rbegin() noexcept
 	{
 		return std::make_reverse_iterator(end());
 	}
 
-	std::reverse_iterator<const_iterator> rbegin() const
+	std::reverse_iterator<const_iterator> rbegin() const noexcept
 	{
 		return std::make_reverse_iterator(end());
 	}
 
-	std::reverse_iterator<iterator> rend()
+	std::reverse_iterator<const_iterator> crbegin() const noexcept
+	{
+		return std::make_reverse_iterator(end());
+	}
+
+	std::reverse_iterator<iterator> rend() noexcept
 	{
 		return std::make_reverse_iterator(begin());
 	}
 
-	std::reverse_iterator<const_iterator> rend() const
+	std::reverse_iterator<const_iterator> rend() const noexcept
+	{
+		return std::make_reverse_iterator(begin());
+	}
+
+	std::reverse_iterator<const_iterator> crend() const noexcept
 	{
 		return std::make_reverse_iterator(begin());
 	}
