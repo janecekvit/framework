@@ -14,19 +14,27 @@ Purpose:	header file contains set of extended constraints to describe stl contai
 #include <algorithm>
 #include <any>
 #include <concepts>
+#include <condition_variable>
 #include <functional>
 #include <list>
 #include <memory>
 #include <optional>
+#include <semaphore>
 #include <sstream>
 #include <string>
 #include <tuple>
 #include <type_traits>
 #include <typeindex>
+#include <variant>
 
-///Namespace owns set of extended constraints to describe stl containers
+/// Namespace owns set of extended constraints to describe stl containers
 namespace janecekvit::constraints
 {
+
+class default_exception_callback
+{
+};
+
 /// <summary>
 /// Helper structures to determine if template type <_T> is std::shared_ptr
 /// </summary>
@@ -154,42 +162,111 @@ template <class _T>
 constexpr bool is_iterator_v = is_iterator<_T>::value;
 
 /// <summary>
+/// Helper structures to determine if template type <_T> is tuple
+/// </summary>
+template <typename T>
+struct is_tuple : std::false_type
+{
+};
+
+template <typename... Args>
+struct is_tuple<std::tuple<Args...>> : std::true_type
+{
+};
+
+template <typename T>
+constexpr bool is_tuple_v = is_tuple<T>::value;
+
+/// <summary>
+/// Helper structures to determine if template type <_T> is in std::tuple
+/// </summary>
+template <typename T, typename Tuple>
+struct is_type_in_tuple;
+
+template <typename T, typename... Types>
+struct is_type_in_tuple<T, std::tuple<Types...>> : std::disjunction<std::is_same<T, Types>...>
+{
+};
+
+template <typename T, typename Tuple>
+constexpr bool is_type_in_tuple_v = is_type_in_tuple<T, Tuple>::value;
+
+/// <summary>
+/// Helper structures to determine if template type <_T> is in std::variant
+/// </summary>
+template <typename T, typename Variant>
+struct is_type_in_variant;
+
+template <typename T, typename... Types>
+struct is_type_in_variant<T, std::variant<Types...>> : std::disjunction<std::is_same<T, Types>...>
+{
+};
+
+template <typename T, typename Variant>
+inline constexpr bool is_type_in_variant_v = is_type_in_variant<T, Variant>::value;
+
+/// <summary>
+/// Helper structures to unite two std::variants if template type <_T> is in std::variant
+/// </summary>
+template <class... _Args>
+struct unify_variant;
+
+template <class... _Types1, class... _Types2>
+struct unify_variant<std::variant<_Types1...>, std::variant<_Types2...>>
+{
+	using type = std::variant<_Types1..., _Types2...>;
+};
+
+template <class _Variant1, class _Variant2>
+using unify_variant_t = typename unify_variant<_Variant1, _Variant2>::type;
+
+/// <summary>
+/// Helper structures to determine if template type <_T> is initializer_list
+/// </summary>
+template <typename T>
+struct is_initializer_list : std::false_type
+{
+};
+
+template <typename T>
+struct is_initializer_list<std::initializer_list<T>> : std::true_type
+{
+};
+
+template <typename T>
+constexpr bool is_initializer_list_v = is_initializer_list<T>::value;
+
+/// <summary>
 /// Helper structures to determine if template type <_T> is explicitly convertible
 /// </summary>
 template <class _T, class _U>
-struct is_explicitly_convertible : std::integral_constant<bool, std::is_constructible_v<_U, _T> && !std::is_convertible_v<_T, _U>>
+struct is_explicitly_convertible : std::integral_constant<bool, std::is_constructible_v<_U, _T> && !std::is_convertible_v<std::decay_t<_T>, _U>>
 {
 };
 
 template <class _T, class _U>
 constexpr bool is_explicitly_convertible_v = is_explicitly_convertible<_T, _U>::value;
 
-/// <summary>
-/// Helper concept to determine if template type <_T> is condition variable
-/// </summary>
-#if defined(__cpp_lib_concepts)
+template <class _T, class _U>
+constexpr bool is_convertible_v = std::is_convertible_v<std::decay_t<_T>, _U> && !std::is_same_v<std::decay_t<_T>, _U>;
+
+#ifdef __cpp_lib_concepts
+
 template <class _Condition, class _Lock>
-concept condition_variable = requires(_Condition& cv, _Lock& lock)
-{
+concept condition_variable_notify = requires(_Condition& cv, _Lock& lock) {
 	{
 		cv.notify_one()
-	}
-	noexcept;
+	} noexcept;
 	{
 		cv.notify_all()
-	}
-	noexcept;
+	} noexcept;
 	{
 		cv.wait(lock)
 	};
 };
 
-/// <summary>
-/// Helper concept to determine if template type <_T> is condition variable with pred
-/// </summary>
 template <class _Condition, class _Lock, class _Predicate>
-concept condition_variable_pred = condition_variable<_Condition, _Lock> && requires(_Condition& cv, _Lock& lock, _Predicate&& pred)
-{
+concept condition_variable_pred = condition_variable_notify<_Condition, _Lock> && requires(_Condition& cv, _Lock& lock, _Predicate&& pred) {
 	{
 		cv.wait(lock, std::move(pred))
 	};
@@ -212,6 +289,19 @@ concept enum_type = std::is_enum_v<_Enum>;
 
 template <class _String>
 concept string_type = std::is_same_v<_String, std::string> || std::is_same_v<_String, std::wstring> || std::is_same_v<_String, std::u8string> || std::is_same_v<_String, std::u16string> || std::is_same_v<_String, std::u32string>;
+
+template <class _Condition>
+concept condition_variable_type = std::is_same_v<std::condition_variable, _Condition> || std::is_same_v<std::condition_variable_any, _Condition>;
+
+#ifdef __cpp_lib_semaphore
+template <class _Semaphore, ptrdiff_t _Least_max_value = std::_Semaphore_max>
+concept semaphore_type = std::is_same_v<std::binary_semaphore, _Semaphore> || std::is_same_v<std::counting_semaphore<_Least_max_value>, _Semaphore>;
+#endif // __cpp_lib_semaphore
+
+#ifdef __cpp_lib_semaphore
+template <class _Semaphore>
+concept binary_semaphore_type = std::is_same_v<std::binary_semaphore, _Semaphore>;
+#endif // __cpp_lib_semaphore
 
 #endif
 

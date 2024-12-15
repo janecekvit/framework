@@ -1,10 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Thread\ThreadPoolDynamic.cpp">
-      <Filter>thread</Filter>
-    </ClCompile>
-    <ClCompile Include="Thread\ThreadPool.cpp">
+    <ClCompile Include="Thread\sync_thread_pool.cpp">
       <Filter>thread</Filter>
     </ClCompile>
     <ClCompile Include="utility\conversions.cpp">
@@ -12,29 +9,8 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Thread\ThreadPoolDynamic.h">
+    <ClInclude Include="Thread\sync_thread_pool.h">
       <Filter>thread</Filter>
-    </ClInclude>
-    <ClInclude Include="Thread\ThreadPool.h">
-      <Filter>thread</Filter>
-    </ClInclude>
-    <ClInclude Include="Interface\ICloneable.h">
-      <Filter>interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="Interface\ICRTP.h">
-      <Filter>interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="Thread\IThreadPool.h">
-      <Filter>thread</Filter>
-    </ClInclude>
-    <ClInclude Include="Sync\AtomicConditionVariable.h">
-      <Filter>sync</Filter>
-    </ClInclude>
-    <ClInclude Include="Sync\WaitForMultipleConditions.h">
-      <Filter>sync</Filter>
-    </ClInclude>
-    <ClInclude Include="extensions\concurrent.h">
-      <Filter>extensions</Filter>
     </ClInclude>
     <ClInclude Include="extensions\constraints.h">
       <Filter>extensions</Filter>
@@ -45,13 +21,7 @@
     <ClInclude Include="extensions\finally.h">
       <Filter>extensions</Filter>
     </ClInclude>
-    <ClInclude Include="extensions\getter_setter.h">
-      <Filter>extensions</Filter>
-    </ClInclude>
-    <ClInclude Include="extensions\resource_wrapper.h">
-      <Filter>extensions</Filter>
-    </ClInclude>
-    <ClInclude Include="extensions\atomic_concurrent.h">
+    <ClInclude Include="extensions\property.h">
       <Filter>extensions</Filter>
     </ClInclude>
     <ClInclude Include="extensions\lazy.h">
@@ -66,16 +36,37 @@
     <ClInclude Include="utility\conversions.h">
       <Filter>utility</Filter>
     </ClInclude>
+    <ClInclude Include="storage\resource_wrapper.h">
+      <Filter>storage</Filter>
+    </ClInclude>
+    <ClInclude Include="storage\parameter_pack.h">
+      <Filter>storage</Filter>
+    </ClInclude>
+    <ClInclude Include="storage\heterogeneous_container.h">
+      <Filter>storage</Filter>
+    </ClInclude>
+    <ClInclude Include="synchronization\atomic_concurrent.h">
+      <Filter>synchronization</Filter>
+    </ClInclude>
+    <ClInclude Include="synchronization\signal.h">
+      <Filter>synchronization</Filter>
+    </ClInclude>
+    <ClInclude Include="synchronization\concurrent.h">
+      <Filter>synchronization</Filter>
+    </ClInclude>
+    <ClInclude Include="synchronization\wait_for_multiple_signals.h">
+      <Filter>synchronization</Filter>
+    </ClInclude>
+    <ClInclude Include="thread\async.h">
+      <Filter>thread</Filter>
+    </ClInclude>
+    <ClInclude Include="extensions\cloneable.h">
+      <Filter>extensions</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="extensions">
       <UniqueIdentifier>{c09bfaf6-95d3-4ee2-a44b-f00e9bc24467}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="interfaces">
-      <UniqueIdentifier>{b0478a21-ddee-4d8b-93a1-e2f0686d6e5d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="sync">
-      <UniqueIdentifier>{453cea18-ecff-4211-94a0-9a68cbddcce0}</UniqueIdentifier>
     </Filter>
     <Filter Include="thread">
       <UniqueIdentifier>{923f8c59-8e66-4d38-bfb1-2a88a7762837}</UniqueIdentifier>
@@ -88,6 +79,12 @@
     </Filter>
     <Filter Include="utility">
       <UniqueIdentifier>{13b50a72-94d8-4451-b6eb-65c061d12ed2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="storage">
+      <UniqueIdentifier>{a9feeefe-c110-4ab8-be64-1ed60778efe4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="synchronization">
+      <UniqueIdentifier>{453cea18-ecff-4211-94a0-9a68cbddcce0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

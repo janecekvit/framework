@@ -13,15 +13,13 @@ Purpose:	header file contains RAII pattern
 */
 
 #include "extensions/constraints.h"
-#include "extensions/extensions.h"
 
 #include <functional>
 
-namespace janecekvit::extensions
+namespace janecekvit::storage
 {
 /// <summary>
 /// The wrapper implemented own deleter that gains functionality to release all used resources correctly.
-/// Method derives from the getter_setter class to using input resource with implicit conversions.
 /// Ensure that deleter's body can be called multiple times to handle deallocations of the same resource in case of CopyConstructible methods of this wrapper are used.
 /// When _DestuctorThrowException is set to true, destructor can raise exception when deleter functor fails or isn't initialized.
 /// Throwing an exception out of a destructor is dangerous. If another exception is already propagating the application will terminate. Be careful with this.
@@ -35,7 +33,11 @@ namespace janecekvit::extensions
 ///	bool open = oWrapperFile->is_open();
 /// </code>
 /// </example>
-template <class _Resource, bool _DestuctorThrowException = false>
+#ifdef __cpp_lib_concepts
+template <class _Resource, class _ResourceDeleter = std::function<void(_Resource&)>, class _ExceptionCallback = constraints::default_exception_callback>
+#else
+template <class _Resource>
+#endif
 class resource_wrapper
 {
 public:
@@ -58,50 +60,72 @@ public:
 	};
 
 public:
-	using accessor		   = typename std::function<void(_Resource&)>;
-	using const_accessor   = typename std::function<void(const _Resource&)>;
-	using resource_deleter = typename accessor;
+	using accessor		 = typename std::function<void(_Resource&)>;
+	using const_accessor = typename std::function<void(const _Resource&)>;
 
 public:
-	virtual ~resource_wrapper() noexcept(!_DestuctorThrowException)
+	virtual ~resource_wrapper() noexcept
 	{
 		_resource.reset();
-		if constexpr (_DestuctorThrowException == true)
-			_CheckDeleter();
+#ifdef __cpp_lib_concepts
+
+		try
+		{
+			_check_deleter();
+		}
+		catch (const std::exception& ex)
+		{
+			if constexpr (!std::is_same_v<_ExceptionCallback, constraints::default_exception_callback>)
+				_exceptionCallback(ex);
+		}
+
+#endif
 	}
 
 	constexpr resource_wrapper() = delete;
 
-	constexpr resource_wrapper(resource_deleter&& deleter)
-		: _resource(_CreateResource(_Resource{}, resource_deleter(deleter)))
-		, _deleter(std::forward<resource_deleter>(deleter))
+	constexpr resource_wrapper(_ResourceDeleter&& deleter)
+		: _resource(_create_resource(_Resource{}, _ResourceDeleter(deleter), _ExceptionCallback(_exceptionCallback)))
+		, _deleter(std::forward<_ResourceDeleter>(deleter))
 	{
 	}
 
-	template <class _FwdResource>
-	constexpr resource_wrapper(_FwdResource&& resource, resource_deleter&& deleter)
-		: _resource(_CreateResource(std::forward<_Resource>(resource), resource_deleter(deleter)))
-		, _deleter(std::forward<resource_deleter>(deleter))
+	constexpr resource_wrapper(_Resource&& resource, _ResourceDeleter&& deleter)
+		: _resource(_create_resource(std::forward<_Resource>(resource), _ResourceDeleter(deleter), _ExceptionCallback(_exceptionCallback)))
+		, _deleter(std::forward<_ResourceDeleter>(deleter))
 	{
 	}
 
-	constexpr resource_wrapper(const _Resource& resource, resource_deleter&& deleter)
-		: _resource(_CreateResource(resource, resource_deleter(deleter)))
-		, _deleter(std::forward<resource_deleter>(deleter))
+	constexpr resource_wrapper(const _Resource& resource, _ResourceDeleter&& deleter)
+		: _resource(_create_resource(resource, _ResourceDeleter(deleter), _ExceptionCallback(_exceptionCallback)))
+		, _deleter(std::forward<_ResourceDeleter>(deleter))
 	{
 	}
+
+#ifdef __cpp_lib_concepts
+	constexpr resource_wrapper(_Resource&& resource, _ResourceDeleter&& deleter, _ExceptionCallback&& fnExceptionCallback)
+		requires(std::is_invocable_v<_ExceptionCallback, const std::exception&>)
+		: _resource(_create_resource(std::forward<_Resource>(resource), _ResourceDeleter(deleter), _ExceptionCallback(fnExceptionCallback)))
+		, _deleter(std::forward<_ResourceDeleter>(deleter))
+		, _exceptionCallback(std::forward<_ExceptionCallback>(fnExceptionCallback))
+	{
+	}
+#endif
 
 	constexpr resource_wrapper(const resource_wrapper& other)
-#if __cplusplus > __cpp_lib_concepts
+#ifdef __cpp_lib_concepts
 		requires std::is_copy_constructible_v<_Resource>
 #endif
 		: _resource(other._resource)
 		, _deleter(other._deleter)
+		, _exceptionCallback(other._exceptionCallback)
 	{
 	}
 
-#if __cplusplus > __cpp_lib_concepts
-	constexpr resource_wrapper(const resource_wrapper&) requires !std::is_copy_constructible_v<_Resource> = delete;
+#ifdef __cpp_lib_concepts
+	constexpr resource_wrapper(const resource_wrapper&)
+		requires !std::is_copy_constructible_v<_Resource>
+	= delete;
 #endif
 
 	constexpr resource_wrapper(resource_wrapper&& other) noexcept
@@ -111,7 +135,7 @@ public:
 	}
 
 	constexpr resource_wrapper& operator=(const resource_wrapper& other)
-#if __cplusplus > __cpp_lib_concepts
+#ifdef __cpp_lib_concepts
 		requires std::is_copy_constructible_v<_Resource>
 #endif
 	{
@@ -120,8 +144,10 @@ public:
 		return *this;
 	}
 
-#if __cplusplus > __cpp_lib_concepts
-	constexpr resource_wrapper& operator=(const resource_wrapper&) requires !std::is_copy_constructible_v<_Resource> = delete;
+#ifdef __cpp_lib_concepts
+	constexpr resource_wrapper& operator=(const resource_wrapper&)
+		requires !std::is_copy_constructible_v<_Resource>
+	= delete;
 #endif
 
 	constexpr resource_wrapper& operator=(resource_wrapper&& other) noexcept
@@ -133,22 +159,34 @@ public:
 
 	constexpr resource_wrapper& operator=(const _Resource& resource)
 	{
-		_CheckDeleter();
-		_resource = _CreateResource(resource, resource_deleter(_deleter));
+		_check_deleter();
+#ifdef __cpp_lib_concepts
+		_resource = _create_resource(resource, _ResourceDeleter(_deleter), _ExceptionCallback(_exceptionCallback));
+#else
+		_resource = _create_resource(resource, _ResourceDeleter(_deleter));
+#endif
 		return *this;
 	}
 
 	constexpr resource_wrapper& operator=(_Resource&& resource)
 	{
-		_CheckDeleter();
-		_resource = _CreateResource(std::move(resource), resource_deleter(_deleter));
+		_check_deleter();
+#ifdef __cpp_lib_concepts
+		_resource = _create_resource(std::move(resource), _ResourceDeleter(_deleter), _ExceptionCallback(_exceptionCallback));
+#else
+		_resource = _create_resource(std::move(resource), _ResourceDeleter(_deleter));
+#endif
 		return *this;
 	}
 
 	constexpr void reset()
 	{
-		_CheckDeleter();
-		_resource = _CreateResource(nullptr, resource_deleter(_deleter));
+		_check_deleter();
+#ifdef __cpp_lib_concepts
+		_resource = _create_resource(nullptr, _ResourceDeleter(_deleter), _ExceptionCallback(_exceptionCallback));
+#else
+		_resource = _create_resource(nullptr, _ResourceDeleter(_deleter));
+#endif
 	}
 
 	constexpr void retrieve(const_accessor&& fnAccess) const
@@ -176,7 +214,7 @@ public:
 		return std::move(*_resource);
 	}
 
-	template <class _Quantified = _Resource, std::enable_if_t<constraints::is_explicitly_convertible_v<_Quantified, bool>, int> = 0>
+	template <class _Quantified = _Resource, std::enable_if_t<constraints::is_convertible_v<_Quantified, bool>, int> = 0>
 	[[nodiscard]] constexpr explicit operator bool() const noexcept
 	{
 		return static_cast<bool>(*_resource);
@@ -242,29 +280,71 @@ public:
 	}
 
 protected:
-	[[nodiscard]] constexpr std::shared_ptr<_Resource> _CreateResource(_Resource&& resource, resource_deleter&& deleter)
+#ifdef __cpp_lib_concepts
+	[[nodiscard]] constexpr std::shared_ptr<_Resource> _create_resource(_Resource&& resource, _ResourceDeleter&& deleter, _ExceptionCallback&& exceptionCallback)
 	{
-		return std::shared_ptr<_Resource>(new _Resource(std::forward<_Resource>(resource)), [storedDeleter = std::move(deleter)](_Resource* resource)
+		return std::shared_ptr<_Resource>(new _Resource(std::forward<_Resource>(resource)), [stored_deleter = std::move(deleter), stored_callback = std::move(exceptionCallback)](_Resource* resource)
 			{
-				//call inner resource deleter
-				if (storedDeleter)
-					storedDeleter(*resource);
+				// call inner resource deleter
+				try
+				{
+					if (stored_deleter)
+						stored_deleter(*resource);
+				}
+				catch (const std::exception& ex)
+				{
+					if constexpr (!std::is_same_v<_ExceptionCallback, constraints::default_exception_callback>)
+						stored_callback(ex);
+				}
 
 				delete resource;
 				resource = nullptr;
 			});
 	}
+#else
+	[[nodiscard]] constexpr std::shared_ptr<_Resource> _create_resource(_Resource&& resource, _ResourceDeleter&& deleter)
+	{
+		return std::shared_ptr<_Resource>(new _Resource(std::forward<_Resource>(resource)), [stored_deleter = std::move(deleter)](_Resource* resource)
+			{
+				// call inner resource deleter
+				if (stored_deleter)
+					stored_deleter(*resource);
+
+				delete resource;
+				resource = nullptr;
+			});
+	}
+#endif
+	
 
 protected:
-	void _CheckDeleter() const
+	void _check_deleter() const
 	{
 		if (!_deleter)
-			throw deleter_missing_exception(typeid(std::declval<resource_deleter>()));
+			throw deleter_missing_exception(typeid(std::declval<_ResourceDeleter>()));
 	}
 
 protected:
 	std::shared_ptr<_Resource> _resource{};
-	resource_deleter _deleter{};
+	_ResourceDeleter _deleter{};
+	const _ExceptionCallback _exceptionCallback{};
 };
+
+#ifdef __cpp_lib_concepts
+/// <summary>
+/// User defined deduction guide CTAD for final_action using default exception callback
+/// </summary>
+template <class _Resource, std::invocable _ResourceDeleter>
+resource_wrapper(_Resource&&, _ResourceDeleter&&)
+	-> resource_wrapper<_Resource, _ResourceDeleter, constraints::default_exception_callback>;
+
+/// <summary>
+/// User-defined deduction guide CTAD for final_action using custom exception callback
+/// </summary>
+template <class _Resource, std::invocable _ResourceDeleter, std::invocable _ExceptionCallback>
+resource_wrapper(const _Resource&, _ResourceDeleter&&, _ExceptionCallback&&)
+	-> resource_wrapper<_Resource, std::function<void(_Resource&)>, _ExceptionCallback>;
+
+#endif
 
 } // namespace janecekvit::extensions

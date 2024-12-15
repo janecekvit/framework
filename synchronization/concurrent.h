@@ -15,6 +15,7 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 
 #pragma once
 #include "extensions/constraints.h"
+#include "synchronization/signal.h"
 
 #include <array>
 #include <cerrno>
@@ -32,9 +33,9 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 #include <unordered_set>
 #include <vector>
 
-///Namespace owns set of thread-safe concurrent containers and methods that implemented over basic stl containers
-/// and thread-safe methods for every possible concurrent object
-namespace janecekvit::concurrent
+/// Namespace owns set of thread-safe concurrent containers and methods that implemented over basic stl containers
+///  and thread-safe methods for every possible concurrent object
+namespace janecekvit::synchronization::concurrent
 {
 template <class _Type, bool = true>
 class resource_owner;
@@ -193,8 +194,8 @@ public:
 	}
 
 	template <class _Condition, class _Predicate>
-#if defined(__cpp_lib_concepts)
-	requires constraints::condition_variable_pred<_Condition, std::unique_lock<std::shared_mutex>, _Predicate>
+#ifdef __cpp_lib_concepts
+		requires constraints::condition_variable_type<_Condition>
 #endif
 	constexpr decltype(auto) wait(_Condition& cv, _Predicate&& pred) const
 	{
@@ -203,8 +204,8 @@ public:
 	}
 
 	template <class _Condition>
-#if defined(__cpp_lib_concepts)
-	requires constraints::condition_variable<_Condition, std::unique_lock<std::shared_mutex>>
+#ifdef __cpp_lib_concepts
+		requires constraints::condition_variable_type<_Condition>
 #endif
 	constexpr decltype(auto) wait(_Condition& cv) const
 	{
@@ -366,8 +367,8 @@ public:
 	}
 
 	template <class _Condition, class _Predicate>
-#if defined(__cpp_lib_concepts)
-	requires constraints::condition_variable_pred<_Condition, std::shared_lock<std::shared_mutex>, _Predicate>
+#ifdef __cpp_lib_concepts
+		requires constraints::condition_variable_type<_Condition>
 #endif
 	constexpr decltype(auto) wait(_Condition& cv, _Predicate&& pred) const
 	{
@@ -376,10 +377,20 @@ public:
 	}
 
 	template <class _Condition>
-#if defined(__cpp_lib_concepts)
-	requires constraints::condition_variable<_Condition, std::shared_lock<std::shared_mutex>>
+#ifdef __cpp_lib_concepts
+		requires constraints::condition_variable_type<_Condition>
 #endif
 	constexpr decltype(auto) wait(_Condition& cv) const
+	{
+		_check_ownership();
+		return cv.wait(_concurrentLock);
+	}
+
+	template <class _Signal>
+#ifdef __cpp_lib_concepts
+		requires synchronization::signal_type<_Signal>
+#endif
+	constexpr decltype(auto) wait(_Signal& cv) const
 	{
 		_check_ownership();
 		return cv.wait(_concurrentLock);
@@ -395,6 +406,10 @@ private:
 private:
 	const resource_owner<_Type, _Release>* _owner = nullptr;
 	mutable std::shared_lock<std::shared_mutex> _concurrentLock;
+};
+
+class release_resource_owner_lock_details
+{
 };
 
 template <class _Type>
@@ -422,29 +437,29 @@ public:
 	}
 
 private:
-	void constexpr _push_exclusive_lock_details(std::source_location&& srcl)
+	void _push_exclusive_lock_details(std::source_location&& srcl)
 	{
 		_exlusiveLockDetails = std::move(srcl);
 	}
 
-	void constexpr _pop_exclusive_lock_details() noexcept
+	void _pop_exclusive_lock_details() noexcept
 	{
 		_exlusiveLockDetails.reset();
 	}
 
-	void constexpr _push_concurrent_lock_details(concurrent_resource_holder<_Type, false>* wrapper, std::source_location&& srcl) const
+	void _push_concurrent_lock_details(concurrent_resource_holder<_Type, false>* wrapper, std::source_location&& srcl) const
 	{
 		std::unique_lock lck(*_mutexLockDetails);
 		_concurrentLockDetails.emplace(wrapper, std::move(srcl));
 	}
 
-	void constexpr _pop_concurrent_lock_details(concurrent_resource_holder<_Type, false>* wrapper) const noexcept
+	void _pop_concurrent_lock_details(concurrent_resource_holder<_Type, false>* wrapper) const noexcept
 	{
 		std::unique_lock lck(*_mutexLockDetails);
 		_concurrentLockDetails.erase(wrapper);
 	}
 
-	void constexpr _move_concurrent_lock_details(concurrent_resource_holder<_Type, false>* old, concurrent_resource_holder<_Type, false>* newone) const
+	void _move_concurrent_lock_details(concurrent_resource_holder<_Type, false>* old, concurrent_resource_holder<_Type, false>* newone) const
 	{
 		std::unique_lock lck(*_mutexLockDetails);
 		auto&& node = _concurrentLockDetails.extract(old);
@@ -487,7 +502,7 @@ protected:
 /// </example>
 
 template <class _Type, bool _Release>
-class resource_owner : public std::conditional_t<!_Release, resource_owner_lock_details<_Type>, void>
+class resource_owner : public std::conditional_t<!_Release, resource_owner_lock_details<_Type>, release_resource_owner_lock_details>
 {
 	friend exclusive_resource_holder<_Type, _Release>;
 	friend concurrent_resource_holder<_Type, _Release>;
@@ -508,33 +523,38 @@ public:
 	{
 		if constexpr (!_Release)
 		{
-			//ensure that no operations are running on resource while destruction is in the process
+			// ensure that no operations are running on resource while destruction is in the process
 			//->prevent this undefined behavior create deadlock in debugging mode
 			exclusive_resource_holder<_Type, _Release> clean_up(this, std::source_location::current());
 		}
 	}
 
-	[[nodiscard]] constexpr exclusive_resource_holder<_Type, true> exclusive() noexcept requires(_Release)
+	[[nodiscard]] constexpr exclusive_resource_holder<_Type, true> exclusive() noexcept
+		requires(_Release)
 	{
 		return exclusive_resource_holder<_Type, true>(this);
 	}
 
-	[[nodiscard]] constexpr concurrent_resource_holder<_Type, true> concurrent() const noexcept requires(_Release)
+	[[nodiscard]] constexpr concurrent_resource_holder<_Type, true> concurrent() const noexcept
+		requires(_Release)
 	{
 		return concurrent_resource_holder<_Type, true>(this);
 	}
 
-	[[nodiscard]] constexpr exclusive_resource_holder<_Type, false> exclusive(std::source_location srcl = std::source_location::current()) noexcept requires(!_Release)
+	[[nodiscard]] constexpr exclusive_resource_holder<_Type, false> exclusive(std::source_location srcl = std::source_location::current()) noexcept
+		requires(!_Release)
 	{
 		return exclusive_resource_holder<_Type, false>(this, std::move(srcl));
 	}
 
-	[[nodiscard]] constexpr concurrent_resource_holder<_Type, false> concurrent(std::source_location srcl = std::source_location::current()) const noexcept requires(!_Release)
+	[[nodiscard]] constexpr concurrent_resource_holder<_Type, false> concurrent(std::source_location srcl = std::source_location::current()) const noexcept
+		requires(!_Release)
 	{
 		return concurrent_resource_holder<_Type, false>(this, std::move(srcl));
 	}
 
-private:;
+private:
+	;
 	constexpr void _set_resource(_Type&& object)
 	{
 		_resource = std::make_shared<_Type>(std::forward<_Type>(object));
@@ -550,7 +570,7 @@ private:;
 		return std::move(*_resource);
 	}
 
-	[[nodiscard]] constexpr const std::shared_ptr<std::shared_mutex> _get_mutex() const noexcept
+	[[nodiscard]] const std::shared_ptr<std::shared_mutex> _get_mutex() const noexcept
 	{
 		return _mutex;
 	}
@@ -628,4 +648,4 @@ using unordered_multimap = result_resource_owner<std::unordered_multimap<_Args..
 template <class _Arg>
 using functor = resource_owner<std::function<_Arg>>;
 
-} // namespace janecekvit::concurrent
+} // namespace janecekvit::synchronization::concurrent

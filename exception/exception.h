@@ -9,6 +9,8 @@
 #include <source_location>
 #include <string>
 
+#ifdef __cpp_lib_concepts
+
 namespace janecekvit::exception
 {
 class exception : public std::exception
@@ -54,20 +56,15 @@ private:
 	{
 		_error = _format_source_location();
 
-		auto callback = [&](auto&&... args)
-		{
-			return std::format(format, std::forward<decltype(args)>(args)...);
-		};
-
 		try
 		{
 			if constexpr (std::is_constructible_v<std::wstring_view, _Fmt>)
 			{
-				std::wstring _error_wide = std::invoke(callback, arguments...);
-				_error += conversions::to_string(_error_wide);
+				std::wstring error_wide = std::vformat(format, std::make_wformat_args(arguments...));
+				_error += conversions::to_string(error_wide);
 			}
 			else
-				_error += std::invoke(callback, arguments...);
+				_error += std::vformat(format, std::make_format_args(arguments...));
 		}
 		catch (const std::exception& ex)
 		{
@@ -101,3 +98,5 @@ template <janecekvit::constraints::format_view _Fmt, class... _Args>
 throw_exception(_Fmt&&, _Args&&...) -> throw_exception<exception, _Fmt, _Args...>;
 
 } // namespace janecekvit::exception
+
+#endif

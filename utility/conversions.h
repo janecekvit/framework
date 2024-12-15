@@ -9,9 +9,10 @@ namespace janecekvit::conversions
 std::string to_string(std::wstring_view&& view);
 std::wstring to_wstring(std::string_view&& view);
 
+#ifdef __cpp_lib_concepts
 template <constraints::string_type _String, class _Container>
-requires constraints::is_container_v<_Container>
-	_String to_string(const _Container& container)
+	requires constraints::is_container_v<_Container>
+_String to_string(const _Container& container)
 {
 	return std::accumulate(container.begin(), container.end(), _String(), [](const auto& item1, const auto& item2)
 		{
@@ -20,10 +21,11 @@ requires constraints::is_container_v<_Container>
 }
 
 template <constraints::string_type _String, class _Container>
-requires constraints::is_concurrent_container_v<_Container>
-	_String to_string(const _Container& container)
+	requires constraints::is_concurrent_container_v<_Container>
+_String to_string(const _Container& container)
 {
 	return to_string(container.concurrent().get());
 }
+#endif
 
 } // namespace janecekvit::conversions

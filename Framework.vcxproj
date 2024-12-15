@@ -19,27 +19,26 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Thread\ThreadPool.cpp" />
-    <ClCompile Include="Thread\ThreadPoolDynamic.cpp" />
+    <ClCompile Include="thread\sync_thread_pool.cpp" />
     <ClCompile Include="utility\conversions.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="exception\exception.h" />
-    <ClInclude Include="extensions\atomic_concurrent.h" />
-    <ClInclude Include="extensions\concurrent.h" />
+    <ClInclude Include="extensions\cloneable.h" />
     <ClInclude Include="extensions\constraints.h" />
     <ClInclude Include="extensions\extensions.h" />
     <ClInclude Include="extensions\finally.h" />
-    <ClInclude Include="extensions\getter_setter.h" />
+    <ClInclude Include="extensions\property.h" />
     <ClInclude Include="extensions\lazy.h" />
-    <ClInclude Include="extensions\resource_wrapper.h" />
-    <ClInclude Include="Interface\ICloneable.h" />
-    <ClInclude Include="Interface\ICRTP.h" />
-    <ClInclude Include="Sync\AtomicConditionVariable.h" />
-    <ClInclude Include="Sync\WaitForMultipleConditions.h" />
-    <ClInclude Include="Thread\IThreadPool.h" />
-    <ClInclude Include="Thread\ThreadPool.h" />
-    <ClInclude Include="Thread\ThreadPoolDynamic.h" />
+    <ClInclude Include="storage\heterogeneous_container.h" />
+    <ClInclude Include="storage\parameter_pack.h" />
+    <ClInclude Include="storage\resource_wrapper.h" />
+    <ClInclude Include="synchronization\signal.h" />
+    <ClInclude Include="synchronization\atomic_concurrent.h" />
+    <ClInclude Include="synchronization\concurrent.h" />
+    <ClInclude Include="synchronization\wait_for_multiple_signals.h" />
+    <ClInclude Include="thread\async.h" />
+    <ClInclude Include="thread\sync_thread_pool.h" />
     <ClInclude Include="tracing\trace.h" />
     <ClInclude Include="utility\conversions.h" />
   </ItemGroup>
@@ -144,6 +143,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
       <GenerateXMLDocumentationFiles>true</GenerateXMLDocumentationFiles>
+      <BrowseInformation>true</BrowseInformation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -152,6 +152,9 @@
     <Lib>
       <AdditionalDependencies>bcrypt.lib;Iphlpapi.lib;Crypt32.lib;Secur32.lib;Cryptnet.lib</AdditionalDependencies>
     </Lib>
+    <Bscmake>
+      <PreserveSbr>true</PreserveSbr>
+    </Bscmake>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>

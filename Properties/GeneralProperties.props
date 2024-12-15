@@ -8,7 +8,7 @@
 	</PropertyGroup>
 	<ItemDefinitionGroup>
 		<ClCompile>
-			<LanguageStandard>stdcpplatest</LanguageStandard>
+			<LanguageStandard>stdcpp20</LanguageStandard>
 			<ConformanceMode>true</ConformanceMode>
 		</ClCompile>
 		<Link>

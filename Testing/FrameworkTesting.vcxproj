@@ -103,6 +103,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir);$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <UseFullPaths>true</UseFullPaths>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -119,6 +120,8 @@
       <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir);$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <UseFullPaths>true</UseFullPaths>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <BrowseInformation>true</BrowseInformation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -126,6 +129,9 @@
       <Profile>true</Profile>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
     </Link>
+    <Bscmake>
+      <PreserveSbr>true</PreserveSbr>
+    </Bscmake>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -137,6 +143,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir);$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <UseFullPaths>true</UseFullPaths>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -157,6 +164,7 @@
       <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir);$(VCInstallDir)UnitTest\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <UseFullPaths>true</UseFullPaths>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -178,18 +186,31 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="test_async.cpp" />
     <ClCompile Include="test_atomic_concurrent.cpp" />
-    <ClCompile Include="TestConcurrent.cpp" />
-    <ClCompile Include="TestInterfaces.cpp" />
-    <ClCompile Include="TestExtensions.cpp" />
-    <ClCompile Include="TestThread.cpp" />
+    <ClCompile Include="test_cloneable.cpp" />
+    <ClCompile Include="test_constraints.cpp" />
+    <ClCompile Include="test_property.cpp" />
+    <ClCompile Include="test_signal.cpp" />
+    <ClCompile Include="test_concurrent.cpp" />
+    <ClCompile Include="test_extensions.cpp" />
+    <ClCompile Include="test_sync_thread_pool.cpp" />
     <ClCompile Include="test_exception.cpp" />
+    <ClCompile Include="test_finally.cpp" />
+    <ClCompile Include="test_heterogeneous_container.cpp" />
+    <ClCompile Include="test_lazy.cpp" />
+    <ClCompile Include="test_parameter_pack.cpp" />
+    <ClCompile Include="test_resource_wrapper.cpp" />
     <ClCompile Include="test_trace.cpp" />
+    <ClCompile Include="test_wait_for_multiple_signals.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Framework.vcxproj">
       <Project>{1dfd1e29-fa19-4da4-ba29-b060a564f8e9}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\done.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
