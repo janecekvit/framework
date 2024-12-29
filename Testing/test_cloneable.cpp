@@ -1,11 +1,10 @@
 #include "stdafx.h"
 
-#include "CppUnitTest.h"
 #include "extensions/cloneable.h"
 
-using namespace std::string_literals;
-using namespace Microsoft::VisualStudio::CppUnitTestFramework;
+#include <gtest/gtest.h>
 
+using namespace std::string_literals;
 
 struct impl : public virtual cloneable<impl>
 {
@@ -17,16 +16,24 @@ struct impl : public virtual cloneable<impl>
 
 namespace FrameworkTesting
 {
-ONLY_USED_AT_NAMESPACE_SCOPE class test_cloneable : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_cloneable> // expanded TEST_CLASS() macro due wrong formatting of clangformat
+class test_cloneable : public ::testing::Test
 {
-public:
-	TEST_METHOD(TestCloneable)
+protected:
+	void SetUp() override
 	{
-		auto s = std::make_unique<impl>();
-		auto f = s->clone();
-		Assert::IsNotNull(s.get());
-		Assert::IsNotNull(f.get());
-	};
+	}
+
+	void TearDown() override
+	{
+	}
+};
+
+TEST_F(test_cloneable, TestCloneable)
+{
+	auto s = std::make_unique<impl>();
+	auto f = s->clone();
+	ASSERT_NE(nullptr, s.get());
+	ASSERT_NE(nullptr, f.get());
 };
 
 } // namespace FrameworkTesting

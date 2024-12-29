@@ -169,7 +169,7 @@ public:
 #endif
 	{
 		_signalized = true;
-		_syncPrimitive.notify_one();
+		_syncPrimitive.notify_all();
 	}
 
 #ifdef __cpp_lib_semaphore

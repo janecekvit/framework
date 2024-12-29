@@ -1,111 +1,119 @@
 #include "stdafx.h"
 
-#include "CppUnitTest.h"
 #include "exception/exception.h"
 
-using namespace Microsoft::VisualStudio::CppUnitTestFramework;
+#include <gtest/gtest.h>
+
 using namespace janecekvit;
 
 namespace FrameworkTesting
 {
-ONLY_USED_AT_NAMESPACE_SCOPE class test_exception : public ::Microsoft::VisualStudio::CppUnitTestFramework::TestClass<test_exception> // expanded TEST_CLASS() macro due wrong formatting of clangformat
+class test_exception : public ::testing::Test
 {
-public:
+protected:
+	void SetUp() override
+	{
+	}
+
+	void TearDown() override
+	{
+	}
+};
+
 #ifdef __cpp_lib_concepts
 
-	std::string GetStringLocation(int origLine, int origColumn, std::string suffix, std::source_location location = std::source_location::current())
+std::string GetStringLocation(int origLine, int origColumn, std::string suffix, std::source_location location = std::source_location::current())
+{
+	return std::format("File: {}({}:{}) '{}'. {}", location.file_name(), origLine, origColumn, location.function_name(), suffix);
+}
+TEST_F(test_exception, TestSimpleTextException)
+{
+	try
 	{
-		return std::format("File: {}({}:{}) '{}'. {}", location.file_name(), origLine, origColumn, location.function_name(), suffix);
+		throw exception::exception("Ano: {}, Ne: {}.", std::make_tuple(true, false));
 	}
-	TEST_METHOD(TestSimpleTextException)
+	catch (const exception::exception& ex)
 	{
-		try
-		{
-			throw exception::exception("Ano: {}, Ne: {}.", std::make_tuple(true, false));
-		}
-		catch (const exception::exception& ex)
-		{
-			auto location = GetStringLocation(24, 30, "Ano: true, Ne: false.");
-			Assert::AreEqual(ex.what(), location.data());
-		}
-
-		try
-		{
-			throw exception::exception(std::source_location::current(), "Ano: {}, Ne: {}.", true, false);
-		}
-		catch (const std::exception& ex)
-		{
-			auto location = GetStringLocation(34, 53, "Ano: true, Ne: false.");
-			Assert::AreEqual(ex.what(), location.data());
-		}
-
-		try
-		{
-			throw exception::exception();
-		}
-		catch (const std::exception& ex)
-		{
-			auto location = GetStringLocation(44, 30, "");
-			Assert::AreEqual(ex.what(), location.data());
-		}
-
-		try
-		{
-			exception::throw_exception("Ano: {}, Ne: {}.", true, false);
-		}
-		catch (const std::exception& ex)
-		{
-			auto location = GetStringLocation(54, 30, "Ano: true, Ne: false.");
-			Assert::AreEqual(ex.what(), location.data());
-		}
+		auto location = GetStringLocation(33, 29, "Ano: true, Ne: false.");
+		ASSERT_EQ(ex.what(), location);
 	}
 
-	TEST_METHOD(TestWideTextException)
+	try
 	{
-		try
-		{
-			throw exception::exception(L"Ano: {}, Ne: {}.", std::make_tuple(true, false));
-		}
-		catch (const std::exception& ex)
-		{
-			auto location = GetStringLocation(67, 30, "Ano: true, Ne: false.");
-			Assert::AreEqual(ex.what(), location.data());
-		}
-
-		try
-		{
-			throw exception::exception(std::source_location::current(), L"Ano: {}, Ne: {}.", true, false);
-		}
-		catch (const std::exception& ex)
-		{
-			auto location = GetStringLocation(77, 53, "Ano: true, Ne: false.");
-			Assert::AreEqual(ex.what(), location.data());
-		}
-
-		try
-		{
-			throw exception::exception();
-		}
-		catch (const std::exception& ex)
-		{
-			auto location = GetStringLocation(87, 30, "");
-			Assert::AreEqual(ex.what(), location.data());
-		}
-
-		try
-		{
-			exception::throw_exception(L"Ano: {}, Ne: {}.", true, false);
-		}
-		catch (const std::exception& ex)
-		{
-			auto location = GetStringLocation(97, 30, "Ano: true, Ne: false.");
-			Assert::AreEqual(ex.what(), location.data());
-		}
+		throw exception::exception(std::source_location::current(), "Ano: {}, Ne: {}.", true, false);
 	}
+	catch (const std::exception& ex)
+	{
+		auto location = GetStringLocation(43, 52, "Ano: true, Ne: false.");
+		ASSERT_EQ(ex.what(), location);
+	}
+
+	try
+	{
+		throw exception::exception();
+	}
+	catch (const std::exception& ex)
+	{
+		auto location = GetStringLocation(53, 29, "");
+		ASSERT_EQ(ex.what(), location);
+	}
+
+	try
+	{
+		exception::throw_exception("Ano: {}, Ne: {}.", true, false);
+	}
+	catch (const std::exception& ex)
+	{
+		auto location = GetStringLocation(63, 29, "Ano: true, Ne: false.");
+		ASSERT_EQ(ex.what(), location);
+	}
+}
+
+TEST_F(test_exception, TestWideTextException)
+{
+	try
+	{
+		throw exception::exception(L"Ano: {}, Ne: {}.", std::make_tuple(true, false));
+	}
+	catch (const std::exception& ex)
+	{
+		auto location = GetStringLocation(76, 29, "Ano: true, Ne: false.");
+		ASSERT_EQ(ex.what(), location);
+	}
+
+	try
+	{
+		throw exception::exception(std::source_location::current(), L"Ano: {}, Ne: {}.", true, false);
+	}
+	catch (const std::exception& ex)
+	{
+		auto location = GetStringLocation(86, 52, "Ano: true, Ne: false.");
+		ASSERT_EQ(ex.what(), location);
+	}
+
+	try
+	{
+		throw exception::exception();
+	}
+	catch (const std::exception& ex)
+	{
+		auto location = GetStringLocation(96, 29, "");
+		ASSERT_EQ(ex.what(), location);
+	}
+
+	try
+	{
+		exception::throw_exception(L"Ano: {}, Ne: {}.", true, false);
+	}
+	catch (const std::exception& ex)
+	{
+		auto location = GetStringLocation(106, 29, "Ano: true, Ne: false.");
+		ASSERT_EQ(ex.what(), location);
+	}
+}
 #else
-	TEST_METHOD(TestExceptionNotSupportedConcepts)
-	{
-	}
+TEST_F(test_exception, TestExceptionNotSupportedConcepts)
+{
+}
 #endif
-};
 } // namespace FrameworkTesting

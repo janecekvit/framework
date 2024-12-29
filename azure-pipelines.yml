@@ -1,30 +1,76 @@
-# Universal Windows Platform
-# Build a Universal Windows Platform project using Visual Studio.
-# Add steps that test and distribute an app, save build artifacts, and more:
-# https://aka.ms/yaml
-
 trigger:
 - master
 
 pool:
-  vmImage: 'windows-2022'
+  vmImage: 'windows-latest'
 
 variables:
   solution: '**/*.sln'
-  buildPlatform: 'x86|x64|ARM'
+  buildPlatform: 'x64'
   buildConfiguration: 'Release'
   appxPackageDir: '$(build.artifactStagingDirectory)\AppxPackages\\'
+  vcpkgRoot: '$(Build.SourcesDirectory)\vcpkg'
 
 steps:
+- checkout: self
+  displayName: "Checkout repository"
+
+- task: Cache@2
+  inputs:
+    key: 'vcpkg | $(Agent.OS) | $(buildPlatform)'
+    path: '$(vcpkgRoot)'
+  displayName: "Restore vcpkg from cache"
+
+- script: |
+    if not exist "$(vcpkgRoot)" (
+      git clone https://github.com/microsoft/vcpkg.git $(vcpkgRoot)
+    )
+    cd $(vcpkgRoot)
+    bootstrap-vcpkg.bat
+  displayName: "Install vcpkg"
+
+- script: |
+    $(vcpkgRoot)/vcpkg.exe install gtest:$(buildPlatform)-windows
+  displayName: "Install Google Test dependencies"
+
+- script: |
+    dir $(vcpkgRoot)\installed
+    dir $(vcpkgRoot)\installed\$(buildPlatform)-windows\lib
+    dir $(vcpkgRoot)\installed\$(buildPlatform)-windows\lib\manual-link
+    dir $(vcpkgRoot)\installed\$(buildPlatform)-windows\include\gtest
+  displayName: "Verify vcpkg && gtest installation"
+
 - task: NuGetToolInstaller@1
 
 - task: NuGetCommand@2
   inputs:
     restoreSolution: '$(solution)'
+  displayName: "Restore NuGet packages"
 
 - task: VSBuild@1
   inputs:
-    platform: 'x86'
+    platform: '$(buildPlatform)'
     solution: '$(solution)'
     configuration: '$(buildConfiguration)'
-    msbuildArgs: '/p:AppxBundlePlatforms="$(buildPlatform)" /p:AppxPackageDir="$(appxPackageDir)" /p:AppxBundle=Always /p:UapAppxPackageBuildMode=StoreUpload'
+    msbuildArgs: '
+    /p:AppxBundlePlatforms="$(buildPlatform)" 
+    /p:AppxPackageDir="$(appxPackageDir)" 
+    /p:AppxBundle=Always 
+    /p:UapAppxPackageBuildMode=StoreUpload 
+    /p:VcpkgRoot="$(vcpkgRoot)" 
+    /p:VcpkgTriplet="$(buildPlatform)-windows" 
+    /p:AdditionalIncludeDirectories="$(vcpkgRoot)\installed\$(buildPlatform)-windows\include"
+    /p:AdditionalLibraryDirectories="$(vcpkgRoot)\installed\$(buildPlatform)-windows\lib;$(vcpkgRoot)\installed\$(buildPlatform)-windows\lib\manual-link"'
+
+- script: |
+    $(Build.SourcesDirectory)\$(buildPlatform)\$(buildConfiguration)\FrameworkTests.exe --gtest_output=xml:TestResults.xml
+  displayName: "Run tests"
+  continueOnError: true
+
+
+- task: PublishTestResults@2
+  inputs:
+    testResultsFiles: '**/TestResults.xml'
+    testRunTitle: 'Google Unit Tests'
+    mergeTestResults: true
+  displayName: "Publish test results"
