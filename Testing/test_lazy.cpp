@@ -5,7 +5,8 @@
 #include <gtest/gtest.h>
 
 using namespace janecekvit;
-namespace FrameworkTesting
+
+namespace framework_tests
 {
 class test_lazy : public ::testing::Test
 {
@@ -118,4 +119,4 @@ TEST_F(test_lazy, TestLazyMethodChangedValuesByParameter)
 	auto lazy_action = extensions::lazy(std::move(lambda), 5, 6);
 	ASSERT_EQ(lazy_action(5, 9), 14); // throw out old values
 }
-} // namespace FrameworkTesting
+} // namespace framework_tests

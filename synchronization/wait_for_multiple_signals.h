@@ -19,29 +19,29 @@ template <class _Enum, class _SyncPrimitive = std::condition_variable_any>
 class wait_for_multiple_signals
 {
 private:
-	using _Predicate = typename std::function<bool()>;
+	using predicate = typename std::function<bool()>;
 
 public:
-	wait_for_multiple_signals()			 = default;
+	wait_for_multiple_signals() = default;
 	virtual ~wait_for_multiple_signals() = default;
 
-	template <class TLock>
+	template <class _TLock>
 #ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
-	[[nodiscard]] _Enum wait(TLock& lock) const
+	[[nodiscard]] _Enum wait(_TLock& lock) const
 	{
-		_syncPrimitive.wait(lock);
+		_primitive.wait(lock);
 		return _get_state();
 	}
 
-	template <class TLock>
+	template <class _TLock>
 #ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
-	[[nodiscard]] _Enum wait(TLock& lock, _Predicate&& pred) const
+	[[nodiscard]] _Enum wait(_TLock& lock, predicate&& pred) const
 	{
-		_syncPrimitive.wait(lock, std::move(pred));
+		_primitive.wait(lock, std::move(pred));
 		return _get_state();
 	}
 
@@ -49,59 +49,59 @@ public:
 	[[nodiscard]] _Enum wait() const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
-		_syncPrimitive.wait();
+		_primitive.wait();
 		return _get_state();
 	}
 #endif
 
 #ifdef __cpp_lib_semaphore
-	[[nodiscard]] _Enum wait(_Predicate&& pred) const
+	[[nodiscard]] _Enum wait(predicate&& pred) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
-		_syncPrimitive.wait(std::move(pred));
+		_primitive.wait(std::move(pred));
 		return _get_state();
 	}
 #endif
 
-	template <class TLock, class TRep, class TPeriod>
+	template <class _TLock, class _TRep, class _TPeriod>
 #ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
-	[[nodiscard]] std::optional<_Enum> wait_for(TLock& lock, const std::chrono::duration<TRep, TPeriod>& rel_time, std::optional<_Predicate>&& pred = {}) const
+	[[nodiscard]] std::optional<_Enum> wait_for(_TLock& lock, const std::chrono::duration<_TRep, _TPeriod>& rel_time, std::optional<predicate>&& pred = {}) const
 	{
-		if (_syncPrimitive.wait_for(lock, rel_time, std::move(pred)))
+		if (_primitive.wait_for(lock, rel_time, std::move(pred)))
 			return _get_state();
 		return {};
 	}
 
 #ifdef __cpp_lib_semaphore
-	template <class TRep, class TPeriod>
-	[[nodiscard]] std::optional<_Enum> wait_for(const std::chrono::duration<TRep, TPeriod>& rel_time, std::optional<_Predicate>&& pred = {}) const
+	template <class _TRep, class _TPeriod>
+	[[nodiscard]] std::optional<_Enum> wait_for(const std::chrono::duration<_TRep, _TPeriod>& rel_time, std::optional<predicate>&& pred = {}) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
-		if (_syncPrimitive.wait_for(rel_time, std::move(pred)))
+		if (_primitive.wait_for(rel_time, std::move(pred)))
 			return _get_state();
 		return {};
 	}
 #endif
 
-	template <class TLock, class TClock, class TDuration>
+	template <class _TLock, class _TClock, class _TDuration>
 #ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
-	[[nodiscard]] std::optional<_Enum> wait_until(TLock& lock, const std::chrono::time_point<TClock, TDuration>& timeout_time, std::optional<_Predicate>&& pred = {}) const
+	[[nodiscard]] std::optional<_Enum> wait_until(_TLock& lock, const std::chrono::time_point<_TClock, _TDuration>& timeout_time, std::optional<predicate>&& pred = {}) const
 	{
-		if (_syncPrimitive.wait_until(lock, timeout_time, std::move(pred)))
+		if (_primitive.wait_until(lock, timeout_time, std::move(pred)))
 			return _get_state();
 		return {};
 	}
 
 #ifdef __cpp_lib_semaphore
-	template <class TClock, class TDuration>
-	[[nodiscard]] std::optional<_Enum> wait_until(const std::chrono::time_point<TClock, TDuration>& timeout_time, std::optional<_Predicate>&& pred = {}) const
+	template <class _TClock, class _TDuration>
+	[[nodiscard]] std::optional<_Enum> wait_until(const std::chrono::time_point<_TClock, _TDuration>& timeout_time, std::optional<predicate>&& pred = {}) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
-		if (_syncPrimitive.wait_until(timeout_time, std::move(pred)))
+		if (_primitive.wait_until(timeout_time, std::move(pred)))
 			return _get_state();
 		return {};
 	}
@@ -110,7 +110,7 @@ public:
 	void signalize(_Enum state) noexcept
 	{
 		_state = static_cast<std::underlying_type_t<_Enum>>(state);
-		_syncPrimitive.signalize();
+		_primitive.signalize();
 	}
 
 private:
@@ -120,7 +120,7 @@ private:
 	}
 
 private:
-	mutable signal<_SyncPrimitive> _syncPrimitive;
+	mutable signal<_SyncPrimitive> _primitive;
 	mutable std::atomic<std::underlying_type_t<_Enum>> _state;
 };
 

@@ -14,7 +14,7 @@ class lazy_action
 public:
 	template <class _F, std::enable_if_t<std::is_invocable_v<_F, _Args...>, int> = 0>
 	lazy_action(_F&& evulator, _Args&&... args)
-		: _evaluator(evulator)
+		: _evaluator(std::forward<_F>(evulator))
 		, _arguments(std::make_tuple(std::forward<_Args>(args)...))
 	{
 	}

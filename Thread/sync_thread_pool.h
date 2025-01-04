@@ -20,7 +20,7 @@ LIABILITY, WHETHER IN AN ACTION OF  CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-CThreadPool.h
+sync_thread_pool.h
 Purpose: header file of static thread pool class
 
 @author: Vit Janecek
@@ -30,14 +30,13 @@ Purpose: header file of static thread pool class
 
 #pragma once
 #include "synchronization/concurrent.h"
-// #include "thread/thread_pool.h"
 #include "synchronization/wait_for_multiple_signals.h"
 
 #include <atomic>
+#include <functional>
 #include <future>
 #include <list>
 #include <queue>
-#include <functional>
 
 namespace janecekvit::thread
 {
@@ -48,15 +47,15 @@ namespace janecekvit::thread
 class sync_thread_pool
 {
 public:
-#ifdef __cpp_lib_move_only_function	
-	using _Task			 = typename std::move_only_function<void()>;
+#ifdef __cpp_lib_move_only_function
+	using task = typename std::move_only_function<void()>;
 #else
 
 	class move_only_function
 	{
 		struct callable_base
 		{
-			virtual ~callable_base()  = default;
+			virtual ~callable_base() = default;
 			virtual void operator()() = 0;
 		};
 
@@ -72,7 +71,8 @@ public:
 			{
 				_function();
 			}
-			
+
+		private:
 			_Fn _function;
 		};
 
@@ -80,9 +80,9 @@ public:
 		move_only_function() = default;
 		virtual ~move_only_function() = default;
 
-		template <typename F>
-		move_only_function(F&& f)
-			: _function(std::make_unique<callable<F>>(std::move(f)))
+		template <typename _F>
+		move_only_function(_F&& f)
+			: _function(std::make_unique<callable<_F>>(std::move(f)))
 		{
 		}
 
@@ -98,7 +98,7 @@ public:
 			return *this;
 		}
 
-		move_only_function(const move_only_function&)			 = delete;
+		move_only_function(const move_only_function&) = delete;
 		move_only_function& operator=(const move_only_function&) = delete;
 
 		void operator()()
@@ -116,9 +116,8 @@ public:
 		std::unique_ptr<callable_base> _function;
 	};
 
-
-	using _Task			 = typename move_only_function;
-#endif // __cpp_lib_move_only_function	
+	using task = typename move_only_function;
+#endif // __cpp_lib_move_only_function
 
 private:
 	class worker
@@ -127,18 +126,19 @@ private:
 		worker(sync_thread_pool& parent);
 		virtual ~worker();
 
-		private:
-#ifdef __cpp_lib_jthread	
+	private:
+#ifdef __cpp_lib_jthread
 		std::jthread _thread;
-#else	
+#else
 		std::thread _thread;
 #endif
 	};
 
 public:
-	sync_thread_pool(size_t uiPoolSize);
+	sync_thread_pool(size_t size);
+
 public:
-	virtual ~sync_thread_pool(); 
+	virtual ~sync_thread_pool();
 
 	template <typename _Fn>
 		requires std::is_invocable_v<_Fn>
@@ -156,7 +156,6 @@ public:
 				x();
 			});
 		_event.signalize(state::Ready);
-		
 	}
 
 	template <typename _Fn>
@@ -175,7 +174,7 @@ public:
 			{
 				x();
 			});
-		
+
 		_event.signalize(state::Ready);
 		return future;
 	}
@@ -185,8 +184,8 @@ public:
 
 protected: // getters && setters
 	void _work();
-	std::list<worker> _add_workers(size_t uWorkerCount) noexcept;
-	std::optional<_Task> _get_task() noexcept;
+	std::list<worker> _add_workers(size_t count) noexcept;
+	std::optional<task> _get_task() noexcept;
 
 private:
 	enum class state
@@ -195,9 +194,9 @@ private:
 		Exit
 	};
 
-	std::atomic<size_t> _exitedWorkers = 0; // TODO: remove When condition variable notify all finished
+	std::atomic<size_t> _exited_workers_count = 0; // TODO: remove When condition variable notify all finished
 	synchronization::wait_for_multiple_signals<state> _event;
-	synchronization::concurrent::queue<_Task> _tasks;
+	synchronization::concurrent::queue<task> _tasks;
 	const std::list<worker> _workers;
 };
 

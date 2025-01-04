@@ -14,7 +14,7 @@ struct impl : public virtual cloneable<impl>
 	}
 };
 
-namespace FrameworkTesting
+namespace framework_tests
 {
 class test_cloneable : public ::testing::Test
 {
@@ -36,4 +36,4 @@ TEST_F(test_cloneable, TestCloneable)
 	ASSERT_NE(nullptr, f.get());
 };
 
-} // namespace FrameworkTesting
+} // namespace framework_tests

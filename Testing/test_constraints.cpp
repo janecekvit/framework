@@ -68,7 +68,7 @@ struct PortsCmp
 	}
 };
 
-namespace FrameworkTesting
+namespace framework_tests
 {
 class test_constraints : public ::testing::Test
 {
@@ -98,6 +98,7 @@ TEST_F(test_constraints, TestContainerTraitsSTL)
 	ASSERT_EQ(constraints::is_container_v<decltype(uset)>, true);
 	ASSERT_EQ(constraints::is_container_v<decltype(umap)>, true);
 }
+
 TEST_F(test_constraints, TestContainerTraits)
 {
 	struct WithoutEnd
@@ -117,6 +118,7 @@ TEST_F(test_constraints, TestContainerTraits)
 		int* begin();
 		int* end();
 	};
+
 	{
 		int* end();
 		size_t size();
@@ -144,4 +146,4 @@ TEST_F(test_constraints, TestContainerTraits)
 	ASSERT_EQ(constraints::is_container_v<decltype(f)>, true);
 }
 
-} // namespace FrameworkTesting
+} // namespace framework_tests

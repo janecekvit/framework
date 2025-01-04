@@ -16,15 +16,15 @@ template <std::invocable _F, class _E = constraints::default_exception_callback>
 class final_action
 {
 public:
-	final_action(_F&& fnCallback)
-		: _callback(std::forward<_F>(fnCallback))
+	final_action(_F&& callback)
+		: _callback(std::forward<_F>(callback))
 	{
 	}
 
-	final_action(_F&& fnCallback, _E&& fnExceptionCallback)
+	final_action(_F&& callback, _E&& exception_callback)
 		requires(std::is_invocable_v<_E, const std::exception&>)
-		: _callback(std::forward<_F>(fnCallback))
-		, _exceptionCallback(std::forward<_E>(fnExceptionCallback))
+		: _callback(std::forward<_F>(callback))
+		, _exception_callback(std::forward<_E>(exception_callback))
 	{
 	}
 
@@ -37,13 +37,13 @@ public:
 		catch (const std::exception& ex)
 		{
 			if constexpr (!std::is_same_v<_E, constraints::default_exception_callback>)
-				_exceptionCallback(ex);
+				_exception_callback(ex);
 		}
 	}
 
 private:
 	const _F _callback{};
-	const _E _exceptionCallback{};
+	const _E _exception_callback{};
 };
 
 ///// <summary>
@@ -73,9 +73,9 @@ template <std::invocable _F, class... _Args>
 /// finally call wraps final_action to easily call it.
 /// </summary>
 template <std::invocable _F, class _E, class... _Args>
-[[nodiscard]] decltype(auto) finally(_F&& callback, _E&& exceptionCallback)
+[[nodiscard]] decltype(auto) finally(_F&& callback, _E&& exception_callback)
 {
-	return final_action<_F, _E>{ std::forward<_F>(callback), std::forward<_E>(exceptionCallback) };
+	return final_action<_F, _E>{ std::forward<_F>(callback), std::forward<_E>(exception_callback) };
 }
 
 #else
@@ -88,8 +88,8 @@ class final_action
 {
 public:
 	template <std::enable_if_t<std::is_invocable_v<_F>, int> = 0>
-	final_action(_F&& fnCallback)
-		: _callback(std::forward<_F>(fnCallback))
+	final_action(_F&& callback)
+		: _callback(std::forward<_F>(callback))
 	{
 	}
 

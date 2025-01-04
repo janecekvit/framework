@@ -20,8 +20,8 @@ sync_thread_pool::worker::~worker()
 		_thread.join();
 }
 
-sync_thread_pool::sync_thread_pool(size_t uiPoolSize)
-	: _workers(_add_workers(uiPoolSize))
+sync_thread_pool::sync_thread_pool(size_t size)
+	: _workers(_add_workers(size))
 {
 }
 
@@ -30,9 +30,9 @@ sync_thread_pool::~sync_thread_pool()
 	for (size_t position = 0; position < _workers.size(); position++)
 	{
 		_event.signalize(state::Exit);
-		
+
 		// wait for the worker to exit
-		for (; _exitedWorkers == position;)
+		for (; _exited_workers_count == position;)
 			std::this_thread::yield();
 	}
 }
@@ -60,26 +60,26 @@ void sync_thread_pool::_work()
 		}
 	}
 
-	_exitedWorkers++;
+	_exited_workers_count++;
 }
 
-std::list<sync_thread_pool::worker> sync_thread_pool::_add_workers(size_t uWorkerCount) noexcept
+std::list<sync_thread_pool::worker> sync_thread_pool::_add_workers(size_t count) noexcept
 {
 	std::list<sync_thread_pool::worker> workers;
-	for (size_t uCount = 0; uCount < uWorkerCount; uCount++)
+	for (size_t counter = 0; counter < count; counter++)
 		workers.emplace_back(*this);
 
 	return workers;
 }
 
-std::optional<sync_thread_pool::_Task> sync_thread_pool::_get_task() noexcept
+std::optional<sync_thread_pool::task> sync_thread_pool::_get_task() noexcept
 {
 	// Wait for the signal and unblock queue until the signal will be received
 	auto state = _event.wait();
 	if (state == state::Exit)
 		return {};
 
-	auto&& scope	   = _tasks.exclusive();
+	auto&& scope = _tasks.exclusive();
 	auto fnCurrentTask = std::move(scope->front());
 	scope->pop();
 	return fnCurrentTask;

@@ -12,20 +12,13 @@
 #include <string>
 #include <thread>
 
+#if defined(__experimental)
+
 using namespace janecekvit;
-using namespace janecekvit::synchronization;
+using namespace janecekvit::experimental::synchronization;
 
-namespace FrameworkTesting
+namespace framework_tests
 {
-template <template <class...> class TContainer, class TItem, std::enable_if_t<constraints::is_container_v<TContainer<TItem>>, int> = 0>
-void ContainerTest(const TContainer<TItem>& oContainer)
-{
-	int i = 0;
-	for (auto&& oItem : oContainer)
-		i++;
-
-	i *= 2;
-}
 
 constexpr size_t IterationCount = 500000;
 
@@ -166,6 +159,7 @@ TEST_F(test_atomic_atomic_concurrent, TestWriterAccessMultipleThreads)
 	thread2.join();
 	ASSERT_EQ((int) IterationCount * 2 + 1, (int) container->writer());
 }
+
 TEST_F(test_atomic_atomic_concurrent, TestReaderAccessDirect)
 {
 	auto&& container = _prepare_testing_data();
@@ -243,7 +237,6 @@ TEST_F(test_atomic_atomic_concurrent, TestReaderAccessMultipleThreads)
 			for (size_t i = 0; i < IterationCount; i++)
 			{
 				auto&& reader = container->reader();
-				int val = reader;
 			}
 		});
 
@@ -556,4 +549,6 @@ TEST_F(test_atomic_atomic_concurrent, FechAdd)
 	ASSERT_EQ(loopCount * 2, container.load());
 }
 
-} // namespace FrameworkTesting
+} // namespace framework_tests
+
+#endif

@@ -15,7 +15,7 @@
 using namespace janecekvit;
 using namespace std::string_literals;
 
-namespace FrameworkTesting
+namespace framework_tests
 {
 class test_extensions : public ::testing::Test
 {
@@ -31,7 +31,9 @@ protected:
 
 TEST_F(test_extensions, TestExecuteOnContainerObject)
 {
-	std::unordered_map<size_t, std::string> myMap = { { 5, "tezko" } };
+	std::unordered_map<size_t, std::string> myMap = {
+		{ 5, "tezko" }
+	};
 	auto value1 = extensions::execute_on_container(myMap, 5, [](std::string& oResult)
 		{
 			return 20;
@@ -45,9 +47,12 @@ TEST_F(test_extensions, TestExecuteOnContainerObject)
 	ASSERT_EQ(value1, 20);
 	ASSERT_EQ(value2, 0);
 }
+
 TEST_F(test_extensions, TestExecuteOnContainerObjectConst)
 {
-	const std::unordered_map<size_t, std::string> myMap = { { 5, "tezko" } };
+	const std::unordered_map<size_t, std::string> myMap = {
+		{ 5, "tezko" }
+	};
 	auto value1 = extensions::execute_on_container(myMap, 5, [](const std::string& oResult)
 		{
 			return 20;
@@ -90,12 +95,12 @@ TEST_F(test_extensions, TestRecast)
 
 TEST_F(test_extensions, TestTupleGenerate)
 {
-	auto fnCallback = [](auto&&... oArgs) -> int
+	auto callback = [](auto&&... oArgs) -> int
 	{
 		auto tt = std::forward_as_tuple(oArgs...);
 		return std::get<0>(tt);
 	};
-	auto oResultGenerator = extensions::tuple::generate<10>(fnCallback);
+	auto oResultGenerator = extensions::tuple::generate<10>(callback);
 	ASSERT_EQ(oResultGenerator, std::make_tuple(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
 }
 
@@ -124,4 +129,4 @@ TEST_F(test_extensions, TestHashFunction)
 #endif
 }
 
-} // namespace FrameworkTesting
+} // namespace framework_tests

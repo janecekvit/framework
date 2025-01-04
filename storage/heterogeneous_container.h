@@ -1,7 +1,7 @@
 #pragma once
 
-#include "extensions/extensions.h"
 #include "exception/exception.h"
+#include "extensions/extensions.h"
 #include "synchronization/concurrent.h"
 
 #include <any>
@@ -26,65 +26,66 @@ template <class... _UserDefinedTypes>
 class heterogeneous_container final
 {
 public:
-	using DefaultKnownTypes = std::variant<
+	using default_known_types = std::variant<
 		bool, short, unsigned short, int, unsigned int, long, unsigned long, float, double, size_t, std::byte,
 		char, char*, const char*, wchar_t, wchar_t*, const wchar_t*, std::string, std::wstring, std::u8string, std::u16string, std::u32string>;
 
-	using KnownTypes = std::conditional_t<
+	using known_types = std::conditional_t<
 		sizeof...(_UserDefinedTypes) == 0,
-		DefaultKnownTypes,
-		constraints::unify_variant_t<DefaultKnownTypes, std::variant<_UserDefinedTypes...>>>;
+		default_known_types,
+		constraints::unify_variant_t<default_known_types, std::variant<_UserDefinedTypes...>>>;
 
 	template <typename _T>
-	static constexpr bool IsKnownType = constraints::is_type_in_variant_v<_T, KnownTypes>;
+	static constexpr bool is_known_type = constraints::is_type_in_variant_v<_T, known_types>;
 
 public:
 	class bad_access : public exception::exception
 	{
 	public:
-		bad_access(const std::type_info& typeInfo, const std::string& error, std::source_location&& srcl = std::source_location::current())
-			: exception::exception(std::move(srcl), "heterogeneous_container: {} with type: {}", error, typeInfo.name())
-			, _typeInfo(typeInfo)
+		bad_access(const std::type_info& type_info, const std::string& error, std::source_location&& srcl = std::source_location::current())
+			: exception::exception(std::move(srcl), "heterogeneous_container: {} with type: {}", error, type_info.name())
+			, _type_info(type_info)
 		{
 		}
 
-		bad_access(const std::type_info& typeInfo, const std::exception& ex, std::source_location&& srcl = std::source_location::current())
-			: exception::exception(std::move(srcl), "heterogeneous_container: {} with type: {}", std::string(ex.what()), typeInfo.name())
-			, _typeInfo(typeInfo)
+		bad_access(const std::type_info& type_info, const std::exception& ex, std::source_location&& srcl = std::source_location::current())
+			: exception::exception(std::move(srcl), "heterogeneous_container: {} with type: {}", std::string(ex.what()), type_info.name())
+			, _type_info(type_info)
 		{
 		}
 
 		const std::type_info& type_info() const noexcept
 		{
-			return _typeInfo;
+			return _type_info;
 		}
 
 	private:
-		const std::type_info& _typeInfo;
+		const std::type_info& _type_info;
 	};
 
 public:
 	class item
 	{
 	public:
-		template <typename _T, std::enable_if_t<constraints::is_type_in_variant_v<std::decay_t<_T>, KnownTypes>, int> = 0>
+		template <typename _T, std::enable_if_t<constraints::is_type_in_variant_v<std::decay_t<_T>, known_types>, int> = 0>
 		item(_T&& value)
 			: _key(TypeKey<std::decay_t<_T>>)
-			,_value(std::in_place_type<KnownTypes>, KnownTypes(std::in_place_type<std::decay_t<_T>>, std::forward<_T>(value)))
+			, _value(std::in_place_type<known_types>, known_types(std::in_place_type<std::decay_t<_T>>, std::forward<_T>(value)))
 		{
 		}
 
-		template <typename _T, std::enable_if_t<!constraints::is_type_in_variant_v<std::decay_t<_T>, KnownTypes>, int> = 0>
+		template <typename _T, std::enable_if_t<!constraints::is_type_in_variant_v<std::decay_t<_T>, known_types>, int> = 0>
 		item(_T&& value)
 			: _key(TypeKey<std::decay_t<_T>>)
 			, _value(std::in_place_type<std::any>, std::make_any<_T>(std::forward<_T>(value)))
 		{
 		}
+
 		template <typename _T>
 		[[nodiscard]] constexpr bool is_type() const
 		{
 			return TypeKey<_T> == _key;
-			/*constexpr const auto fnCallback = [](auto&& value) -> const bool
+			/*constexpr const auto callback = [](auto&& value) -> const bool
 			{
 				return std::visit([](auto&& value) -> const bool
 					{
@@ -94,10 +95,9 @@ public:
 			};
 
 			if constexpr (heterogeneous_container::IsKnownType<_T>)
-				return fnCallback(std::get<KnownTypes>(_value));
+				return callback(std::get<KnownTypes>(_value));
 			else
 				return (std::get<std::any>(_value).type() == typeid(_T));*/
-
 		}
 
 		template <typename _T>
@@ -109,19 +109,19 @@ public:
 		template <typename _T>
 		constexpr const auto& get() const
 		{
-			if constexpr (heterogeneous_container::IsKnownType<_T>)
-				return std::as_const(std::get<_T>(std::get<KnownTypes>(_value)));
+			if constexpr (heterogeneous_container::is_known_type<_T>)
+				return std::as_const(std::get<_T>(std::get<known_types>(_value)));
 			else
 				return std::any_cast<const _T&>(std::get<std::any>(_value));
 		}
 
-	private:	
+	private:
 		const size_t _key = 0;
-		std::variant<KnownTypes, std::any> _value;
+		std::variant<known_types, std::any> _value;
 	};
 
 private:
-	struct CustomHasher
+	struct custom_hasher
 	{
 		std::size_t operator()(size_t key) const noexcept
 		{
@@ -129,10 +129,9 @@ private:
 		}
 	};
 
-	using Container = std::unordered_map<size_t, std::vector<item>, CustomHasher>;
+	using container = std::unordered_map<size_t, std::vector<item>, custom_hasher>;
 
 public:
-	
 	template <bool _IsConst>
 	class base_iterator
 	{
@@ -144,30 +143,30 @@ public:
 		using reference = std::conditional_t<_IsConst, const item&, item&>;
 
 	public:
-		base_iterator(Container::iterator mapIt, Container::iterator mapEnd, size_t vectorIndex = 0)
-			: _mapIt(mapIt)
-			, _mapEnd(mapEnd)
-			, _vectorIndex(vectorIndex)
+		base_iterator(container::iterator it, container::iterator end, size_t index = 0)
+			: _map_it(it)
+			, _map_end(end)
+			, _vector_index(index)
 		{
 		}
 
 		reference operator*() const
 		{
-			return const_cast<reference>(_mapIt->second[_vectorIndex]);
+			return const_cast<reference>(_map_it->second[_vector_index]);
 		}
 
 		pointer operator->() const
 		{
-			return const_cast<pointer>(&(_mapIt->second[_vectorIndex]));
+			return const_cast<pointer>(&(_map_it->second[_vector_index]));
 		}
 
 		base_iterator& operator++()
 		{
-			++_vectorIndex;
-			if (_mapIt != _mapEnd && _vectorIndex >= _mapIt->second.size())
+			++_vector_index;
+			if (_map_it != _map_end && _vector_index >= _map_it->second.size())
 			{
-				++_mapIt;
-				_vectorIndex = 0;
+				++_map_it;
+				_vector_index = 0;
 			}
 			return *this;
 		}
@@ -181,14 +180,14 @@ public:
 
 		base_iterator& operator--()
 		{
-			if (_mapIt == _mapEnd || _vectorIndex == 0)
+			if (_map_it == _map_end || _vector_index == 0)
 			{
-				--_mapIt;
-				_vectorIndex = _mapIt->second.size() - 1;
+				--_map_it;
+				_vector_index = _map_it->second.size() - 1;
 			}
 			else
 			{
-				--_vectorIndex;
+				--_vector_index;
 			}
 			return *this;
 		}
@@ -202,7 +201,7 @@ public:
 
 		bool operator==(const base_iterator& other) const
 		{
-			return _mapIt == other._mapIt && _vectorIndex == other._vectorIndex;
+			return _map_it == other._map_it && _vector_index == other._vector_index;
 		}
 
 		bool operator!=(const base_iterator& other) const
@@ -210,10 +209,10 @@ public:
 			return !(*this == other);
 		}
 
-	protected:
-		Container::iterator _mapIt;
-		Container::iterator _mapEnd;
-		size_t _vectorIndex;
+	private:
+		container::iterator _map_it;
+		container::iterator _map_end;
+		size_t _vector_index;
 	};
 
 	class iterator : public base_iterator<false>
@@ -314,15 +313,15 @@ public:
 	}
 
 	template <class _T, class _Callable>
-	constexpr void visit(_Callable&& fnCallback)
+	constexpr void visit(_Callable&& callback)
 	{
-		_visit<_T, false>(std::forward<_Callable>(fnCallback));
+		_visit<_T, false>(std::forward<_Callable>(callback));
 	}
 
 	template <class _T, class _Callable>
-	constexpr void visit(_Callable&& fnCallback) const
+	constexpr void visit(_Callable&& callback) const
 	{
-		_visit<_T, true>(std::forward<_Callable>(fnCallback));
+		_visit<_T, true>(std::forward<_Callable>(callback));
 	}
 
 #ifdef __cpp_lib_concepts
@@ -343,9 +342,9 @@ public:
 #else
 	template <class _Func, class... _Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<_Func, _Args...>, _Func, _Args...>, int> = 0>
 #endif // __cpp_lib_concepts
-	constexpr decltype(auto) call(size_t uPosition, _Args&&... args) const
+	constexpr decltype(auto) call(size_t position, _Args&&... args) const
 	{
-		auto&& oFunc = get<_Func>(uPosition);
+		auto&& oFunc = get<_Func>(position);
 		return std::invoke(oFunc, std::forward<_Args>(args)...);
 	}
 
@@ -466,8 +465,8 @@ private:
 	{
 		try
 		{
-			using Value = std::conditional_t<_IsConst, const _T, _T>;
-			std::list<std::reference_wrapper<Value>> values = {};
+			using _Value = std::conditional_t<_IsConst, const _T, _T>;
+			std::list<std::reference_wrapper<_Value>> values = {};
 
 			auto& storage = _get_storage_by_find<_T>();
 			for (auto&& item : storage)
@@ -507,7 +506,7 @@ private:
 	}
 
 	template <class _T, bool _IsConst, class _Callable>
-	constexpr void _visit(_Callable&& fnCallback) const
+	constexpr void _visit(_Callable&& callback) const
 	{
 		try
 		{
@@ -515,9 +514,9 @@ private:
 			for (auto&& item : storage)
 			{
 				if constexpr (_IsConst)
-					std::invoke(fnCallback, std::as_const(item.get<_T>()));
+					std::invoke(std::forward<_Callable>(callback), std::as_const(item.get<_T>()));
 				else
-					std::invoke(fnCallback, item.get<_T>());
+					std::invoke(std::forward<_Callable>(callback), item.get<_T>());
 			}
 		}
 		catch (const std::bad_any_cast& ex)
@@ -543,9 +542,9 @@ private:
 
 private:
 	template <typename _T>
-	inline static size_t TypeKey = reinterpret_cast<size_t>(&TypeKey<_T>);
+	const inline static size_t TypeKey = reinterpret_cast<size_t>(&TypeKey<_T>);
 
-	mutable Container _values;
+	mutable container _values;
 };
 
 } // namespace storage

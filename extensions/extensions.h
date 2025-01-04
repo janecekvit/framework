@@ -92,7 +92,6 @@ constexpr decltype(auto) execute_on_container(
 	}
 }
 
-
 template <class _Container, class _Key, class _Func>
 	requires std::invocable<_Func, const typename _Container::value_type>
 constexpr decltype(auto) execute_on_container(
@@ -100,7 +99,7 @@ constexpr decltype(auto) execute_on_container(
 	const _Key& key,
 	_Func&& callback)
 {
-	return execute_on_container(const_cast<_Container&>(container), key, callback);
+	return execute_on_container(const_cast<_Container&>(container), key, std::forward<_Func>(callback));
 }
 
 /// <summary>
@@ -112,7 +111,7 @@ constexpr decltype(auto) execute_on_container(
 /// <returns>returns the re-casted memory-safe pointer</returns>
 template <class _From, class _To>
 [[nodiscard]] constexpr std::unique_ptr<_To> recast(std::unique_ptr<_From>&& item)
-	requires (std::derived_from<_To, _From> || std::derived_from<_From, _To>) && (!std::is_same_v<_From, _To>)
+	requires(std::derived_from<_To, _From> || std::derived_from<_From, _To>) && (!std::is_same_v<_From, _To>)
 {
 	auto pTemp = dynamic_cast<_To*>(item.get());
 	if (!pTemp)
@@ -140,12 +139,12 @@ constexpr auto generate(_F func, std::index_sequence<_Is...>)
 /// <example>
 /// <code>
 ///
-/// auto fnCallback = [](auto&&... args) -> int
+/// auto callback = [](auto&&... args) -> int
 /// {
 ///		auto tt = std::forward_as_tuple(args...);
 ///		return std::get<0>(tt);
 /// };
-/// auto oResultGenerator = extensions::_Tuple::generate<10>(fnCallback);
+/// auto oResultGenerator = extensions::_Tuple::generate<10>(callback);
 /// </code>
 /// </example>
 template <char _N, typename _F>
@@ -164,13 +163,14 @@ auto& operator<<(_Stream& os, const std::tuple<_Args...>& t)
 		t);
 	return os;
 }
+
 template <class... _Args>
-std::stringstream print(const std::tuple<_Args...>& t, const std::string& sDelimiter)
+std::stringstream print(const std::tuple<_Args...>& t, const std::string& delimiter)
 {
 	std::stringstream ssStream;
-	std::apply([&ssStream, &sDelimiter](auto&&... args)
+	std::apply([&ssStream, &delimiter](auto&&... args)
 		{
-			((ssStream << args << sDelimiter), ...);
+			((ssStream << args << delimiter), ...);
 		},
 		t);
 	return ssStream;
@@ -200,16 +200,19 @@ struct factorial<0>
 namespace hash
 {
 template <class _T>
-constexpr size_t combine(const _T& oValue)
+constexpr size_t combine(const _T& value)
 {
-	return std::hash<_T>{}(oValue);
+	return std::hash<_T>{}(value);
 }
 
 template <class _T, class... _Args>
-constexpr size_t combine(const _T& oValue, const _Args&... args)
+constexpr size_t combine(const _T& value, const _Args&... args)
 {
+	const constexpr size_t seedPrefix = 0x9e3779b9;
+	const constexpr size_t seedShiftLeft = 6;
+	const constexpr size_t seedShiftRight = 2;
 	size_t uSeed = combine(args...);
-	uSeed ^= std::hash<_T>{}(oValue) + 0x9e3779b9 + (uSeed << 6) + (uSeed >> 2);
+	uSeed ^= std::hash<_T>{}(value) + seedPrefix + (uSeed << seedShiftLeft) + (uSeed >> seedShiftRight);
 	return uSeed;
 }
 

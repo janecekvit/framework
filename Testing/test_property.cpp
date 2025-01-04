@@ -91,7 +91,7 @@ struct PropertyHolder
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-namespace FrameworkTesting
+namespace framework_tests
 {
 class test_property : public ::testing::Test
 {
@@ -228,6 +228,7 @@ TEST_F(test_property, TestPropertyContainersMethods)
 	ASSERT_EQ(*value.begin(), 0);
 	ASSERT_EQ(*std::prev(value.end()), 0);
 }
+
 TEST_F(test_property, TestPropertyArrowOperator)
 {
 	auto property = extensions::property<std::vector<int>>(std::vector<int>(5));
@@ -437,4 +438,4 @@ TEST_F(test_property, TestPropertyWithLambdaUserDefinedConversions)
 	ASSERT_EQ((int) hiddenValue.size(), 0);
 }
 
-} // namespace FrameworkTesting
+} // namespace framework_tests

@@ -391,7 +391,7 @@ private: // private set
 		return std::addressof(const_cast<_Resource&>(get_detail()));
 	}
 
-protected:
+private:
 	_Resource _resource = {};
 	getter _getter;
 	setter _setter;
