@@ -11,7 +11,7 @@ Purpose:	header file contains set of atomic thread-safe concurrent containers,
 @author: Vit Janecek
 @mailto: <mailto:janecekvit@outlook.com>
 @version 0.81 31/12/2021
-TODO: 1. std::aligned_storage (aligned_storage_t) for writer deep copy 
+TODO: 1. std::aligned_storage (aligned_storage_t) for writer deep copy
 TODO: 2. Make atomic_concurrent based on two classes (exclusive writer, more writers with std::merge class)
 */
 
@@ -33,7 +33,9 @@ TODO: 2. Make atomic_concurrent based on two classes (exclusive writer, more wri
 #include <unordered_set>
 #include <vector>
 
-namespace janecekvit::synchronization::atomic_concurrent
+#if defined(__experimental)
+
+namespace janecekvit::experimental::synchronization::atomic_concurrent
 {
 template <class _Type>
 class resource_owner;
@@ -48,10 +50,10 @@ class resource_writer
 public:
 	constexpr resource_writer(resource_owner<_Type>* owner, std::source_location&& srcl) noexcept
 		: _owner(owner)
-		, _srcl(srcl)
+		, _srcl(std::move(srcl))
 	{
 		const auto&& oldType = _owner->_get_value();
-		_resource			 = std::make_shared<_Type>(*oldType);
+		_resource = std::make_shared<_Type>(*oldType);
 
 		//_resource->push_exclusive_lock_details(std::move(srcl));
 	}
@@ -78,8 +80,8 @@ public:
 	constexpr resource_writer& operator=(resource_writer&& other) noexcept
 	{
 		_resource = std::move(other._resource);
-		_owner	  = std::move(other._owner);
-		_srcl	  = std::move(other._srcl);
+		_owner = std::move(other._owner);
+		_srcl = std::move(other._srcl);
 		return *this;
 	}
 
@@ -98,12 +100,14 @@ public:
 		return *_resource;
 	}
 
-	constexpr void set(_Type&& object)
+	template <class _FwdType>
+		requires std::is_constructible_v<_Type, _FwdType> || std::is_same_v<_Type, _FwdType>
+	constexpr void set(_FwdType&& object)
 	{
-		_resource = std::make_shared<_Type>(std::forward<_Type>(object));
+		_resource = std::make_shared<_FwdType>(std::forward<_FwdType>(object));
 	}
 
-	constexpr void swap(_Type& object)
+	constexpr void swap(_Type& object) noexcept
 	{
 		std::swap(*_resource, object);
 	}
@@ -165,7 +169,7 @@ public:
 	constexpr resource_reader(const resource_owner<_Type>* owner, std::source_location&& srcl) noexcept
 		: _resource(owner->_get_value())
 		, _owner(owner)
-		, _srcl(srcl)
+		, _srcl(std::move(srcl))
 	{
 		//_resource->push_concurrent_lock_details(std::move(srcl));
 	}
@@ -175,7 +179,7 @@ public:
 	constexpr resource_reader(resource_reader&& other) noexcept
 		: _resource(std::move(other._resource))
 		, _owner(std::move(other._owner))
-		, _srcl(other._srcl)
+		, _srcl(std::move(other._srcl))
 	{
 	}
 
@@ -190,8 +194,8 @@ public:
 	constexpr resource_reader& operator=(resource_reader&& other) noexcept
 	{
 		_resource = std::move(other._resource);
-		_owner	  = std::move(other._owner);
-		_srcl	  = std::move(other._srcl);
+		_owner = std::move(other._owner);
+		_srcl = std::move(other._srcl);
 		return *this;
 	}
 
@@ -279,12 +283,14 @@ class resource_owner
 public:
 	constexpr resource_owner() = default;
 
-	constexpr resource_owner(_Type&& object) noexcept
-		: _resource(std::make_shared<_Type>(std::forward<_Type>(object)))
+	template <class _FwdType>
+		requires std::is_constructible_v<_Type, _FwdType> || std::is_same_v<_Type, _FwdType>
+	constexpr resource_owner(_FwdType&& object) noexcept
+		: _resource(std::make_shared<_FwdType>(std::forward<_FwdType>(object)))
 	{
 	}
 
-	constexpr resource_owner<_Type>& operator=(resource_owner<_Type>&& other)
+	constexpr resource_owner<_Type>& operator=(resource_owner<_Type>&& other) noexcept
 	{
 		_resource = std::move(other._resource.load());
 		return *this;
@@ -399,4 +405,5 @@ using unordered_multimap = resource_owner<std::unordered_multimap<_Args...>>;
 template <class _Arg>
 using functor = resource_owner<std::function<_Arg>>;
 
-} // namespace janecekvit::synchronization::atomic_concurrent
+} // namespace janecekvit::experimental::synchronization::atomic_concurrent
+#endif

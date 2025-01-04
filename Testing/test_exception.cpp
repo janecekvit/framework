@@ -6,7 +6,7 @@
 
 using namespace janecekvit;
 
-namespace FrameworkTesting
+namespace framework_tests
 {
 class test_exception : public ::testing::Test
 {
@@ -26,6 +26,7 @@ std::string GetStringLocation(int origLine, int origColumn, std::string suffix, 
 {
 	return std::format("File: {}({}:{}) '{}'. {}", location.file_name(), origLine, origColumn, location.function_name(), suffix);
 }
+
 TEST_F(test_exception, TestSimpleTextException)
 {
 	try
@@ -34,7 +35,7 @@ TEST_F(test_exception, TestSimpleTextException)
 	}
 	catch (const exception::exception& ex)
 	{
-		auto location = GetStringLocation(33, 29, "Ano: true, Ne: false.");
+		auto location = GetStringLocation(34, 29, "Ano: true, Ne: false.");
 		ASSERT_EQ(ex.what(), location);
 	}
 
@@ -44,7 +45,7 @@ TEST_F(test_exception, TestSimpleTextException)
 	}
 	catch (const std::exception& ex)
 	{
-		auto location = GetStringLocation(43, 52, "Ano: true, Ne: false.");
+		auto location = GetStringLocation(44, 52, "Ano: true, Ne: false.");
 		ASSERT_EQ(ex.what(), location);
 	}
 
@@ -54,7 +55,7 @@ TEST_F(test_exception, TestSimpleTextException)
 	}
 	catch (const std::exception& ex)
 	{
-		auto location = GetStringLocation(53, 29, "");
+		auto location = GetStringLocation(54, 29, "");
 		ASSERT_EQ(ex.what(), location);
 	}
 
@@ -64,7 +65,7 @@ TEST_F(test_exception, TestSimpleTextException)
 	}
 	catch (const std::exception& ex)
 	{
-		auto location = GetStringLocation(63, 29, "Ano: true, Ne: false.");
+		auto location = GetStringLocation(64, 29, "Ano: true, Ne: false.");
 		ASSERT_EQ(ex.what(), location);
 	}
 }
@@ -77,7 +78,7 @@ TEST_F(test_exception, TestWideTextException)
 	}
 	catch (const std::exception& ex)
 	{
-		auto location = GetStringLocation(76, 29, "Ano: true, Ne: false.");
+		auto location = GetStringLocation(77, 29, "Ano: true, Ne: false.");
 		ASSERT_EQ(ex.what(), location);
 	}
 
@@ -87,7 +88,7 @@ TEST_F(test_exception, TestWideTextException)
 	}
 	catch (const std::exception& ex)
 	{
-		auto location = GetStringLocation(86, 52, "Ano: true, Ne: false.");
+		auto location = GetStringLocation(87, 52, "Ano: true, Ne: false.");
 		ASSERT_EQ(ex.what(), location);
 	}
 
@@ -97,7 +98,7 @@ TEST_F(test_exception, TestWideTextException)
 	}
 	catch (const std::exception& ex)
 	{
-		auto location = GetStringLocation(96, 29, "");
+		auto location = GetStringLocation(97, 29, "");
 		ASSERT_EQ(ex.what(), location);
 	}
 
@@ -107,7 +108,7 @@ TEST_F(test_exception, TestWideTextException)
 	}
 	catch (const std::exception& ex)
 	{
-		auto location = GetStringLocation(106, 29, "Ano: true, Ne: false.");
+		auto location = GetStringLocation(107, 29, "Ano: true, Ne: false.");
 		ASSERT_EQ(ex.what(), location);
 	}
 }
@@ -116,4 +117,4 @@ TEST_F(test_exception, TestExceptionNotSupportedConcepts)
 {
 }
 #endif
-} // namespace FrameworkTesting
+} // namespace framework_tests

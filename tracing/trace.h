@@ -25,23 +25,23 @@ public:
 		try
 		{
 			if constexpr (constraints::format_wstring_view<_FmtOutput>)
-				_data = std::vformat(format, std::make_wformat_args(args...));
+				_data = std::vformat(std::move(format), std::make_wformat_args(args...));
 			else
-				_data = std::vformat(format, std::make_format_args(args...));
+				_data = std::vformat(std::move(format), std::make_format_args(args...));
 		}
 		catch (const std::exception& ex)
 		{
 			using namespace std::string_literals;
 			const std::vector<std::string> indexes = { std::type_index(typeid(_Args)).name()... };
-			auto&& index_serialized				   = conversions::to_string<std::string>(indexes);
+			auto&& indexSerialized = conversions::to_string<std::string>(indexes);
 
 			if constexpr (constraints::format_wstring_view<_FmtOutput>)
 			{
-				_data += L"Unexpected exception: "s + conversions::to_wstring(ex.what()) + L"\n"s + conversions::to_wstring(index_serialized);
+				_data += L"Unexpected exception: "s + conversions::to_wstring(ex.what()) + L"\n"s + conversions::to_wstring(indexSerialized);
 			}
 			else
 			{
-				_data += "Unexpected exception: "s + ex.what() + "\n"s + index_serialized;
+				_data += "Unexpected exception: "s + ex.what() + "\n"s + indexSerialized;
 			}
 		}
 	}
@@ -114,11 +114,11 @@ class trace
 	public:
 		template <constraints::format_view _Fmt, class... _Args>
 		event(trace_event<_Data, _Enum, _Fmt, _Args...>&& e)
+			: _priority(e)
+			, _thread(e)
+			, _srcl(e)
+			, _data(e)
 		{
-			_priority = e;
-			_thread	  = e;
-			_srcl	  = e;
-			_data	  = e;
 		}
 
 		constexpr _Enum priority() const
@@ -189,13 +189,13 @@ public:
 	template <constraints::format_view _Fmt, class... _Args>
 	void create(trace_event<_Data, _Enum, _Fmt, _Args...>&& value)
 	{
-		process(event(std::move(value)));
+		_process(event(std::move(value)));
 	}
 
 	virtual event next_trace()
 	{
 		auto&& scope = _traceQueue.exclusive();
-		auto e		 = scope->front();
+		auto e = scope->front();
 		scope->pop_front();
 		return e;
 	}
@@ -211,7 +211,7 @@ public:
 	}
 
 protected:
-	virtual void process(event&& e)
+	virtual void _process(event&& e)
 	{
 		_traceQueue.exclusive()->emplace_back(std::move(e));
 	}

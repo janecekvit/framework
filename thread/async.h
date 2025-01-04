@@ -20,7 +20,7 @@ LIABILITY, WHETHER IN AN ACTION OF  CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-CThreadPool.h
+Async.h
 Purpose: header file of static thread pool class
 
 @author: Vit Janecek
@@ -33,10 +33,10 @@ Purpose: header file of static thread pool class
 #include "synchronization/wait_for_multiple_signals.h"
 
 #include <atomic>
+#include <functional>
 #include <future>
 #include <list>
 #include <queue>
-#include <functional>
 #include <type_traits>
 
 namespace janecekvit::thread::async
@@ -49,11 +49,11 @@ namespace janecekvit::thread::async
 /// <param name="fn">The function to be invoked.</param>
 /// <param name="...args">The arguments to be passed to the function.</param>
 /// <returns>A std::future object representing the result of the function invocation.</returns>
-template <typename _Fn, typename ...Args>
+template <typename _Fn, typename... Args>
 	requires std::is_invocable_r_v<std::invoke_result_t<_Fn, Args...>, _Fn, Args...>
 [[nodiscard]] std::future<std::invoke_result_t<_Fn, Args...>> create(_Fn&& fn, Args&&... args) noexcept
 {
 	return std::async(std::launch::async, std::forward<_Fn>(fn), std::forward<Args...>(args)...);
 }
 
-} // namespace janecekvit::thread
+} // namespace janecekvit::thread::async

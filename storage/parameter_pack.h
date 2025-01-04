@@ -1,13 +1,13 @@
 #pragma once
 
+#include "extensions/constraints.h"
+
 #include <any>
 #include <list>
 #include <memory>
 #include <stdexcept>
 #include <tuple>
 #include <type_traits>
-
-#include "extensions/constraints.h"
 
 namespace janecekvit::storage
 {
@@ -23,9 +23,9 @@ namespace janecekvit::storage
 class parameter_pack
 {
 public:
-	using Parameters = std::list<std::any>;
+	using parameters = std::list<std::any>;
 
-	parameter_pack()		  = default;
+	parameter_pack() = default;
 	virtual ~parameter_pack() = default;
 
 	template <class... _Args>
@@ -55,23 +55,23 @@ protected:
 	{
 		auto process = [&](auto&& value)
 		{
-			using _T = std::decay_t<decltype(value)>;
-			if constexpr (constraints::is_tuple_v<_T>)
+			using type = std::decay_t<decltype(value)>;
+			if constexpr (constraints::is_tuple_v<type>)
 			{
-				std::apply([&](auto&&... tupleArgs)
+				std::apply([&](auto&&... tuple_args)
 					{
-						_insert(std::forward<decltype(tupleArgs)>(tupleArgs)...);
+						_insert(std::forward<decltype(tuple_args)>(tuple_args)...);
 					},
 					value);
 			}
-			else if constexpr (constraints::is_initializer_list_v<_T>)
+			else if constexpr (constraints::is_initializer_list_v<type>)
 			{
 				for (auto&& item : value)
 					_insert(std::forward<decltype(item)>(item));
 			}
 			else
 			{
-				_arguments.emplace_back(std::make_any<_T>(std::forward<decltype(value)>(value)));
+				_arguments.emplace_back(std::make_any<type>(std::forward<decltype(value)>(value)));
 			}
 		};
 
@@ -79,13 +79,13 @@ protected:
 	}
 
 	template <class _T, class... _Rest>
-	[[nodiscard]] constexpr std::tuple<_T, _Rest...> _deserialize(typename Parameters::const_iterator& it) const
+	[[nodiscard]] constexpr std::tuple<_T, _Rest...> _deserialize(typename parameters::const_iterator& it) const
 	{
 		try
 		{
 			_T oValue = std::any_cast<_T>(*it);
 			++it;
-			
+
 			if constexpr (sizeof...(_Rest) > 0)
 				return std::tuple_cat(std::make_tuple(oValue), _deserialize<_Rest...>(it));
 			else
@@ -97,8 +97,8 @@ protected:
 		}
 	}
 
-protected:
-	Parameters _arguments;
+private:
+	parameters _arguments;
 };
 
 #if defined(__legacy)
@@ -139,8 +139,8 @@ private:
 
 	// Main class
 public:
-	using Parameters		  = std::list<std::shared_ptr<parameter_base>>;
-	parameter_pack_legacy()			 = default;
+	using Parameters = std::list<std::shared_ptr<parameter_base>>;
+	parameter_pack_legacy() = default;
 	virtual ~parameter_pack_legacy() = default;
 
 	template <class... _Args>
@@ -217,4 +217,3 @@ const _T& storage::parameter_pack_legacy::parameter_base::get() const
 #endif // __cpp_lib_any
 
 } // namespace janecekvit::storage
-

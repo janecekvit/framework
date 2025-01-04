@@ -21,11 +21,7 @@ public:
 		: std::exception()
 		, _srcl(std::move(srcl))
 	{
-		auto callback = [&](auto&&... args)
-		{
-			return _inner_processing(std::move(srcl), std::forward<_Fmt>(format), std::forward<decltype(args)>(args)...);
-		};
-		std::apply(callback, arguments);
+		_inner_processing(std::forward<_Fmt>(format), std::move(arguments));
 	}
 
 	template <janecekvit::constraints::format_view _Fmt, class... _Args>
@@ -33,14 +29,15 @@ public:
 		: std::exception()
 		, _srcl(std::move(srcl))
 	{
-		_inner_processing(std::move(srcl), std::forward<_Fmt>(format), std::forward<_Args>(arguments)...);
+		auto store = std::forward_as_tuple(arguments...);
+		_inner_processing(std::forward<_Fmt>(format), std::move(store));
 	}
 
 	exception(std::source_location&& srcl = std::source_location::current())
 		: std::exception()
 		, _srcl(std::move(srcl))
 	{
-		_inner_processing(std::move(srcl), "");
+		_inner_processing("", {});
 	}
 
 	virtual ~exception() = default;
@@ -52,19 +49,23 @@ public:
 
 private:
 	template <janecekvit::constraints::format_view _Fmt, class... _Args>
-	void _inner_processing(std::source_location&& srcl, _Fmt&& format, _Args&&... arguments)
+	void _inner_processing(_Fmt&& format, std::tuple<_Args...>&& arguments)
 	{
 		_error = _format_source_location();
 
 		try
 		{
-			if constexpr (std::is_constructible_v<std::wstring_view, _Fmt>)
+			auto callback = [&](auto&&... arguments)
 			{
-				std::wstring error_wide = std::vformat(format, std::make_wformat_args(arguments...));
-				_error += conversions::to_string(error_wide);
-			}
-			else
-				_error += std::vformat(format, std::make_format_args(arguments...));
+				if constexpr (std::is_constructible_v<std::wstring_view, _Fmt>)
+				{
+					std::wstring errorWide = std::vformat(std::forward<_Fmt>(format), std::make_wformat_args(std::forward<decltype(arguments)>(arguments)...));
+					_error += conversions::to_string(errorWide);
+				}
+				else
+					_error += std::vformat(std::forward<_Fmt>(format), std::make_format_args(std::forward<decltype(arguments)>(arguments)...));
+			};
+			std::apply(callback, arguments);
 		}
 		catch (const std::exception& ex)
 		{
@@ -90,7 +91,7 @@ class throw_exception
 public:
 	constexpr throw_exception(_Fmt&& format = {}, _Args&&... arguments, std::source_location&& srcl = std::source_location::current())
 	{
-		throw _Exception(format, std::forward_as_tuple(arguments...), std::move(srcl));
+		throw _Exception(std::move(format), std::forward_as_tuple(arguments...), std::move(srcl));
 	}
 };
 

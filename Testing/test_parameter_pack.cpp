@@ -11,21 +11,22 @@
 using namespace janecekvit;
 using namespace std::string_literals;
 
-namespace FrameworkTesting
+namespace framework_tests
 {
-class IInterface
+class interface
 {
 public:
-	virtual ~IInterface() = default;
-	virtual int Do() = 0;
+	virtual ~interface() = default;
+	virtual int do_something() = 0;
 };
 
-class CInterface : public virtual IInterface
+class derived : public virtual interface
 {
 public:
-	CInterface() = default;
-	virtual ~CInterface() = default;
-	virtual int Do() final override
+	derived() = default;
+	virtual ~derived() = default;
+
+	virtual int do_something() final override
 	{
 		return 1111;
 	}
@@ -47,10 +48,10 @@ TEST_F(test_parameter_pack, TestParameterPackCxx17)
 {
 	int* intPtr = new int(666);
 	auto intShared = std::make_shared<int>(777);
-	CInterface oInt;
+	derived oInt;
 
 	auto&& oPack = storage::parameter_pack(25, 333, intPtr, intShared, &oInt);
-	auto&& [iNumber1, iNumber2, pNumber, pShared, pInterface] = oPack.get_pack<int, int, int*, std::shared_ptr<int>, CInterface*>();
+	auto&& [iNumber1, iNumber2, pNumber, pShared, pInterface] = oPack.get_pack<int, int, int*, std::shared_ptr<int>, derived*>();
 
 	ASSERT_EQ(iNumber1, 25);
 	ASSERT_EQ(iNumber2, 333);
@@ -59,18 +60,19 @@ TEST_F(test_parameter_pack, TestParameterPackCxx17)
 
 	delete intPtr;
 }
+
 TEST_F(test_parameter_pack, TestParameterPackCxx11)
 {
 	int* intPtr = new int(666);
 	auto intShared = std::make_shared<int>(777);
-	CInterface oInt;
+	derived oInt;
 
 	auto&& oPack = storage::parameter_pack_legacy(25, 333, intPtr, intShared, &oInt);
 
 	int iNumber1, iNumber2;
 	int* pNumber;
 	std::shared_ptr<int> pShared;
-	CInterface* pInt;
+	derived* pInt;
 	oPack.get_pack(iNumber1, iNumber2, pNumber, pShared, pInt);
 
 	ASSERT_EQ(iNumber1, 25);
@@ -80,4 +82,4 @@ TEST_F(test_parameter_pack, TestParameterPackCxx11)
 
 	delete intPtr;
 }
-} // namespace FrameworkTesting
+} // namespace framework_tests

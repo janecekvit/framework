@@ -42,10 +42,12 @@ template <class _T>
 struct is_shared_ptr_helper : std::false_type
 {
 };
+
 template <class _T>
 struct is_shared_ptr_helper<std::shared_ptr<_T>> : std::true_type
 {
 };
+
 template <class _T>
 struct is_shared_ptr : is_shared_ptr_helper<typename std::remove_cv<_T>::type>
 {
@@ -60,14 +62,17 @@ template <class _T>
 struct is_unique_ptr_helper : std::false_type
 {
 };
+
 template <class _T>
 struct is_unique_ptr_helper<std::unique_ptr<_T>> : std::true_type
 {
 };
+
 template <class _T>
 struct is_unique_ptr : is_unique_ptr_helper<typename std::remove_cv<_T>::type>
 {
 };
+
 template <class _T>
 constexpr bool is_unique_ptr_v = is_unique_ptr<_T>::value;
 
@@ -78,10 +83,12 @@ template <class... _Args>
 struct is_pair_helper : std::false_type
 {
 };
+
 template <class... _Args>
 struct is_pair_helper<std::pair<_Args...>> : std::true_type
 {
 };
+
 template <class... _Args>
 struct is_pair : is_pair_helper<typename std::remove_cv<_Args...>::type>
 {
@@ -96,10 +103,12 @@ template <class _T, class _U, class = void>
 struct is_foundable_helper : std::false_type
 {
 };
+
 template <class _T, class _U>
 struct is_foundable_helper<_T, _U, std::void_t<decltype(std::declval<_T>().find(std::declval<_U>()))>> : std::true_type
 {
 };
+
 template <class _T, class _U>
 struct is_foundable : is_foundable_helper<typename std::remove_cv<_T>::type, typename std::remove_cv<_U>::type>
 {
@@ -114,14 +123,17 @@ template <class _T, class = void, class = void, class = void>
 struct is_container_helper : std::false_type
 {
 };
+
 template <class _T>
 struct is_container_helper<_T, std::void_t<decltype(std::declval<_T>().begin())>, std::void_t<decltype(std::declval<_T>().end())>, std::void_t<decltype(std::declval<_T>().size())>> : std::true_type
 {
 };
+
 template <class _T>
 struct is_container : is_container_helper<typename std::remove_cv<_T>::type>
 {
 };
+
 template <class _T>
 constexpr bool is_container_v = is_container<_T>::value;
 
@@ -132,14 +144,17 @@ template <class _T, class = void, class = void>
 struct is_concurrent_container_helper : std::false_type
 {
 };
+
 template <class _T>
 struct is_concurrent_container_helper<_T, std::void_t<decltype(std::declval<_T>().concurrent())>, std::void_t<decltype(std::declval<_T>().exclusive())>> : std::true_type
 {
 };
+
 template <class _T>
 struct is_concurrent_container : is_concurrent_container_helper<typename std::remove_cv<_T>::type>
 {
 };
+
 template <class _T>
 constexpr bool is_concurrent_container_v = is_concurrent_container<_T>::value;
 
@@ -150,60 +165,63 @@ template <class _T, class = void>
 struct is_iterator_helper : std::false_type
 {
 };
+
 template <class _T>
 struct is_iterator_helper<_T, typename std::enable_if<!std::is_same<typename std::iterator_traits<_T>::value_type, void>::value>::type> : std::true_type
 {
 };
+
 template <class _T>
 struct is_iterator : is_iterator_helper<typename std::remove_cv<_T>::type>
 {
 };
+
 template <class _T>
 constexpr bool is_iterator_v = is_iterator<_T>::value;
 
 /// <summary>
 /// Helper structures to determine if template type <_T> is tuple
 /// </summary>
-template <typename T>
+template <typename _T>
 struct is_tuple : std::false_type
 {
 };
 
-template <typename... Args>
-struct is_tuple<std::tuple<Args...>> : std::true_type
+template <typename... _Args>
+struct is_tuple<std::tuple<_Args...>> : std::true_type
 {
 };
 
-template <typename T>
-constexpr bool is_tuple_v = is_tuple<T>::value;
+template <typename _T>
+constexpr bool is_tuple_v = is_tuple<_T>::value;
 
 /// <summary>
 /// Helper structures to determine if template type <_T> is in std::tuple
 /// </summary>
-template <typename T, typename Tuple>
+template <typename _T, typename _Tuple>
 struct is_type_in_tuple;
 
-template <typename T, typename... Types>
-struct is_type_in_tuple<T, std::tuple<Types...>> : std::disjunction<std::is_same<T, Types>...>
+template <typename _T, typename... _Types>
+struct is_type_in_tuple<_T, std::tuple<_Types...>> : std::disjunction<std::is_same<_T, _Types>...>
 {
 };
 
-template <typename T, typename Tuple>
-constexpr bool is_type_in_tuple_v = is_type_in_tuple<T, Tuple>::value;
+template <typename _T, typename _Tuple>
+constexpr bool is_type_in_tuple_v = is_type_in_tuple<_T, _Tuple>::value;
 
 /// <summary>
 /// Helper structures to determine if template type <_T> is in std::variant
 /// </summary>
-template <typename T, typename Variant>
+template <typename _T, typename _Variant>
 struct is_type_in_variant;
 
-template <typename T, typename... Types>
-struct is_type_in_variant<T, std::variant<Types...>> : std::disjunction<std::is_same<T, Types>...>
+template <typename _T, typename... _Types>
+struct is_type_in_variant<_T, std::variant<_Types...>> : std::disjunction<std::is_same<_T, _Types>...>
 {
 };
 
-template <typename T, typename Variant>
-inline constexpr bool is_type_in_variant_v = is_type_in_variant<T, Variant>::value;
+template <typename _T, typename _Variant>
+inline constexpr bool is_type_in_variant_v = is_type_in_variant<_T, _Variant>::value;
 
 /// <summary>
 /// Helper structures to unite two std::variants if template type <_T> is in std::variant
@@ -223,18 +241,18 @@ using unify_variant_t = typename unify_variant<_Variant1, _Variant2>::type;
 /// <summary>
 /// Helper structures to determine if template type <_T> is initializer_list
 /// </summary>
-template <typename T>
+template <typename _T>
 struct is_initializer_list : std::false_type
 {
 };
 
-template <typename T>
-struct is_initializer_list<std::initializer_list<T>> : std::true_type
+template <typename _T>
+struct is_initializer_list<std::initializer_list<_T>> : std::true_type
 {
 };
 
-template <typename T>
-constexpr bool is_initializer_list_v = is_initializer_list<T>::value;
+template <typename _T>
+constexpr bool is_initializer_list_v = is_initializer_list<_T>::value;
 
 /// <summary>
 /// Helper structures to determine if template type <_T> is explicitly convertible
@@ -294,8 +312,8 @@ template <class _Condition>
 concept condition_variable_type = std::is_same_v<std::condition_variable, _Condition> || std::is_same_v<std::condition_variable_any, _Condition>;
 
 #ifdef __cpp_lib_semaphore
-template <class _Semaphore, ptrdiff_t _Least_max_value = std::_Semaphore_max>
-concept semaphore_type = std::is_same_v<std::binary_semaphore, _Semaphore> || std::is_same_v<std::counting_semaphore<_Least_max_value>, _Semaphore>;
+template <class _Semaphore, ptrdiff_t _LeastMaxValue = std::_Semaphore_max>
+concept semaphore_type = std::is_same_v<std::binary_semaphore, _Semaphore> || std::is_same_v<std::counting_semaphore<_LeastMaxValue>, _Semaphore>;
 #endif // __cpp_lib_semaphore
 
 #ifdef __cpp_lib_semaphore

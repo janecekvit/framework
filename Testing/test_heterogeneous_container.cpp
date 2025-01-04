@@ -12,7 +12,7 @@
 using namespace janecekvit;
 using namespace std::string_literals;
 
-namespace FrameworkTesting
+namespace framework_tests
 {
 
 class test_heterogeneous_container : public ::testing::Test
@@ -119,6 +119,7 @@ public:
 		return storage::heterogeneous_container(25, 331, 1.1, "string"s, "kase"s, std::make_tuple(25.1, 333.1), fnCallbackInt, fnCallbackInt2, fnCallbackString, fnCallbackString2, unknown_type_test(5), unknown_type_test(10));
 	}
 };
+
 TEST_F(test_heterogeneous_container, TestConstruction)
 {
 	storage::heterogeneous_container container(10, 20, 30, 40, "ANO"s, "NE"s, "NEVIM"s, std::make_tuple(50, 60, 70, 80, 90), std::initializer_list<int>{ 100, 110 });
@@ -385,6 +386,7 @@ TEST_F(test_heterogeneous_container, TestContainerInClass)
 
 			m_pContainer = std::make_unique<storage::heterogeneous_container<>>(fnCallbackInt);
 		}
+
 		virtual ~TestHeterogeneousContainer() = default;
 
 		int call()
@@ -419,11 +421,11 @@ TEST_F(test_heterogeneous_container, TestInitializerListUnpack)
 
 TEST_F(test_heterogeneous_container, TestUserDefinedTypes)
 {
-	static_assert(storage::heterogeneous_container<>::IsKnownType<int>, "T must be integral type.");
-	static_assert(!storage::heterogeneous_container<>::IsKnownType<std::shared_ptr<int>>, "T must be shared_ptr type.");
+	static_assert(storage::heterogeneous_container<>::is_known_type<int>, "T must be integral type.");
+	static_assert(!storage::heterogeneous_container<>::is_known_type<std::shared_ptr<int>>, "T must be shared_ptr type.");
 
-	static_assert(storage::heterogeneous_container<std::shared_ptr<int>, std::shared_ptr<char>>::IsKnownType<int>, "T must be integral type.");
-	static_assert(storage::heterogeneous_container<std::shared_ptr<int>, std::shared_ptr<char>>::IsKnownType<std::shared_ptr<int>>, "T must be shared_ptr type.");
+	static_assert(storage::heterogeneous_container<std::shared_ptr<int>, std::shared_ptr<char>>::is_known_type<int>, "T must be integral type.");
+	static_assert(storage::heterogeneous_container<std::shared_ptr<int>, std::shared_ptr<char>>::is_known_type<std::shared_ptr<int>>, "T must be shared_ptr type.");
 	auto container = storage::heterogeneous_container<std::shared_ptr<int>, std::shared_ptr<char>>(std::make_tuple(1, 2, 3, "1", "10"), std::make_shared<int>(5));
 	ASSERT_EQ(*container.first<std::shared_ptr<int>>(), 5);
 }
@@ -504,4 +506,4 @@ TEST_F(test_heterogeneous_container, PerformanceHeterogenousContainer)
 	}
 }
 
-} // namespace FrameworkTesting
+} // namespace framework_tests

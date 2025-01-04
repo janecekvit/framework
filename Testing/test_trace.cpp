@@ -7,7 +7,7 @@
 using namespace janecekvit;
 using namespace std::string_literals;
 
-namespace FrameworkTesting
+namespace framework_tests
 {
 class test_trace : public ::testing::Test
 {
@@ -27,6 +27,7 @@ enum class test
 	Warning,
 	Verbose
 };
+
 TEST_F(test_trace, TestTrace)
 {
 	tracing::trace<std::wstring, test> trace;
@@ -55,14 +56,14 @@ TEST_F(test_trace, TestTrace)
 	ASSERT_EQ(std::hash<std::thread::id>()(id), std::hash<std::thread::id>()(std::this_thread::get_id()));
 	ASSERT_EQ(srcl.file_name(), defaultLocation.file_name());
 	ASSERT_EQ(srcl.function_name(), srcl.function_name());
-	ASSERT_EQ(srcl.line(), static_cast<uint_least32_t>(34));
+	ASSERT_EQ(srcl.line(), static_cast<uint_least32_t>(35));
 	ASSERT_EQ(data, L"ANO: true"s);
 
 	ASSERT_EQ(static_cast<size_t>(t2.priority()), static_cast<size_t>(test::Verbose));
 	ASSERT_EQ(std::hash<std::thread::id>()(t2.thread_id()), std::hash<std::thread::id>()(std::this_thread::get_id()));
 	ASSERT_EQ(t2.source_location().file_name(), defaultLocation.file_name());
 	ASSERT_EQ(t2.source_location().function_name(), defaultLocation.function_name());
-	ASSERT_EQ(t2.source_location().line(), static_cast<uint_least32_t>(38));
+	ASSERT_EQ(t2.source_location().line(), static_cast<uint_least32_t>(39));
 	ASSERT_EQ(t2.data(), L"NE: false"s);
 }
 #else
@@ -71,4 +72,4 @@ TEST_F(TestTraceNotSupportedConcepts)
 }
 #endif
 
-} // namespace FrameworkTesting
+} // namespace framework_tests

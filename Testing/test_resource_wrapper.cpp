@@ -8,7 +8,7 @@
 using namespace janecekvit;
 using namespace std::string_literals;
 
-namespace FrameworkTesting
+namespace framework_tests
 {
 class test_resource_wrapper : public ::testing::Test
 {
@@ -218,6 +218,7 @@ TEST_F(test_resource_wrapper, TestMoveRessignmentWithCopyDestruction)
 	}
 	ASSERT_EQ(uDeleterCalled, 3);
 }
+
 TEST_F(test_resource_wrapper, TestDeleterException)
 {
 	auto oWrappedInt = storage::resource_wrapper(new int(5), [](int*& i)
@@ -260,4 +261,4 @@ TEST_F(test_resource_wrapper, TestDeleterExceptionCallback)
 	ASSERT_TRUE(callbackCalled);
 }
 #endif
-} // namespace FrameworkTesting
+} // namespace framework_tests

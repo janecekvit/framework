@@ -49,11 +49,11 @@ template <class _T>
 class cloneable
 {
 public:
-    virtual ~cloneable() = default;
+	virtual ~cloneable() = default;
 
-    /// <summary>
-    /// Method to clone the current instance of the object and wrap it in a RAII memory wrapper.
-    /// </summary>
-    /// <returns>Returns a memory-safe free pointer to this instance of the object.</returns>
-    virtual std::unique_ptr<_T> clone() const = 0;
+	/// <summary>
+	/// Method to clone the current instance of the object and wrap it in a RAII memory wrapper.
+	/// </summary>
+	/// <returns>Returns a memory-safe free pointer to this instance of the object.</returns>
+	virtual std::unique_ptr<_T> clone() const = 0;
 };

@@ -14,7 +14,7 @@
 using namespace janecekvit;
 using namespace janecekvit::synchronization;
 
-namespace FrameworkTesting
+namespace framework_tests
 {
 template <template <class...> class TContainer, class TItem, std::enable_if_t<constraints::is_container_v<TContainer<TItem>>, int> = 0>
 void ContainerTest(const TContainer<TItem>& oContainer)
@@ -71,6 +71,7 @@ protected:
 		return container;
 	}
 };
+
 TEST_F(test_concurrent, TestContainerAliases)
 {
 	auto uset = concurrent::unordered_set<int>();
@@ -744,4 +745,4 @@ TEST_F(test_concurrent, TestDebugLocksInformation)
 		ASSERT_FALSE(container.get_concurrent_lock_details().empty());
 	}
 }
-} // namespace FrameworkTesting
+} // namespace framework_tests

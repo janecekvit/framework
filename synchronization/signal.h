@@ -8,6 +8,7 @@
 
 namespace janecekvit::synchronization
 {
+
 /// <summary>
 /// The signal is used for synchronization between different threads.
 /// It sets an auto reset state by default, where it resets after each blocking call, or to the manual reset state.
@@ -22,7 +23,7 @@ template <class _Condition = std::condition_variable_any>
 class signal
 {
 private:
-	using _Predicate = typename std::function<bool()>;
+	using _predicate = typename std::function<bool()>;
 
 public:
 	signal()
@@ -35,31 +36,31 @@ public:
 #ifdef __cpp_lib_semaphore
 	signal()
 		requires constraints::semaphore_type<_SyncPrimitive>
-		: _syncPrimitive(_SyncPrimitive{ 0 })
+		: _primitive(_SyncPrimitive{ 0 })
 	{
 	}
 #endif
 	virtual ~signal() = default;
 
-	template <class TLock>
-	void wait(TLock& lock) const
+	template <class _TLock>
+	void wait(_TLock& lock) const
 #ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
 	{
-		_syncPrimitive.wait(lock, [this]()
+		_primitive.wait(lock, [this]()
 			{
 				return _reset_strategy();
 			});
 	}
 
-	template <class TLock>
-	void wait(TLock& lock, _Predicate&& pred) const
+	template <class _TLock>
+	void wait(_TLock& lock, _predicate&& pred) const
 #ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
 	{
-		_syncPrimitive.wait(lock, [this, x = std::move(pred)]()
+		_primitive.wait(lock, [this, x = std::move(pred)]()
 			{
 				return _reset_strategy() || x();
 			});
@@ -70,34 +71,34 @@ public:
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
 		for (; !_reset_strategy();)
-			_syncPrimitive.acquire();
+			_primitive.acquire();
 	}
 #endif
 
 #ifdef __cpp_lib_semaphore
-	void wait(_Predicate&& pred) const
+	void wait(_predicate&& pred) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
 		for (; !(_reset_strategy() || pred());)
-			_syncPrimitive.acquire();
+			_primitive.acquire();
 	}
 #endif
 
-	template <class TLock, class TRep, class TPeriod>
-	[[nodiscard]] bool wait_for(TLock& lock, const std::chrono::duration<TRep, TPeriod>& rel_time, std::optional<_Predicate>&& pred = {}) const
+	template <class _TLock, class TRep, class TPeriod>
+	[[nodiscard]] bool wait_for(_TLock& lock, const std::chrono::duration<TRep, TPeriod>& rel_time, std::optional<_predicate>&& pred = {}) const
 #ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
 	{
 		if (pred)
 		{
-			return _syncPrimitive.wait_for(lock, rel_time, [this, x = std::move(*pred)]()
+			return _primitive.wait_for(lock, rel_time, [this, x = std::move(*pred)]()
 				{
 					return _reset_strategy() || x();
 				});
 		}
 
-		return _syncPrimitive.wait_for(lock, rel_time, [&]()
+		return _primitive.wait_for(lock, rel_time, [&]()
 			{
 				return _reset_strategy();
 			});
@@ -105,7 +106,7 @@ public:
 
 #ifdef __cpp_lib_semaphore
 	template <class TRep, class TPeriod>
-	[[nodiscard]] bool wait_for(const std::chrono::duration<TRep, TPeriod>& rel_time, std::optional<_Predicate>&& pred = {}) const
+	[[nodiscard]] bool wait_for(const std::chrono::duration<TRep, TPeriod>& rel_time, std::optional<_predicate>&& pred = {}) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
 		if (pred)
@@ -113,39 +114,39 @@ public:
 			auto x = std::move(*pred);
 			for (; !x();)
 			{
-				if (!_syncPrimitive.try_acquire_for(rel_time))
+				if (!_primitive.try_acquire_for(rel_time))
 					return x();
 			}
 			return true;
 		}
 
-		return _syncPrimitive.try_acquire_for(rel_time);
+		return _primitive.try_acquire_for(rel_time);
 	}
 #endif
 
-	template <class TLock, class TClock, class TDuration>
-	[[nodiscard]] bool wait_until(TLock& lock, const std::chrono::time_point<TClock, TDuration>& abs_time, std::optional<_Predicate>&& pred = {}) const
+	template <class _TLock, class _TClock, class _TDuration>
+	[[nodiscard]] bool wait_until(_TLock& lock, const std::chrono::time_point<_TClock, _TDuration>& abs_time, std::optional<_predicate>&& pred = {}) const
 #ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
 	{
 		if (pred)
 		{
-			return _syncPrimitive.wait_until(lock, abs_time, [this, x = std::move(*pred)]()
+			return _primitive.wait_until(lock, abs_time, [this, x = std::move(*pred)]()
 				{
 					return _reset_strategy() || x();
 				});
 		}
 
-		return _syncPrimitive.wait_until(lock, abs_time, [this]()
+		return _primitive.wait_until(lock, abs_time, [this]()
 			{
 				return _reset_strategy();
 			});
 	}
 
 #ifdef __cpp_lib_semaphore
-	template <class TClock, class TDuration>
-	[[nodiscard]] bool wait_until(const std::chrono::time_point<TClock, TDuration>& abs_time, std::optional<_Predicate>&& pred = {}) const
+	template <class _TClock, class _TDuration>
+	[[nodiscard]] bool wait_until(const std::chrono::time_point<_TClock, _TDuration>& abs_time, std::optional<_predicate>&& pred = {}) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
 		if (pred)
@@ -153,13 +154,13 @@ public:
 			auto x = std::move(*pred);
 			for (; !x();)
 			{
-				if (!_syncPrimitive.try_acquire_until(abs_time))
+				if (!_primitive.try_acquire_until(abs_time))
 					return x();
 			}
 			return true;
 		}
 
-		return _syncPrimitive.try_acquire_until(abs_time);
+		return _primitive.try_acquire_until(abs_time);
 	}
 #endif
 
@@ -169,7 +170,7 @@ public:
 #endif
 	{
 		_signalized = true;
-		_syncPrimitive.notify_all();
+		_primitive.notify_all();
 	}
 
 #ifdef __cpp_lib_semaphore
@@ -177,7 +178,7 @@ public:
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
 		_signalized = true;
-		_syncPrimitive.release();
+		_primitive.release();
 	}
 #endif
 
@@ -199,7 +200,7 @@ private:
 	}
 
 private:
-	mutable _SyncPrimitive _syncPrimitive;
+	mutable _SyncPrimitive _primitive;
 	mutable std::atomic<bool> _signalized = false;
 };
 

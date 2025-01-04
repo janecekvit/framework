@@ -9,7 +9,7 @@
 
 using namespace janecekvit::thread;
 
-namespace FrameworkTesting
+namespace framework_tests
 {
 
 constexpr const size_t thread_size = 4;
@@ -120,4 +120,4 @@ TEST_F(test_sync_thread_pool, AddWaitableTaskException)
 	auto result = pool.add_waitable_task(std::move(task));
 	ASSERT_THROW(result.get(), std::exception);
 }
-} // namespace FrameworkTesting
+} // namespace framework_tests

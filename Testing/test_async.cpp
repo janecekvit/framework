@@ -11,7 +11,7 @@ using namespace janecekvit::thread;
 
 constexpr const size_t thread_size = 4;
 
-namespace FrameworkTesting
+namespace framework_tests
 {
 
 class test_async : public ::testing::Test
@@ -25,6 +25,7 @@ protected:
 	{
 	}
 };
+
 TEST_F(test_async, Create)
 {
 	std::atomic<int> counter = 0;
@@ -58,6 +59,7 @@ TEST_F(test_async, CreateWithResult)
 		});
 	ASSERT_EQ(result.get(), 5);
 }
+
 TEST_F(test_async, CreateWithResultAndParam)
 {
 	auto result = async::create([](int i)
@@ -79,4 +81,4 @@ TEST_F(test_async, CreateWithException)
 	ASSERT_THROW(result.get(), std::exception);
 }
 
-} // namespace FrameworkTesting
+} // namespace framework_tests

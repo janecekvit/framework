@@ -5,7 +5,8 @@
 #include <gtest/gtest.h>
 
 using namespace janecekvit;
-namespace FrameworkTesting
+
+namespace framework_tests
 {
 class test_finally : public ::testing::Test
 {
@@ -34,6 +35,7 @@ TEST_F(test_finally, TestFinallyAction)
 
 	ASSERT_EQ(result, 5);
 }
+
 TEST_F(test_finally, TestFinallyActionWithException)
 {
 	int result = 0;
@@ -76,6 +78,7 @@ TEST_F(test_finally, TestFinallyMethod)
 
 	ASSERT_EQ(result, 5);
 }
+
 TEST_F(test_finally, TestFinallyMethodWithException)
 {
 	int result = 0;
@@ -104,4 +107,4 @@ TEST_F(test_finally, TestFinallyMethodWithException)
 	ASSERT_TRUE(bExceptionThrow);
 }
 #endif
-} // namespace FrameworkTesting
+} // namespace framework_tests

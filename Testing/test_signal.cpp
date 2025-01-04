@@ -12,7 +12,7 @@ using namespace janecekvit;
 using namespace std::string_literals;
 using namespace std::chrono_literals;
 
-namespace FrameworkTesting
+namespace framework_tests
 {
 
 class test_signal : public ::testing::Test
@@ -596,4 +596,4 @@ TEST_F(test_signal, SignalSem_WaitUntilPredicate)
 	ASSERT_TRUE(s.wait_until(std::chrono::steady_clock::now()));
 }
 
-} // namespace FrameworkTesting
+} // namespace framework_tests

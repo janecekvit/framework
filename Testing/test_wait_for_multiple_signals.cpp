@@ -11,7 +11,7 @@ using namespace janecekvit;
 using namespace std::string_literals;
 using namespace std::chrono_literals;
 
-namespace FrameworkTesting
+namespace framework_tests
 {
 
 class test_wait_for_multiple_signals : public ::testing::Test
@@ -168,4 +168,4 @@ TEST_F(test_wait_for_multiple_signals, Sem_WaitUntil)
 	}
 }
 
-} // namespace FrameworkTesting
+} // namespace framework_tests
