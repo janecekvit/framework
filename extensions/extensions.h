@@ -117,6 +117,7 @@ template <class _From, class _To>
 	if (!pTemp)
 		throw std::bad_cast{}; // throw exception if recast is not possible
 	item.release();
+	std::ignore = std::move(item);
 	return std::unique_ptr<_To>(std::move(pTemp));
 }
 

@@ -22,9 +22,9 @@ protected:
 
 #ifdef __cpp_lib_concepts
 
-std::string GetStringLocation(int origLine, int origColumn, std::string suffix, std::source_location location = std::source_location::current())
+std::string GetStringLocation(int origLine, int origColumn, std::string suffix, std::source_location location = std::source_location::current(), std::thread::id&& thread = std::this_thread::get_id())
 {
-	return std::format("File: {}({}:{}) '{}'. {}", location.file_name(), origLine, origColumn, location.function_name(), suffix);
+	return std::format("File: {}({}:{}) '{}'. Thread: {}. {}", location.file_name(), origLine, origColumn, location.function_name(), thread, suffix);
 }
 
 TEST_F(test_exception, TestSimpleTextException)
@@ -41,7 +41,7 @@ TEST_F(test_exception, TestSimpleTextException)
 
 	try
 	{
-		throw exception::exception(std::source_location::current(), "Ano: {}, Ne: {}.", true, false);
+		throw exception::exception(std::source_location::current(), std::this_thread::get_id(), "Ano: {}, Ne: {}.", true, false);
 	}
 	catch (const std::exception& ex)
 	{
@@ -84,7 +84,7 @@ TEST_F(test_exception, TestWideTextException)
 
 	try
 	{
-		throw exception::exception(std::source_location::current(), L"Ano: {}, Ne: {}.", true, false);
+		throw exception::exception(std::source_location::current(), std::this_thread::get_id(), L"Ano: {}, Ne: {}.", true, false);
 	}
 	catch (const std::exception& ex)
 	{

@@ -17,25 +17,28 @@ class exception : public std::exception
 {
 public:
 	template <janecekvit::constraints::format_view _Fmt, class... _Args>
-	exception(_Fmt&& format, std::tuple<_Args...> arguments, std::source_location&& srcl = std::source_location::current())
+	exception(_Fmt&& format, std::tuple<_Args...> arguments, std::source_location&& srcl = std::source_location::current(), std::thread::id&& thread = std::this_thread::get_id())
 		: std::exception()
 		, _srcl(std::move(srcl))
+		, _thread(std::move(thread))
 	{
 		_inner_processing(std::forward<_Fmt>(format), std::move(arguments));
 	}
 
 	template <janecekvit::constraints::format_view _Fmt, class... _Args>
-	exception(std::source_location&& srcl, _Fmt&& format, _Args&&... arguments)
+	exception(std::source_location&& srcl, std::thread::id&& thread, _Fmt&& format, _Args&&... arguments)
 		: std::exception()
 		, _srcl(std::move(srcl))
+		, _thread(std::move(thread))
 	{
 		auto store = std::forward_as_tuple(arguments...);
 		_inner_processing(std::forward<_Fmt>(format), std::move(store));
 	}
 
-	exception(std::source_location&& srcl = std::source_location::current())
+	exception(std::source_location&& srcl = std::source_location::current(), std::thread::id&& thread = std::this_thread::get_id())
 		: std::exception()
 		, _srcl(std::move(srcl))
+		, _thread(std::move(thread))
 	{
 		_inner_processing("", {});
 	}
@@ -52,6 +55,7 @@ private:
 	void _inner_processing(_Fmt&& format, std::tuple<_Args...>&& arguments)
 	{
 		_error = _format_source_location();
+		_error += _format_thread();
 
 		try
 		{
@@ -80,18 +84,24 @@ private:
 		return std::format("File: {}({}:{}) '{}'. ", _srcl.file_name(), _srcl.line(), _srcl.column(), _srcl.function_name());
 	}
 
+	std::string _format_thread() const
+	{
+		return std::format("Thread: {}. ", _thread);
+	}
+
 private:
 	std::string _error;
 	std::source_location _srcl;
+	std::thread::id _thread;
 };
 
 template <class _Exception, janecekvit::constraints::format_view _Fmt, class... _Args>
 class throw_exception
 {
 public:
-	constexpr throw_exception(_Fmt&& format = {}, _Args&&... arguments, std::source_location&& srcl = std::source_location::current())
+	constexpr throw_exception(_Fmt&& format = {}, _Args&&... arguments, std::source_location&& srcl = std::source_location::current(), std::thread::id&& thread = std::this_thread::get_id())
 	{
-		throw _Exception(std::move(format), std::forward_as_tuple(arguments...), std::move(srcl));
+		throw _Exception(std::move(format), std::forward_as_tuple(arguments...), std::move(srcl), std::move(thread));
 	}
 };
 

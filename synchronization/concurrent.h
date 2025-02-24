@@ -45,7 +45,7 @@ class resource_owner;
 /// Input resource is locked for exclusive use, can be modified by one accessors.
 /// </summary>
 template <class _Type, bool _Release>
-class exclusive_resource_holder
+class [[nodiscard]] exclusive_resource_holder
 {
 public:
 	constexpr exclusive_resource_holder(resource_owner<_Type, _Release>* owner) noexcept
@@ -233,7 +233,7 @@ private:
 /// Input resource is locked for concurrent use only. cannot be modified, but more accessors can read input resource.
 /// </summary>
 template <class _Type, bool _Release>
-class concurrent_resource_holder
+class [[nodiscard]] concurrent_resource_holder
 {
 public:
 	constexpr concurrent_resource_holder(const resource_owner<_Type, _Release>* owner) noexcept
@@ -416,7 +416,7 @@ class release_resource_owner_lock_details
 };
 
 template <class _Type>
-class resource_owner_lock_details
+class [[nodiscard]] resource_owner_lock_details
 {
 	friend exclusive_resource_holder<_Type, false>;
 	friend concurrent_resource_holder<_Type, false>;
@@ -505,7 +505,7 @@ protected:
 /// </example>
 
 template <class _Type, bool _Release>
-class resource_owner : public std::conditional_t<!_Release, resource_owner_lock_details<_Type>, release_resource_owner_lock_details>
+class [[nodiscard]] resource_owner : public std::conditional_t<!_Release, resource_owner_lock_details<_Type>, release_resource_owner_lock_details>
 {
 	friend exclusive_resource_holder<_Type, _Release>;
 	friend concurrent_resource_holder<_Type, _Release>;

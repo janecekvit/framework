@@ -53,7 +53,7 @@ template <typename _Fn, typename... Args>
 	requires std::is_invocable_r_v<std::invoke_result_t<_Fn, Args...>, _Fn, Args...>
 [[nodiscard]] std::future<std::invoke_result_t<_Fn, Args...>> create(_Fn&& fn, Args&&... args) noexcept
 {
-	return std::async(std::launch::async, std::forward<_Fn>(fn), std::forward<Args...>(args)...);
+	return std::async(std::launch::async, std::forward<_Fn>(fn), std::forward<Args>(args)...);
 }
 
 } // namespace janecekvit::thread::async

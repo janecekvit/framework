@@ -30,6 +30,9 @@ Purpose:	header file contains clone pattern mechanism
 
 #include <memory>
 
+namespace janecekvit::extensions
+{
+
 /// <summary>
 /// Interface for implementing the clone pattern.
 /// </summary>
@@ -57,3 +60,5 @@ public:
 	/// <returns>Returns a memory-safe free pointer to this instance of the object.</returns>
 	virtual std::unique_ptr<_T> clone() const = 0;
 };
+
+} // namespace janecekvit::extensions

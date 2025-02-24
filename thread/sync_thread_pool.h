@@ -29,17 +29,18 @@ Purpose: header file of static thread pool class
 */
 
 #pragma once
-#include "synchronization/concurrent.h"
-#include "synchronization/wait_for_multiple_signals.h"
 
-#include <atomic>
+#include <condition_variable>
 #include <functional>
 #include <future>
 #include <list>
 #include <queue>
+#include <ranges>
 
 namespace janecekvit::thread
 {
+
+#ifdef __cpp_lib_jthread
 
 /// <summary>
 /// Fixed sized thread pool that executes the task from the queue.
@@ -119,26 +120,22 @@ public:
 	using task = typename move_only_function;
 #endif // __cpp_lib_move_only_function
 
-private:
-	class worker
+public:
+	sync_thread_pool(size_t size)
+		: _workers(_add_workers(size))
 	{
-	public:
-		worker(sync_thread_pool& parent);
-		virtual ~worker();
-
-	private:
-#ifdef __cpp_lib_jthread
-		std::jthread _thread;
-#else
-		std::thread _thread;
-#endif
-	};
+	}
 
 public:
-	sync_thread_pool(size_t size);
+	virtual ~sync_thread_pool()
+	{
+		std::ranges::for_each(_workers, [](const std::jthread& t)
+			{
+				const_cast<std::jthread&>(t).request_stop();
+			});
 
-public:
-	virtual ~sync_thread_pool();
+		_event.notify_all();
+	}
 
 	template <typename _Fn>
 		requires std::is_invocable_v<_Fn>
@@ -151,11 +148,12 @@ public:
 		requires std::is_invocable_v<std::packaged_task<void()>, _Args...>
 	void add_task(std::packaged_task<void()>&& fn) noexcept
 	{
-		_tasks.exclusive()->emplace([x = std::move(fn)]() mutable
+		std::scoped_lock lck(_lock);
+		_tasks.emplace([x = std::move(fn)]() mutable
 			{
 				x();
 			});
-		_event.signalize(state::Ready);
+		_event.notify_one();
 	}
 
 	template <typename _Fn>
@@ -169,35 +167,69 @@ public:
 		requires std::is_invocable_v<std::packaged_task<_R()>, _Args...>
 	[[nodiscard]] std::future<_R> add_waitable_task(std::packaged_task<_R()>&& fn) noexcept
 	{
+		std::scoped_lock lck(_lock);
 		auto future = fn.get_future();
-		_tasks.exclusive()->emplace([x = std::move(fn)]() mutable
+		_tasks.emplace([x = std::move(fn)]() mutable
 			{
 				x();
 			});
 
-		_event.signalize(state::Ready);
+		_event.notify_one();
 		return future;
 	}
 
-	size_t size() const noexcept;
-	size_t pool_size() const noexcept;
+	size_t size() const noexcept
+	{
+		std::scoped_lock lck(_lock);
+		return _tasks.size();
+	}
 
-protected: // getters && setters
-	void _work();
-	std::list<worker> _add_workers(size_t count) noexcept;
-	std::optional<task> _get_task() noexcept;
+	size_t pool_size() const noexcept
+	{
+		return _workers.size();
+	}
+
+protected:
+	void _work(std::stop_token token)
+	{
+		for (;;)
+		{
+			std::unique_lock lck(_lock);
+			_event.wait(lck, [this, &token]()
+				{
+					return !_tasks.empty() || token.stop_requested();
+				});
+
+			if (token.stop_requested() && _tasks.empty())
+				return;
+
+			auto fnCurrentTask = std::move(_tasks.front());
+			_tasks.pop();
+			lck.unlock();
+
+			fnCurrentTask();
+		}
+	}
+
+	std::list<std::jthread> _add_workers(size_t count) noexcept
+	{
+		std::list<std::jthread> workers;
+		for (size_t counter = 0; counter < count; counter++)
+			workers.emplace_back(std::jthread([this](std::stop_token token)
+				{
+					this->_work(token);
+				}));
+
+		return workers;
+	}
 
 private:
-	enum class state
-	{
-		Ready,
-		Exit
-	};
-
-	std::atomic<size_t> _exited_workers_count = 0; // TODO: remove When condition variable notify all finished
-	synchronization::wait_for_multiple_signals<state> _event;
-	synchronization::concurrent::queue<task> _tasks;
-	const std::list<worker> _workers;
+	mutable std::mutex _lock;
+	std::condition_variable _event;
+	std::queue<task> _tasks;
+	const std::list<std::jthread> _workers;
 };
+
+#endif
 
 } // namespace janecekvit::thread

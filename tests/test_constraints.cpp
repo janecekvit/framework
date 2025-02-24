@@ -23,7 +23,7 @@
 using namespace janecekvit;
 using namespace std::string_literals;
 
-struct impl : public virtual cloneable<impl>
+struct impl : public virtual extensions::cloneable<impl>
 {
 	std::unique_ptr<impl> clone() const override
 	{

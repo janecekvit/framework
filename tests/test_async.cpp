@@ -70,6 +70,16 @@ TEST_F(test_async, CreateWithResultAndParam)
 	ASSERT_EQ(result.get(), 10);
 }
 
+TEST_F(test_async, CreateWithResultAndTwoParams)
+{
+	auto result = async::create([](int i, int j)
+		{
+			return i + j;
+		},
+		10, 15);
+	ASSERT_EQ(result.get(), 25);
+}
+
 TEST_F(test_async, CreateWithException)
 {
 	auto task([]()

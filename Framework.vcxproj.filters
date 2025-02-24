@@ -1,9 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Thread\sync_thread_pool.cpp">
-      <Filter>thread</Filter>
-    </ClCompile>
     <ClCompile Include="utility\conversions.cpp">
       <Filter>utility</Filter>
     </ClCompile>
@@ -86,5 +83,8 @@
     <Filter Include="synchronization">
       <UniqueIdentifier>{453cea18-ecff-4211-94a0-9a68cbddcce0}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
   </ItemGroup>
 </Project>

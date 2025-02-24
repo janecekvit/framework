@@ -34,14 +34,23 @@ TEST_F(test_sync_thread_pool, PoolSize)
 
 TEST_F(test_sync_thread_pool, Size)
 {
+	std::promise<void> promise;
+	auto future = promise.get_future().share();
+
 	sync_thread_pool pool(thread_size);
-	pool.add_task(std::packaged_task<void()>([]
+	pool.add_task(std::packaged_task<void()>([future]
 		{
+			future.wait();
 		}));
-	pool.add_task(std::packaged_task<void()>([]
+
+	pool.add_task(std::packaged_task<void()>([future]
 		{
+			future.wait();
 		}));
-	ASSERT_EQ(pool.size(), size_t(2));
+
+	ASSERT_TRUE(pool.size() > 0); // could be 1 or more, because thread can already get the task from the queue
+
+	promise.set_value();
 }
 
 TEST_F(test_sync_thread_pool, AddTask)
@@ -119,5 +128,26 @@ TEST_F(test_sync_thread_pool, AddWaitableTaskException)
 
 	auto result = pool.add_waitable_task(std::move(task));
 	ASSERT_THROW(result.get(), std::exception);
+}
+
+TEST_F(test_sync_thread_pool, AddMutipleTasks)
+{
+	constexpr int task_count = 1000;
+	std::atomic<int> counter = 0;
+
+	sync_thread_pool pool(thread_size);
+	std::list<std::future<void>> results;
+
+	for (size_t i = 0; i < task_count; i++)
+	{
+		results.emplace_back(pool.add_waitable_task(([&]()
+			{
+				counter++;
+			})));
+	}
+
+	for (auto& result : results)
+		result.wait();
+	ASSERT_EQ(counter, task_count);
 }
 } // namespace framework_tests

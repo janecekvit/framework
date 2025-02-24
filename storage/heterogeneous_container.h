@@ -42,14 +42,14 @@ public:
 	class bad_access : public exception::exception
 	{
 	public:
-		bad_access(const std::type_info& type_info, const std::string& error, std::source_location&& srcl = std::source_location::current())
-			: exception::exception(std::move(srcl), "heterogeneous_container: {} with type: {}", error, type_info.name())
+		bad_access(const std::type_info& type_info, const std::string& error, std::source_location&& srcl = std::source_location::current(), std::thread::id&& thread = std::this_thread::get_id())
+			: exception::exception(std::move(srcl), std::move(thread), "heterogeneous_container: {} with type: {}", error, type_info.name())
 			, _type_info(type_info)
 		{
 		}
 
-		bad_access(const std::type_info& type_info, const std::exception& ex, std::source_location&& srcl = std::source_location::current())
-			: exception::exception(std::move(srcl), "heterogeneous_container: {} with type: {}", std::string(ex.what()), type_info.name())
+		bad_access(const std::type_info& type_info, const std::exception& ex, std::source_location&& srcl = std::source_location::current(), std::thread::id&& thread = std::this_thread::get_id())
+			: exception::exception(std::move(srcl), std::move(thread), "heterogeneous_container: {} with type: {}", std::string(ex.what()), type_info.name())
 			, _type_info(type_info)
 		{
 		}

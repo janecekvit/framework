@@ -19,7 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="thread\sync_thread_pool.cpp" />
     <ClCompile Include="utility\conversions.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -41,6 +40,9 @@
     <ClInclude Include="thread\sync_thread_pool.h" />
     <ClInclude Include="tracing\trace.h" />
     <ClInclude Include="utility\conversions.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
