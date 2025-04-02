@@ -5,7 +5,7 @@ pool:
   vmImage: 'windows-latest'
 
 variables:
-  solution: '**/*.sln'
+  solution: 'CMakeLists.txt'
   buildPlatform: 'x64'
   buildConfiguration: 'Release'
   appxPackageDir: '$(build.artifactStagingDirectory)\AppxPackages\\'
@@ -47,26 +47,22 @@ steps:
     restoreSolution: '$(solution)'
   displayName: "Restore NuGet packages"
 
-- task: VSBuild@1
+- task: CMake@1
   inputs:
-    platform: '$(buildPlatform)'
-    solution: '$(solution)'
-    configuration: '$(buildConfiguration)'
-    msbuildArgs: '
-    /p:AppxBundlePlatforms="$(buildPlatform)" 
-    /p:AppxPackageDir="$(appxPackageDir)" 
-    /p:AppxBundle=Always 
-    /p:UapAppxPackageBuildMode=StoreUpload 
-    /p:VcpkgRoot="$(vcpkgRoot)" 
-    /p:VcpkgTriplet="$(buildPlatform)-windows" 
-    /p:AdditionalIncludeDirectories="$(vcpkgRoot)\installed\$(buildPlatform)-windows\include"
-    /p:AdditionalLibraryDirectories="$(vcpkgRoot)\installed\$(buildPlatform)-windows\lib;$(vcpkgRoot)\installed\$(buildPlatform)-windows\lib\manual-link"'
+    cmakeArgs: '-DCMAKE_BUILD_TYPE=$(buildConfiguration) -DCMAKE_TOOLCHAIN_FILE=$(vcpkgRoot)\scripts\buildsystems\vcpkg.cmake'
+    workingDirectory: '$(Build.SourcesDirectory)'
+  displayName: "Configure CMake"
+
+- task: CMake@1
+  inputs:
+    cmakeArgs: '--build . --config $(buildConfiguration)'
+    workingDirectory: '$(Build.SourcesDirectory)'
+  displayName: "Build with CMake"
 
 - script: |
     $(Build.SourcesDirectory)\$(buildPlatform)\$(buildConfiguration)\FrameworkTests.exe --gtest_output=xml:TestResults.xml
   displayName: "Run tests"
   continueOnError: true
-
 
 - task: PublishTestResults@2
   inputs:
