@@ -30,10 +30,18 @@ Purpose:	header file contains set of extended constraints to describe stl contai
 /// Namespace owns set of extended constraints to describe stl containers
 namespace janecekvit::constraints
 {
-
+/// <summary>
+/// default exception callback for exception handling
+/// </summary>
 class default_exception_callback
 {
 };
+
+/// <summary>
+/// helper structure to determine if template type <_T> is always false
+/// </summary>
+template <typename>
+inline constexpr bool always_false_v = false;
 
 /// <summary>
 /// Helper structures to determine if template type <_T> is std::shared_ptr
@@ -56,6 +64,26 @@ template <class _T>
 constexpr bool is_shared_ptr_v = is_shared_ptr<_T>::value;
 
 /// <summary>
+/// Helper structures to determine if template type <_T> is std::weak_ptr
+/// </summary>
+template <class _T>
+struct is_weak_ptr_helper : std::false_type
+{
+};
+
+template <class _T>
+struct is_weak_ptr_helper<std::weak_ptr<_T>> : std::true_type
+{
+};
+
+template <class _T>
+struct is_weak_ptr : is_weak_ptr_helper<typename std::remove_cv<_T>::type>
+{
+};
+template <class _T>
+constexpr bool is_weak_ptr_v = is_weak_ptr<_T>::value;
+
+/// <summary>
 /// Helper structures to determine if template type <_T> is std::unique_ptr
 /// </summary>
 template <class _T>
@@ -75,6 +103,17 @@ struct is_unique_ptr : is_unique_ptr_helper<typename std::remove_cv<_T>::type>
 
 template <class _T>
 constexpr bool is_unique_ptr_v = is_unique_ptr<_T>::value;
+
+/// <summary>
+/// Helper structures to determine if template type <_T> is pointer type (raw ptr, shared_ptr, unique_ptr)
+/// </summary>
+template <class _T>
+struct is_any_pointer : std::disjunction<is_shared_ptr<_T>, is_unique_ptr<_T>, std::is_pointer<_T>>
+{
+};
+
+template <class _T>
+constexpr bool is_any_pointer_v = is_any_pointer<_T>::value;
 
 /// <summary>
 /// Helper structures to determine if template type <_T> is std::pair
@@ -320,6 +359,17 @@ concept semaphore_type = std::is_same_v<std::binary_semaphore, _Semaphore> || st
 template <class _Semaphore>
 concept binary_semaphore_type = std::is_same_v<std::binary_semaphore, _Semaphore>;
 #endif // __cpp_lib_semaphore
+
+template <typename _Type>
+concept pointer_type = is_any_pointer_v<_Type> ||
+					   requires(_Type t) {
+						   { *t } -> std::convertible_to<typename std::remove_reference<decltype(*t)>::type&>;
+						   { t.operator->() } -> std::convertible_to<typename std::remove_reference<decltype(*t)>::type*>;
+						   { static_cast<bool>(t) } -> std::convertible_to<bool>;
+					   };
+
+template <typename _Type>
+concept smart_pointer_type = is_weak_ptr_v<_Type> || is_shared_ptr_v<_Type> || is_unique_ptr_v<_Type>;
 
 #endif
 

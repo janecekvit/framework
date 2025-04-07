@@ -2,6 +2,7 @@
 
 #include "synchronization/signal.h"
 
+#include <chrono>
 #include <future>
 #include <gtest/gtest.h>
 #include <latch>

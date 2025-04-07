@@ -45,10 +45,10 @@ public:
 		: public std::exception
 	{
 	public:
-		deleter_missing_exception(const std::type_info& typeInfo) noexcept
+		deleter_missing_exception(const std::type_info& type_info) noexcept
 		{
 			using namespace std::string_literals;
-			_text = "resource_wrapper: Deleter with specified type cannot be found: "s + typeInfo.name();
+			_text = "resource_wrapper: Deleter with specified type cannot be found: "s + type_info.name();
 		}
 
 		const char* what() const override

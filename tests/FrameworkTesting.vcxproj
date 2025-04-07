@@ -214,6 +214,7 @@ copy /Y "$(VcpkgRoot)\installed\$(Platform)-windows\bin\gmock.dll" "$(OutDir)"
     <ClCompile Include="test_cloneable.cpp" />
     <ClCompile Include="test_constraints.cpp" />
     <ClCompile Include="test_property.cpp" />
+    <ClCompile Include="test_not_null_ptr.cpp" />
     <ClCompile Include="test_signal.cpp" />
     <ClCompile Include="test_concurrent.cpp" />
     <ClCompile Include="test_extensions.cpp" />

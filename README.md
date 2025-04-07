@@ -14,6 +14,7 @@ This project provides a set of modern C++ utilities, including custom exception 
 	- [Extensions](#extensions-1)
 	- [Finally](#finally)
 	- [Lazy](#lazy)
+	- [Not Null Pointer](#not-null-pointer)
 	- [Property](#property)
   - [Storages](#storages)
 	- [Heterogeneous Container](#heterogeneous-container)
@@ -251,6 +252,29 @@ std::cout << "Result: " << result << std::endl; // Output: Result: 10
 // The function can also be invoked with different arguments
 int newResult = lazyMultiply(3, 6);
 std::cout << "New Result: " << newResult << std::endl; // Output: New Result: 18
+```
+
+#### Not Null Pointer
+This header file, `extensions/not_null_ptr.h` provides simple wrapper around a pointer that ensures the contained pointer is never nullptr. 
+
+The `not_null_ptr` ensures a consistent pointer state throughout its lifetime. 
+It includes optimizations to ensure minimal performance impact and supports all common pointer operations.
+
+- **Guarantees Non-Null**: Ensures the pointer is never `nullptr`.
+- **Works with Raw and Smart Pointers**: Supports raw pointers, `std::shared_ptr`, and `std::unique_ptr`.
+- **In-Place Allocation**: Supports in-place memory allocation using `make_not_null_ptr`.
+- **Raw pointer deallocation**: Supports raw pointer deallocation though custom deleter via constructor.
+
+Minimal supported version: `C++20`
+```cpp
+using namespace janecekvit;
+auto intPtr = std::make_shared<int>(5);
+extensions::not_null_ptr<std::shared_ptr<int>> ptr(intPtr);
+std::cout << "Pointer value: " << *ptr << std::endl;
+
+// In-place allocation
+auto ptr2 = extensions::make_not_null_ptr<int>(42);
+std::cout << "Pointer value: " << *ptr2 << std::endl;
 ```
 
 #### Property

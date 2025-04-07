@@ -17,7 +17,7 @@ class exception : public std::exception
 {
 public:
 	template <janecekvit::constraints::format_view _Fmt, class... _Args>
-	exception(_Fmt&& format, std::tuple<_Args...> arguments, std::source_location&& srcl = std::source_location::current(), std::thread::id&& thread = std::this_thread::get_id())
+	exception(_Fmt&& format, std::tuple<_Args...> arguments = {}, std::source_location&& srcl = std::source_location::current(), std::thread::id&& thread = std::this_thread::get_id())
 		: std::exception()
 		, _srcl(std::move(srcl))
 		, _thread(std::move(thread))
@@ -31,7 +31,7 @@ public:
 		, _srcl(std::move(srcl))
 		, _thread(std::move(thread))
 	{
-		auto store = std::forward_as_tuple(arguments...);
+		auto store = std::forward_as_tuple(std::forward<_Args>(arguments)...);
 		_inner_processing(std::forward<_Fmt>(format), std::move(store));
 	}
 

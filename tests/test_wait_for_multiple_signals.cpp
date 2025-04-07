@@ -2,6 +2,7 @@
 
 #include "synchronization/wait_for_multiple_signals.h"
 
+#include <chrono>
 #include <future>
 #include <gtest/gtest.h>
 #include <semaphore>

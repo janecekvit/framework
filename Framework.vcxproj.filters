@@ -1,11 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="utility\conversions.cpp">
-      <Filter>utility</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="Thread\sync_thread_pool.h">
       <Filter>thread</Filter>
     </ClInclude>
@@ -58,6 +53,9 @@
       <Filter>thread</Filter>
     </ClInclude>
     <ClInclude Include="extensions\cloneable.h">
+      <Filter>extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="extensions\not_null_ptr.h">
       <Filter>extensions</Filter>
     </ClInclude>
   </ItemGroup>

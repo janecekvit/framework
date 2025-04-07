@@ -89,6 +89,9 @@
       <Filter>extensions</Filter>
     </ClCompile>
     <ClCompile Include="source.cpp" />
+    <ClCompile Include="test_not_null_ptr.cpp">
+      <Filter>extensions</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\done.txt" />
