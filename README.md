@@ -22,6 +22,7 @@ This project provides a set of modern C++ utilities, including custom exception 
 	- [Resource Wrapper](#resource-wrapper)
   - [Synchronization primitives](#synchronization-primitives)
 	- [Concurrent Data Structures](#concurrent-data-structures)
+	- [Lock-owner Mechanisms](#lock-owner-mechanisms)
 	- [Signalization](#signalization)
 	- [Wait for Multiple Signals](#wait-for-multiple-signals)
   - [Multi-threaded Extensions](#multi-threaded-extensions)
@@ -481,11 +482,12 @@ It provides the following key components:
 - **`concurrent_resource_holder`**: Grants concurrent (read) access to the resource, allowing multiple threads to read the resource simultaneously.
 - **Debugging Support**: In debug configuration or when `CONCURRENT_DBG_TOOLS` define is set, the library includes additional checks and lock detail tracking to help diagnose synchronization issues.
 
-Minimal supported version: `C++17`
+Minimal supported version: `C++20`
 ```cpp
 using namespace janecekvit::synchronization;
 
 concurrent::resource_owner<std::unordered_map<int, int>> resourceMap;
+concurrent::unordered_map<int, int> resourceMapAlias;
 
 // Exclusive access to modify the resource
 {
@@ -501,8 +503,10 @@ concurrent::resource_owner<std::unordered_map<int, int>> resourceMap;
 } // Multiple threads can perform concurrent reads
 ```
 \
-Minimal supported version: `C++20` for information about the locks in debug mode
+Example for getting information about the locks in debug mode
 ```cpp
+using namespace janecekvit::synchronization;
+
 // Release version of the resource owner that does not contain information about the locks
 concurrent::resource_owner_release<std::unordered_map<int, int>> resourceMapRelease;
 
@@ -511,6 +515,54 @@ concurrent::resource_owner_release<std::unordered_map<int, int>> resourceMapDebu
 
 // Alias for the resource owner that contains information about the locks in debug mode when NDEBUG is not defined or CONCURRENT_DBG_TOOLS is defined
 concurrent::unordered_map<int, int> resourceMapAlias;
+
+// Get the lock details for the resource owner
+auto exclusiveDetails = resourceMapAlias.get_exclusive_lock_details();
+auto concurrentDetails = resourceMapAlias.get_concurrent_lock_details();
+```
+
+#### Lock-owner Mechanisms
+This header file, `synchronization/lock_owner.h` provides a set of synchronizing primitives for managing thread synchronization.
+It provides detailed information about the locks usage including the thread ID, Timestamp and `std::source_location`.
+
+It provides the following key components:
+- **`lock_owner`**: Provides a mechanism to manage the ownership of locks, including exclusive and concurrent locks.
+- **`exclusive_lock_owner`**: A class that provides exclusive ownership of a lock, allowing only one thread to hold the lock at a time.
+- **`concurrent_lock_owner`**: A class that provides concurrent ownership of a lock, allowing multiple threads to hold the lock simultaneously.
+- **Debugging Support**: In debug configuration or when `CONCURRENT_DBG_TOOLS` define is set, the library includes additional checks and lock detail tracking to help diagnose synchronization issues.
+
+Minimal supported version: `C++20`
+```cpp
+using namespace janecekvit::synchronization;
+
+synchronization::lock_owner<> lock;
+bool nonThreadSafeLogic = false;
+
+// Exclusive access
+{
+	auto&& exclusiveAccess = lock.exclusive();
+	nonThreadSafeLogic = true; // Simulate some non-thread-safe logic
+}
+
+// Concurrent(shared) access
+{
+	auto&& concurrentAccess = lock.concurrent();
+	auto result = nonThreadSafeLogic; // Simulate reading the resource
+}
+```
+\
+Example for getting information about the locks in debug mode
+```cpp
+using namespace janecekvit::synchronization;
+
+// Release version of the resource owner that does not contain information about the locks
+synchronization::lock_owner_release<> resourceMapRelease;
+
+// Debug version of the resource owner that contains information about the locks
+synchronization::lock_owner_debug<> resourceMapDebug;
+
+// Alias for the resource owner that contains information about the locks in debug mode when NDEBUG is not defined or CONCURRENT_DBG_TOOLS is defined
+synchronization::lock_owner<> resourceMapAlias;
 
 // Get the lock details for the resource owner
 auto exclusiveDetails = resourceMapAlias.get_exclusive_lock_details();

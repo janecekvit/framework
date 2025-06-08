@@ -18,8 +18,10 @@ Purpose:	header file contains set of extended constraints to describe stl contai
 #include <functional>
 #include <list>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <semaphore>
+#include <shared_mutex>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -370,6 +372,15 @@ concept pointer_type = is_any_pointer_v<_Type> ||
 
 template <typename _Type>
 concept smart_pointer_type = is_weak_ptr_v<_Type> || is_shared_ptr_v<_Type> || is_unique_ptr_v<_Type>;
+
+template <typename _Type>
+concept is_shared_mutex_type = std::is_same_v<std::shared_mutex, _Type> || std::is_same_v<std::shared_timed_mutex, _Type>;
+
+template <typename _Type>
+concept is_mutex_type = std::is_same_v<std::mutex, _Type> || std::is_same_v<std::timed_mutex, _Type>;
+
+template <typename _Type>
+concept is_recursive_mutex_type = std::is_same_v<std::recursive_mutex, _Type> || std::is_same_v<std::recursive_timed_mutex, _Type>;
 
 #endif
 

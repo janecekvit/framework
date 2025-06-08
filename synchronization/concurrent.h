@@ -15,6 +15,7 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 
 #pragma once
 #include "extensions/constraints.h"
+#include "synchronization/lock_owner.h"
 #include "synchronization/signal.h"
 
 #include <array>
@@ -45,63 +46,57 @@ class resource_owner;
 /// Input resource is locked for exclusive use, can be modified by one accessors.
 /// </summary>
 template <class _Type, bool _Release>
-class [[nodiscard]] exclusive_resource_holder
+class [[nodiscard]] exclusive_resource_holder : public exclusive_lock_holder<std::shared_mutex, _Release>
 {
+	using base_type = exclusive_lock_holder<std::shared_mutex, _Release>;
+
 public:
-	constexpr exclusive_resource_holder(resource_owner<_Type, _Release>* owner) noexcept
-		: _owner(owner)
-		, _unique_lock(std::unique_lock<std::shared_mutex>(*owner->_get_mutex()))
+	constexpr exclusive_resource_holder(resource_owner<_Type, _Release>& owner) noexcept
+		: base_type(owner)
+		, _owner(&owner)
 	{
 	}
 
-	constexpr exclusive_resource_holder(resource_owner<_Type, _Release>* owner, std::source_location&& srcl) noexcept
-		: _owner(owner)
-		, _unique_lock(std::unique_lock<std::shared_mutex>(*owner->_get_mutex()))
+	constexpr exclusive_resource_holder(resource_owner<_Type, _Release>& owner, std::source_location&& srcl) noexcept
+		: base_type(owner, std::move(srcl))
+		, _owner(&owner)
 	{
-		_owner->_push_exclusive_lock_details(std::move(srcl));
 	}
+
+	virtual ~exclusive_resource_holder() = default;
 
 	constexpr exclusive_resource_holder(const exclusive_resource_holder& other) noexcept = delete;
 
 	constexpr exclusive_resource_holder(exclusive_resource_holder&& other) noexcept
-		: _owner(std::move(other._owner))
-		, _unique_lock(std::move(other._unique_lock))
+		: base_type(std::move(other))
+		, _owner(other._owner)
 	{
-	}
-
-	virtual ~exclusive_resource_holder()
-	{
-		if constexpr (!_Release)
-		{
-			if (_owner)
-				_owner->_pop_exclusive_lock_details();
-		}
 	}
 
 	constexpr exclusive_resource_holder& operator=(const exclusive_resource_holder& other) noexcept = delete;
 
 	constexpr exclusive_resource_holder& operator=(exclusive_resource_holder&& other) noexcept
 	{
+		base_type::operator=(std::move(other));
 		_owner = std::move(other._owner);
-		_unique_lock = std::move(other._unique_lock);
 		return *this;
 	}
 
 	[[nodiscard]] constexpr operator _Type&() const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return *_owner->_get_resource();
 	}
 
 	[[nodiscard]] constexpr const std::shared_ptr<_Type> operator->() const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return _owner->_get_resource();
 	}
 
 	[[nodiscard]] constexpr _Type& get() const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return *_owner->_get_resource();
 	}
 
@@ -109,123 +104,65 @@ public:
 		requires std::is_constructible_v<_Type, _FwdType> || std::is_same_v<_Type, _FwdType>
 	constexpr void set(_FwdType&& object) const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		_owner->_set_resource(std::forward<_FwdType>(object));
 	}
 
 	constexpr void swap(_Type& object) const noexcept
 	{
-		_check_ownership();
+		this->_check_ownership();
 		_owner->_swap_resource(object);
 	}
 
 	[[nodiscard]] constexpr _Type move() const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return _owner->_move_resource();
 	}
 
 	[[nodiscard]] constexpr _Type& operator()() const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return *_owner->_get_resource();
 	}
 
 	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) begin() const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return _owner->_get_resource()->begin();
 	}
 
 	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) end() const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return _owner->_get_resource()->end();
 	}
 
 	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) size() const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return _owner->_get_resource()->size();
 	}
 
 	template <class _Key>
 	[[nodiscard]] constexpr auto& operator[](const _Key& key)
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return (*_owner->_get_resource())[key];
 	}
 
 	template <class _Key>
 	[[nodiscard]] constexpr const auto& operator[](const _Key& key) const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return (*_owner->_get_resource())[key];
 	}
 
-	constexpr void unlock()
-	{
-		_check_ownership();
-		_unique_lock.unlock();
-		if constexpr (!_Release)
-		{
-			if (_owner)
-				_owner->_pop_exclusive_lock_details();
-		}
-	}
-
-	template <bool _CurrentFlag = _Release, std::enable_if_t<_CurrentFlag, int> = 0>
-	constexpr void lock()
-	{
-		if (_unique_lock.owns_lock())
-			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "exclusive_resource_holder already owns the resource!");
-
-		_unique_lock.lock();
-	}
-
-	template <bool _CurrentFlag = _Release, std::enable_if_t<!_CurrentFlag, int> = 0>
-	constexpr void lock(std::source_location srcl = std::source_location::current())
-	{
-		if (_unique_lock.owns_lock())
-			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "exclusive_resource_holder already owns the resource!");
-
-		_unique_lock.lock();
-		_owner->_push_exclusive_lock_details(std::move(srcl));
-	}
-
-	template <class _Condition, class _Predicate>
-#ifdef __cpp_lib_concepts
-		requires constraints::condition_variable_type<_Condition>
-#endif
-	constexpr decltype(auto) wait(_Condition& cv, _Predicate&& pred) const
-	{
-		_check_ownership();
-		return cv.wait(_unique_lock, std::move(pred));
-	}
-
-	template <class _Condition>
-#ifdef __cpp_lib_concepts
-		requires constraints::condition_variable_type<_Condition>
-#endif
-	constexpr decltype(auto) wait(_Condition& cv) const
-	{
-		_check_ownership();
-		return cv.wait(_unique_lock);
-	}
-
 private:
-	constexpr void _check_ownership() const
-	{
-		if (!_unique_lock.owns_lock())
-			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "exclusive_resource_holder do not owns the resource!");
-	}
-
-private:
-	resource_owner<_Type, _Release>* _owner = nullptr;
-	mutable std::unique_lock<std::shared_mutex> _unique_lock;
+	resource_owner<_Type, _Release>* _owner;
 };
 
 /// <summary>
@@ -233,249 +170,96 @@ private:
 /// Input resource is locked for concurrent use only. cannot be modified, but more accessors can read input resource.
 /// </summary>
 template <class _Type, bool _Release>
-class [[nodiscard]] concurrent_resource_holder
+class [[nodiscard]] concurrent_resource_holder : public concurrent_lock_holder<std::shared_mutex, _Release>
 {
+	using base_type = concurrent_lock_holder<std::shared_mutex, _Release>;
+
 public:
-	constexpr concurrent_resource_holder(const resource_owner<_Type, _Release>* owner) noexcept
-		: _owner(owner)
-		, _shared_lock(std::shared_lock<std::shared_mutex>(*owner->_get_mutex()))
+	constexpr concurrent_resource_holder(resource_owner<_Type, _Release>& owner) noexcept
+		: base_type(owner)
+		, _owner(&owner)
 	{
 	}
 
-	constexpr concurrent_resource_holder(const resource_owner<_Type, _Release>* owner, std::source_location&& srcl) noexcept
-		: _owner(owner)
-		, _shared_lock(std::shared_lock<std::shared_mutex>(*owner->_get_mutex()))
+	constexpr concurrent_resource_holder(resource_owner<_Type, _Release>& owner, std::source_location&& srcl) noexcept
+		: base_type(owner, std::move(srcl))
+		, _owner(&owner)
 	{
-		_owner->_push_concurrent_lock_details(this, std::move(srcl));
 	}
+
+	~concurrent_resource_holder() = default;
 
 	constexpr concurrent_resource_holder(const concurrent_resource_holder& other) noexcept = delete;
 
 	constexpr concurrent_resource_holder(concurrent_resource_holder&& other) noexcept
-		: _owner(std::move(other._owner))
-		, _shared_lock(std::move(other._shared_lock))
+		: base_type(std::move(other))
+		, _owner(other._owner)
 	{
-		if constexpr (!_Release)
-		{
-			if (_owner && _shared_lock.owns_lock())
-				_owner->_move_concurrent_lock_details(&other, this);
-		}
-	}
-
-	virtual ~concurrent_resource_holder()
-	{
-		if constexpr (!_Release)
-		{
-			if (_owner)
-				_owner->_pop_concurrent_lock_details(this);
-		}
 	}
 
 	constexpr concurrent_resource_holder& operator=(const concurrent_resource_holder& other) noexcept = delete;
 
 	constexpr concurrent_resource_holder& operator=(concurrent_resource_holder&& other) noexcept
 	{
+		base_type::operator=(std::move(other));
 		_owner = std::move(other._owner);
-		_shared_lock = std::move(other._shared_lock);
-
-		if constexpr (!_Release)
-		{
-			if (_owner && _shared_lock.owns_lock())
-				_owner->_move_concurrent_lock_details(&other, this);
-		}
-
 		return *this;
 	}
 
 	[[nodiscard]] constexpr operator const _Type&() const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return *_owner->_get_resource();
 	}
 
 	[[nodiscard]] constexpr const std::shared_ptr<const _Type> operator->() const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return _owner->_get_resource();
 	}
 
 	[[nodiscard]] constexpr const _Type& get() const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return *_owner->_get_resource();
 	}
 
 	[[nodiscard]] constexpr const _Type& operator()() const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return *_owner->_get_resource();
 	}
 
 	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) begin() const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return _owner->_get_resource()->begin();
 	}
 
 	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) end() const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return _owner->_get_resource()->end();
 	}
 
 	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) size() const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return _owner->_get_resource()->size();
 	}
 
 	template <class _Key>
 	[[nodiscard]] constexpr const auto& operator[](const _Key& key) const
 	{
-		_check_ownership();
+		this->_check_ownership();
 		return (*_owner->_get_resource())[key];
 	}
 
-	constexpr void unlock()
-	{
-		_check_ownership();
-		_shared_lock.unlock();
-		if constexpr (!_Release)
-		{
-			if (_owner)
-				_owner->_pop_concurrent_lock_details(this);
-		}
-	}
-
-	template <bool _CurrentFlag = _Release, std::enable_if_t<_CurrentFlag, int> = 0>
-	constexpr void lock()
-	{
-		if (_shared_lock.owns_lock())
-			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "exclusive_resource_holder already owns the resource!");
-
-		_shared_lock.lock();
-	}
-
-	template <bool _CurrentFlag = _Release, std::enable_if_t<!_CurrentFlag, int> = 0>
-	constexpr void lock(std::source_location srcl = std::source_location::current())
-	{
-		if (_shared_lock.owns_lock())
-			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "exclusive_resource_holder already owns the resource!");
-
-		_shared_lock.lock();
-		_owner->_push_concurrent_lock_details(this, std::move(srcl));
-	}
-
-	template <class _Condition, class _Predicate>
-#ifdef __cpp_lib_concepts
-		requires constraints::condition_variable_type<_Condition>
-#endif
-	constexpr decltype(auto) wait(_Condition& cv, _Predicate&& pred) const
-	{
-		_check_ownership();
-		return cv.wait(_shared_lock, std::move(pred));
-	}
-
-	template <class _Condition>
-#ifdef __cpp_lib_concepts
-		requires constraints::condition_variable_type<_Condition>
-#endif
-	constexpr decltype(auto) wait(_Condition& cv) const
-	{
-		_check_ownership();
-		return cv.wait(_shared_lock);
-	}
-
-	template <class _Signal>
-#ifdef __cpp_lib_concepts
-		requires synchronization::signal_type<_Signal>
-#endif
-	constexpr decltype(auto) wait(_Signal& cv) const
-	{
-		_check_ownership();
-		return cv.wait(_shared_lock);
-	}
-
 private:
-	constexpr void _check_ownership() const
-	{
-		if (!_shared_lock.owns_lock())
-			throw std::system_error(EAGAIN, std::system_category().default_error_condition(EAGAIN).category(), "concurrent_resource_holder do not owns the resource!");
-	}
-
-private:
-	const resource_owner<_Type, _Release>* _owner = nullptr;
-	mutable std::shared_lock<std::shared_mutex> _shared_lock;
-};
-
-class release_resource_owner_lock_details
-{
-};
-
-template <class _Type>
-class [[nodiscard]] resource_owner_lock_details
-{
-	friend exclusive_resource_holder<_Type, false>;
-	friend concurrent_resource_holder<_Type, false>;
-
-public:
-	using exclusive_lock_details = typename std::optional<std::source_location>;
-	using concurrent_lock_details = typename std::unordered_map<concurrent_resource_holder<_Type, false>*, std::source_location>;
-	using mutex_lock_details = typename std::shared_ptr<std::mutex>;
-
-public:
-	virtual ~resource_owner_lock_details() = default;
-
-	[[nodiscard]] constexpr exclusive_lock_details get_exclusive_lock_details() const noexcept
-	{
-		return _exclusive_lock_details;
-	}
-
-	[[nodiscard]] constexpr concurrent_lock_details get_concurrent_lock_details() const noexcept
-	{
-		return _concurrent_lock_details;
-	}
-
-private:
-	void _push_exclusive_lock_details(std::source_location&& srcl)
-	{
-		_exclusive_lock_details = std::move(srcl);
-	}
-
-	void _pop_exclusive_lock_details() noexcept
-	{
-		_exclusive_lock_details.reset();
-	}
-
-	void _push_concurrent_lock_details(concurrent_resource_holder<_Type, false>* wrapper, std::source_location&& srcl) const
-	{
-		std::unique_lock lck(*_mutex_lock_details);
-		_concurrent_lock_details.emplace(wrapper, std::move(srcl));
-	}
-
-	void _pop_concurrent_lock_details(concurrent_resource_holder<_Type, false>* wrapper) const noexcept
-	{
-		std::unique_lock lck(*_mutex_lock_details);
-		_concurrent_lock_details.erase(wrapper);
-	}
-
-	void _move_concurrent_lock_details(concurrent_resource_holder<_Type, false>* old, concurrent_resource_holder<_Type, false>* newone) const
-	{
-		std::unique_lock lck(*_mutex_lock_details);
-		auto&& node = _concurrent_lock_details.extract(old);
-		if (node.empty())
-			return;
-
-		_concurrent_lock_details.emplace(newone, std::move(node.mapped()));
-	}
-
-protected:
-	mutable mutex_lock_details _mutex_lock_details = std::make_shared<std::mutex>();
-	mutable exclusive_lock_details _exclusive_lock_details;
-	mutable concurrent_lock_details _concurrent_lock_details;
+	resource_owner<_Type, _Release>* _owner;
 };
 
 /// <summary>
@@ -505,10 +289,12 @@ protected:
 /// </example>
 
 template <class _Type, bool _Release>
-class [[nodiscard]] resource_owner : public std::conditional_t<!_Release, resource_owner_lock_details<_Type>, release_resource_owner_lock_details>
+class [[nodiscard]] resource_owner : public lock_owner_base<std::shared_mutex, _Release>
 {
 	friend exclusive_resource_holder<_Type, _Release>;
 	friend concurrent_resource_holder<_Type, _Release>;
+
+	using base_type = lock_owner_base<std::shared_mutex, _Release>;
 
 public:
 	using exclusive_holder_type = exclusive_resource_holder<_Type, _Release>;
@@ -516,49 +302,39 @@ public:
 
 public:
 	constexpr resource_owner() = default;
+	constexpr ~resource_owner() = default;
 
 	constexpr resource_owner(_Type&& object) noexcept
-		: _resource(std::make_shared<_Type>(std::forward<_Type>(object)))
+		: base_type()
+		, _resource(std::make_shared<_Type>(std::forward<_Type>(object)))
 	{
-	}
-
-	~resource_owner()
-	{
-		if constexpr (!_Release)
-		{
-			// ensure that no operations are running on resource while destruction is in the process
-			//->prevent this undefined behavior create deadlock in debugging mode
-			exclusive_resource_holder<_Type, _Release> cleanup(this, std::source_location::current());
-		}
 	}
 
 	[[nodiscard]] constexpr exclusive_resource_holder<_Type, true> exclusive() noexcept
 		requires(_Release)
 	{
-		return exclusive_resource_holder<_Type, true>(this);
+		return exclusive_resource_holder<_Type, true>(*this);
 	}
 
 	[[nodiscard]] constexpr concurrent_resource_holder<_Type, true> concurrent() const noexcept
 		requires(_Release)
 	{
-		return concurrent_resource_holder<_Type, true>(this);
+		return concurrent_resource_holder<_Type, true>(const_cast<resource_owner<_Type, _Release>&>(*this));
 	}
 
 	[[nodiscard]] constexpr exclusive_resource_holder<_Type, false> exclusive(std::source_location srcl = std::source_location::current()) noexcept
 		requires(!_Release)
 	{
-		return exclusive_resource_holder<_Type, false>(this, std::move(srcl));
+		return exclusive_resource_holder<_Type, false>(*this, std::move(srcl));
 	}
 
 	[[nodiscard]] constexpr concurrent_resource_holder<_Type, false> concurrent(std::source_location srcl = std::source_location::current()) const noexcept
 		requires(!_Release)
 	{
-		return concurrent_resource_holder<_Type, false>(this, std::move(srcl));
+		return concurrent_resource_holder<_Type, false>(const_cast<resource_owner<_Type, _Release>&>(*this), std::move(srcl));
 	}
 
 private:
-	;
-
 	constexpr void _set_resource(_Type&& object)
 	{
 		_resource = std::make_shared<_Type>(std::forward<_Type>(object));
@@ -574,11 +350,6 @@ private:
 		return std::move(*_resource);
 	}
 
-	[[nodiscard]] const std::shared_ptr<std::shared_mutex> _get_mutex() const noexcept
-	{
-		return _mutex;
-	}
-
 	[[nodiscard]] constexpr const std::shared_ptr<_Type> _get_resource() noexcept
 	{
 		return _resource;
@@ -590,7 +361,6 @@ private:
 	}
 
 	std::shared_ptr<_Type> _resource = std::make_shared<_Type>();
-	std::shared_ptr<std::shared_mutex> _mutex = std::make_shared<std::shared_mutex>();
 };
 
 template <class _Type>

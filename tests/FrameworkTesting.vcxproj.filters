@@ -92,6 +92,9 @@
     <ClCompile Include="test_not_null_ptr.cpp">
       <Filter>extensions</Filter>
     </ClCompile>
+    <ClCompile Include="test_lock_owner.cpp">
+      <Filter>synchronization</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\done.txt" />

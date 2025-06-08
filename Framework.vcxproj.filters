@@ -58,6 +58,9 @@
     <ClInclude Include="extensions\not_null_ptr.h">
       <Filter>extensions</Filter>
     </ClInclude>
+    <ClInclude Include="synchronization\lock_owner.h">
+      <Filter>synchronization</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="extensions">

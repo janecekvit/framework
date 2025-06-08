@@ -30,6 +30,7 @@
     <ClInclude Include="storage\heterogeneous_container.h" />
     <ClInclude Include="storage\parameter_pack.h" />
     <ClInclude Include="storage\resource_wrapper.h" />
+    <ClInclude Include="synchronization\lock_owner.h" />
     <ClInclude Include="synchronization\signal.h" />
     <ClInclude Include="synchronization\atomic_concurrent.h" />
     <ClInclude Include="synchronization\concurrent.h" />
