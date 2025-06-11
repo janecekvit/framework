@@ -4,7 +4,7 @@ project(Framework VERSION 1.0.0 LANGUAGES CXX)
 # Set C++ standard to latest available
 if(MSVC)
 	# MSVC standard
-    set(CMAKE_CXX_STANDARD 26)
+    set(CMAKE_CXX_STANDARD 23)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     set(CMAKE_CXX_EXTENSIONS OFF)
     
@@ -14,7 +14,7 @@ if(MSVC)
     # Set experimental  Standard Library Modules
     add_compile_options(/experimental:module)
     
-    message(STATUS "MSVC detected - using C++26 with /std:c++latest")
+    message(STATUS "MSVC detected - using C++23 with /std:c++latest")
 else()
 	# Try to use the latest C++ standard available
     include(CheckCXXCompilerFlag)
@@ -123,6 +123,14 @@ if(DEFINED ENV{VCPKG_ROOT})
     set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" 
         CACHE STRING "Vcpkg toolchain file")
 endif()
+
+
+# Clear target that works from any directory
+add_custom_target(CLEAN_BUILD
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target clean
+    COMMENT "Cleaning build artifacts..."
+    VERBATIM
+)
 
 # Framework library
 set(FRAMEWORK_HEADERS
