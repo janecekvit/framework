@@ -1,0 +1,262 @@
+cmake_minimum_required(VERSION 3.20)
+project(Framework VERSION 1.0.0 LANGUAGES CXX)
+
+# Set C++ standard to latest available
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Try to use the latest C++ standard available
+include(CheckCXXCompilerFlag)
+
+# Check for C++26 support
+CHECK_CXX_COMPILER_FLAG("-std=c++26" COMPILER_SUPPORTS_CXX26)
+CHECK_CXX_COMPILER_FLAG("-std=c++2c" COMPILER_SUPPORTS_CXX2C)
+
+# Check for C++23 support
+CHECK_CXX_COMPILER_FLAG("-std=c++23" COMPILER_SUPPORTS_CXX23)
+CHECK_CXX_COMPILER_FLAG("-std=c++2b" COMPILER_SUPPORTS_CXX2B)
+
+# Set the highest available standard
+if(COMPILER_SUPPORTS_CXX26 OR COMPILER_SUPPORTS_CXX2C)
+    set(CMAKE_CXX_STANDARD 26)
+    message(STATUS "Using C++26 standard")
+elseif(COMPILER_SUPPORTS_CXX23 OR COMPILER_SUPPORTS_CXX2B)
+    set(CMAKE_CXX_STANDARD 23)
+    message(STATUS "Using C++23 standard")
+else()
+    set(CMAKE_CXX_STANDARD 20)
+    message(STATUS "Using C++20 standard")
+endif()
+
+# For MSVC, always try to use /std:c++latest
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest")
+    message(STATUS "MSVC detected - using /std:c++latest")
+endif()
+
+# Options
+option(BUILD_TESTING "Build tests" ON)
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+option(ENABLE_COVERAGE "Enable code coverage" OFF)
+option(ENABLE_SANITIZERS "Enable sanitizers" OFF)
+option(ENABLE_CLANG_TIDY "Enable clang-tidy" OFF)
+option(ENABLE_CPPCHECK "Enable cppcheck" OFF)
+
+# Set default build type
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
+endif()
+
+# Platform-specific settings
+if(WIN32)
+    add_compile_definitions(_WIN32_WINNT=0x0601)
+    add_compile_options(/utf-8 /permissive- /Zc:__cplusplus)
+    
+    # Enable parallel build
+    add_compile_options(/MP)
+    
+    # Set warning level
+    add_compile_options(/W4 /WX)
+elseif(UNIX)
+    # GCC/Clang options
+    add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+    
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        add_compile_options(-Wno-missing-field-initializers)
+        
+        # Try to use -std=c++latest if available (GCC 11+)
+        CHECK_CXX_COMPILER_FLAG("-std=c++latest" GCC_SUPPORTS_LATEST)
+        if(GCC_SUPPORTS_LATEST)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++latest")
+            message(STATUS "GCC detected - using -std=c++latest")
+        endif()
+        
+        if(ENABLE_COVERAGE)
+            add_compile_options(--coverage)
+            add_link_options(--coverage)
+        endif()
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        add_compile_options(-Wno-gnu-zero-variadic-macro-arguments)
+        
+        # Clang doesn't support -std=c++latest, will use CMAKE_CXX_STANDARD
+    endif()
+    
+    # Enable sanitizers
+    if(ENABLE_SANITIZERS)
+        add_compile_options(-fsanitize=address,undefined)
+        add_link_options(-fsanitize=address,undefined)
+    endif()
+endif()
+
+# Find packages
+find_package(Threads REQUIRED)
+
+# vcpkg integration
+if(DEFINED ENV{VCPKG_ROOT})
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" 
+        CACHE STRING "Vcpkg toolchain file")
+endif()
+
+# Framework library
+set(FRAMEWORK_HEADERS
+    exception/exception.h
+    extensions/cloneable.h
+    extensions/constraints.h
+    extensions/extensions.h
+    extensions/finally.h
+    extensions/property.h
+    extensions/lazy.h
+    storage/heterogeneous_container.h
+    storage/parameter_pack.h
+    storage/resource_wrapper.h
+    synchronization/signal.h
+    synchronization/atomic_concurrent.h
+    synchronization/concurrent.h
+    synchronization/wait_for_multiple_signals.h
+    thread/async.h
+    thread/sync_thread_pool.h
+    tracing/trace.h
+    utility/conversions.h
+)
+
+add_library(framework INTERFACE)
+add_library(framework::framework ALIAS framework)
+
+target_sources(framework INTERFACE
+    FILE_SET HEADERS 
+    BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
+    FILES ${FRAMEWORK_HEADERS}
+)
+target_include_directories(framework 
+    INTERFACE 
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(framework INTERFACE Threads::Threads)
+
+# Windows specific libraries
+if(WIN32)
+    target_link_libraries(framework INTERFACE 
+        bcrypt 
+        Iphlpapi 
+        Crypt32 
+        Secur32 
+        Cryptnet
+    )
+endif()
+
+# Testing
+if(BUILD_TESTING)
+    enable_testing()
+    
+    include(FetchContent)
+    FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG        v1.14.0  
+    )
+    
+    # For Windows: Prevent overriding the parent project's compiler/linker settings
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+	
+	set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+	set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+	set(gtest_build_samples OFF CACHE BOOL "" FORCE)
+	set(gtest_build_tests OFF CACHE BOOL "" FORCE)
+    
+    FetchContent_MakeAvailable(googletest)
+    
+    set(TEST_SOURCES
+        tests/stdafx.cpp
+        tests/source.cpp
+        tests/test_async.cpp
+        tests/test_atomic_concurrent.cpp
+        tests/test_cloneable.cpp
+        tests/test_constraints.cpp
+        tests/test_property.cpp
+        tests/test_signal.cpp
+        tests/test_concurrent.cpp
+        tests/test_extensions.cpp
+        tests/test_sync_thread_pool.cpp
+        tests/test_exception.cpp
+        tests/test_finally.cpp
+        tests/test_heterogeneous_container.cpp
+        tests/test_lazy.cpp
+        tests/test_parameter_pack.cpp
+        tests/test_resource_wrapper.cpp
+        tests/test_trace.cpp
+        tests/test_wait_for_multiple_signals.cpp
+    )
+    
+    add_executable(framework_tests ${TEST_SOURCES})
+    target_link_libraries(framework_tests 
+        PRIVATE 
+            framework 
+             gtest
+			 gtest_main
+    )
+    target_include_directories(framework_tests PRIVATE tests)
+    
+    # Add tests to CTest
+    include(GoogleTest)
+    gtest_discover_tests(framework_tests)
+endif()
+
+# Static analysis
+if(ENABLE_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
+    if(CLANG_TIDY_EXE)
+        set_target_properties(framework PROPERTIES
+            CXX_CLANG_TIDY "${CLANG_TIDY_EXE};--config-file=${CMAKE_SOURCE_DIR}/.clang-tidy"
+        )
+    endif()
+endif()
+
+if(ENABLE_CPPCHECK)
+    find_program(CPPCHECK_EXE NAMES "cppcheck")
+    if(CPPCHECK_EXE)
+        set(CMAKE_CXX_CPPCHECK 
+            "${CPPCHECK_EXE}"
+            "--enable=all"
+            "--inconclusive"
+            "--force"
+            "--inline-suppr"
+            "--suppress=missingInclude"
+        )
+    endif()
+endif()
+
+# Installation
+include(GNUInstallDirs)
+install(TARGETS framework
+    EXPORT frameworkTargets
+    FILE_SET HEADERS
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/framework
+)
+
+# Export targets
+install(EXPORT frameworkTargets
+    FILE frameworkTargets.cmake
+    NAMESPACE framework::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/framework
+)
+
+# Create config file
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/frameworkConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/frameworkConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/framework
+)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/frameworkConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/frameworkConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/frameworkConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/framework
+)
