@@ -2,36 +2,57 @@ cmake_minimum_required(VERSION 3.20)
 project(Framework VERSION 1.0.0 LANGUAGES CXX)
 
 # Set C++ standard to latest available
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-# Try to use the latest C++ standard available
-include(CheckCXXCompilerFlag)
-
-# Check for C++26 support
-CHECK_CXX_COMPILER_FLAG("-std=c++26" COMPILER_SUPPORTS_CXX26)
-CHECK_CXX_COMPILER_FLAG("-std=c++2c" COMPILER_SUPPORTS_CXX2C)
-
-# Check for C++23 support
-CHECK_CXX_COMPILER_FLAG("-std=c++23" COMPILER_SUPPORTS_CXX23)
-CHECK_CXX_COMPILER_FLAG("-std=c++2b" COMPILER_SUPPORTS_CXX2B)
-
-# Set the highest available standard
-if(COMPILER_SUPPORTS_CXX26 OR COMPILER_SUPPORTS_CXX2C)
-    set(CMAKE_CXX_STANDARD 26)
-    message(STATUS "Using C++26 standard")
-elseif(COMPILER_SUPPORTS_CXX23 OR COMPILER_SUPPORTS_CXX2B)
-    set(CMAKE_CXX_STANDARD 23)
-    message(STATUS "Using C++23 standard")
-else()
-    set(CMAKE_CXX_STANDARD 20)
-    message(STATUS "Using C++20 standard")
-endif()
-
-# For MSVC, always try to use /std:c++latest
 if(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++latest")
-    message(STATUS "MSVC detected - using /std:c++latest")
+	# MSVC standard
+    set(CMAKE_CXX_STANDARD 26)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    set(CMAKE_CXX_EXTENSIONS OFF)
+    
+    # MSVC uses /std:c++latest
+    add_compile_options(/std:c++latest)
+    
+    # Set experimental  Standard Library Modules
+    add_compile_options(/experimental:module)
+    
+    message(STATUS "MSVC detected - using C++26 with /std:c++latest")
+else()
+	# Try to use the latest C++ standard available
+    include(CheckCXXCompilerFlag)
+    
+    # Check for C++26 support
+	CHECK_CXX_COMPILER_FLAG("-std=c++26" COMPILER_SUPPORTS_CXX26)
+	CHECK_CXX_COMPILER_FLAG("-std=c++2c" COMPILER_SUPPORTS_CXX2C)
+
+	# Check for C++23 support
+	CHECK_CXX_COMPILER_FLAG("-std=c++23" COMPILER_SUPPORTS_CXX23)
+	CHECK_CXX_COMPILER_FLAG("-std=c++2b" COMPILER_SUPPORTS_CXX2B)
+    
+    # Set the highest available standard
+	if(COMPILER_SUPPORTS_CXX26 OR COMPILER_SUPPORTS_CXX2C)
+        set(CMAKE_CXX_STANDARD 26)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+            add_compile_options(-std=c++26)
+            message(STATUS "GCC detected - using C++26 with -std=c++26")
+        elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            add_compile_options(-std=c++2c)  # Clang používá -std=c++2c pro C++26
+            message(STATUS "Clang detected - using C++26 with -std=c++2c")
+        endif()
+    elseif(COMPILER_SUPPORTS_CXX23 OR COMPILER_SUPPORTS_CXX2B)
+        set(CMAKE_CXX_STANDARD 23)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+            add_compile_options(-std=c++23)
+            message(STATUS "GCC detected - using C++23 with -std=c++23")
+        elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            add_compile_options(-std=c++2b)  # Clang používá -std=c++2b pro C++23
+            message(STATUS "Clang detected - using C++23 with -std=c++2b")
+        endif()
+    else()
+        set(CMAKE_CXX_STANDARD 20)
+        message(STATUS "Using C++20 standard as fallback")
+    endif()
+    
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    set(CMAKE_CXX_EXTENSIONS OFF)
 endif()
 
 # Options
@@ -41,6 +62,19 @@ option(ENABLE_COVERAGE "Enable code coverage" OFF)
 option(ENABLE_SANITIZERS "Enable sanitizers" OFF)
 option(ENABLE_CLANG_TIDY "Enable clang-tidy" OFF)
 option(ENABLE_CPPCHECK "Enable cppcheck" OFF)
+
+# Set output directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+# For multi-config generators, set per-configuration output directories
+foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
+    string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/bin)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/lib)
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/lib)
+endforeach()
 
 # Set default build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -63,14 +97,7 @@ elseif(UNIX)
     
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
         add_compile_options(-Wno-missing-field-initializers)
-        
-        # Try to use -std=c++latest if available (GCC 11+)
-        CHECK_CXX_COMPILER_FLAG("-std=c++latest" GCC_SUPPORTS_LATEST)
-        if(GCC_SUPPORTS_LATEST)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++latest")
-            message(STATUS "GCC detected - using -std=c++latest")
-        endif()
-        
+      
         if(ENABLE_COVERAGE)
             add_compile_options(--coverage)
             add_link_options(--coverage)

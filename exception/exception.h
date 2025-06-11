@@ -86,7 +86,13 @@ private:
 
 	std::string _format_thread() const
 	{
+#ifdef __cpp_lib_formatters >= 202302L
 		return std::format("Thread: {}. ", _thread);
+#else
+		std::ostringstream oss;
+		oss << "Thread: " << _thread << ". ";
+		return oss.str();
+#endif
 	}
 
 private:
