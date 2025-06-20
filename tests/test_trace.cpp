@@ -1,6 +1,4 @@
-﻿#include "stdafx.h"
-
-#include "tracing/trace.h"
+﻿#include "tracing/trace.h"
 
 #include <gtest/gtest.h>
 

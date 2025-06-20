@@ -1,6 +1,4 @@
-﻿#include "stdafx.h"
-
-#include "synchronization/signal.h"
+﻿#include "synchronization/signal.h"
 
 #include <chrono>
 #include <future>

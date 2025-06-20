@@ -12,7 +12,12 @@ if(MSVC)
     add_compile_options(/std:c++latest)
     
     # Set experimental  Standard Library Modules
-    add_compile_options(/experimental:module)
+    #add_compile_options(/experimental:module)
+
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+
+    add_compile_options(/permissive-)
+    add_compile_options(/utf-8)
     
     message(STATUS "MSVC detected - using C++23 with /std:c++latest")
 else()
@@ -90,7 +95,8 @@ if(WIN32)
     add_compile_options(/MP)
     
     # Set warning level
-    add_compile_options(/W4 /WX)
+    # add_compile_options(/W4 /WX) //TODO /WX
+	add_compile_options(/W4)
 elseif(UNIX)
     # GCC/Clang options
     add_compile_options(-Wall -Wextra -Wpedantic -Werror)
@@ -185,25 +191,36 @@ if(BUILD_TESTING)
     enable_testing()
     
     include(FetchContent)
+    
+    # Variables MUST be set BEFORE FetchContent_Declare
+    cmake_policy(SET CMP0077 NEW)
+    
+    # Nuclear option - disable everything gmock related
+    set(BUILD_GMOCK OFF)
+    set(gmock_build_tests OFF)  
+    set(gtest_build_tests OFF)
+    set(gtest_build_samples OFF)
+    set(INSTALL_GTEST OFF)
+    set(INSTALL_GMOCK OFF)
+    set(BUILD_SHARED_LIBS OFF)
+    set(gtest_force_shared_crt OFF)
+    
     FetchContent_Declare(
         googletest
         GIT_REPOSITORY https://github.com/google/googletest.git
-        GIT_TAG        v1.14.0  
+        GIT_TAG        v1.17.0
     )
-    
-    # For Windows: Prevent overriding the parent project's compiler/linker settings
-    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-	
-	set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
-	set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
-	set(gtest_build_samples OFF CACHE BOOL "" FORCE)
-	set(gtest_build_tests OFF CACHE BOOL "" FORCE)
     
     FetchContent_MakeAvailable(googletest)
     
+    # Manual check - fail if GMock exists
+    if(TARGET gmock OR TARGET gmock_main)
+        message(FATAL_ERROR "GMock was built despite BUILD_GMOCK=OFF!")
+    endif()
+    
     set(TEST_SOURCES
-        tests/stdafx.cpp
-        tests/source.cpp
+        #tests/stdafx.cpp
+        #tests/source.cpp
         tests/test_async.cpp
         tests/test_atomic_concurrent.cpp
         tests/test_cloneable.cpp

@@ -1,5 +1,3 @@
-#include "stdafx.h"
-
 #include "storage/heterogeneous_container.h"
 
 #include <any>

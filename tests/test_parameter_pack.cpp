@@ -1,5 +1,3 @@
-#include "stdafx.h"
-
 #include <gtest/gtest.h>
 
 #define __legacy

@@ -1,5 +1,3 @@
-#include "stdafx.h"
-
 #include "exception/exception.h"
 
 #include <gtest/gtest.h>

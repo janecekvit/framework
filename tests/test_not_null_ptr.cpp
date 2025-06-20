@@ -1,5 +1,3 @@
-#include "stdafx.h"
-
 #include "extensions/not_null_ptr.h"
 
 #include <gtest/gtest.h>

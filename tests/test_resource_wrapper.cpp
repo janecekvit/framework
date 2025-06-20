@@ -1,6 +1,4 @@
-﻿#include "stdafx.h"
-
-#include "storage/resource_wrapper.h"
+﻿#include "storage/resource_wrapper.h"
 
 #include <fstream>
 #include <gtest/gtest.h>

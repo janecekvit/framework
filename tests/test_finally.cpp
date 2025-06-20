@@ -1,5 +1,3 @@
-#include "stdafx.h"
-
 #include "extensions/finally.h"
 
 #include <gtest/gtest.h>

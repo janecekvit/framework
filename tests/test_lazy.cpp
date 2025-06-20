@@ -1,5 +1,3 @@
-#include "stdafx.h"
-
 #include "extensions/lazy.h"
 
 #include <gtest/gtest.h>
