@@ -62,8 +62,9 @@ option(BUILD_TESTING "Build tests" ON)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 option(ENABLE_COVERAGE "Enable code coverage" OFF)
 option(ENABLE_SANITIZERS "Enable sanitizers" OFF)
-option(ENABLE_CLANG_TIDY "Enable clang-tidy" OFF)
-option(ENABLE_CPPCHECK "Enable cppcheck" OFF)
+option(ENABLE_CLANG_TIDY "Enable clang-tidy" ON)
+option(ENABLE_CPPCHECK "Enable cppcheck" ON)
+option(ENABLE_CLANG_FORMAT "Enable clang-format targets" ON)
 
 # Set output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -259,6 +260,7 @@ if(ENABLE_CLANG_TIDY)
     endif()
 endif()
 
+# CppCheck
 if(ENABLE_CPPCHECK)
     find_program(CPPCHECK_EXE NAMES "cppcheck")
     if(CPPCHECK_EXE)
@@ -270,6 +272,50 @@ if(ENABLE_CPPCHECK)
             "--inline-suppr"
             "--suppress=missingInclude"
         )
+    endif()
+endif()
+
+# Clang-Format #integration
+if(ENABLE_CLANG_FORMAT)
+    find_program(CLANG_FORMAT_EXE NAMES "clang-format")
+    if(CLANG_FORMAT_EXE)
+        message(STATUS "Found clang-format: ${CLANG_FORMAT_EXE}")
+        
+        # Collect all source files for formatting
+        file(GLOB_RECURSE ALL_SOURCE_FILES 
+            ${CMAKE_SOURCE_DIR}/*.cpp
+            ${CMAKE_SOURCE_DIR}/*.h
+            ${CMAKE_SOURCE_DIR}/*.hpp
+            ${CMAKE_SOURCE_DIR}/*.inl
+        )
+        
+        # Exclude build directory and external dependencies
+        list(FILTER ALL_SOURCE_FILES EXCLUDE REGEX "${CMAKE_BINARY_DIR}/.*")
+        list(FILTER ALL_SOURCE_FILES EXCLUDE REGEX "build/.*")
+        list(FILTER ALL_SOURCE_FILES EXCLUDE REGEX "_deps/.*")
+        
+        # Format target - applies formatting
+        add_custom_target(FORMAT
+            COMMAND ${CLANG_FORMAT_EXE} -i -style=file ${ALL_SOURCE_FILES}
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            COMMENT "Formatting code with clang-format"
+            VERBATIM
+        )
+		
+		# Show diff in console
+        add_custom_target(FORMAT_CHECK
+            COMMAND ${CMAKE_COMMAND} 
+                -D CLANG_FORMAT_EXE=${CLANG_FORMAT_EXE}
+                -D SOURCE_DIR=${CMAKE_SOURCE_DIR}
+                -D CMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}
+                -P ${CMAKE_SOURCE_DIR}/cmake/formatShowDiff.cmake
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            COMMENT "Showing formatting differences and saving to ${CMAKE_BINARY_DIR}/formatting.diff"
+            VERBATIM
+        )
+        
+    else()
+        message(WARNING "clang-format not found. Install it to use formatting targets.")
     endif()
 endif()
 
