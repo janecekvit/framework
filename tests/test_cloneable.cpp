@@ -30,8 +30,8 @@ protected:
 TEST_F(test_cloneable, TestCloneable)
 {
 	auto s = std::make_unique<impl>();
-		auto f = s->clone();
-		ASSERT_NE(nullptr, s.get());
+	auto f = s->clone();
+	ASSERT_NE(nullptr, s.get());
 	ASSERT_NE(nullptr, f.get());
 };
 
