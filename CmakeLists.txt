@@ -173,6 +173,19 @@ target_include_directories(framework
 )
 target_link_libraries(framework INTERFACE Threads::Threads)
 
+## Source files
+file(GLOB_RECURSE SOURCE_FILES 
+	${CMAKE_SOURCE_DIR}/*.cpp
+	${CMAKE_SOURCE_DIR}/*.h
+	${CMAKE_SOURCE_DIR}/*.hpp
+	${CMAKE_SOURCE_DIR}/*.inl
+)
+
+# Exclude build directory and external dependencies
+list(FILTER SOURCE_FILES EXCLUDE REGEX "${CMAKE_BINARY_DIR}/.*")
+list(FILTER SOURCE_FILES EXCLUDE REGEX "build/.*")
+list(FILTER SOURCE_FILES EXCLUDE REGEX "_deps/.*")
+
 # Windows specific libraries
 if(WIN32)
     target_link_libraries(framework INTERFACE 
@@ -254,9 +267,49 @@ endif()
 if(ENABLE_CLANG_TIDY)
     find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
     if(CLANG_TIDY_EXE)
-        set_target_properties(framework PROPERTIES
-            CXX_CLANG_TIDY "${CLANG_TIDY_EXE};--config-file=${CMAKE_SOURCE_DIR}/.clang-tidy"
+        message(STATUS "Found clang-tidy: ${CLANG_TIDY_EXE}")
+        
+        # Define clang-tidy command with config
+        set(CLANG_TIDY_COMMAND 
+            "${CLANG_TIDY_EXE}"
+            "--config-file=${CMAKE_SOURCE_DIR}/.clang-tidy"
+            "--header-filter=.*"
         )
+        
+        # Manual clang-tidy check target
+        add_custom_target(STATIC_ANALYSIS_CHECK
+            COMMAND ${CLANG_TIDY_EXE}
+                --config-file=${CMAKE_SOURCE_DIR}/.clang-tidy
+                --header-filter=.*
+                ${SOURCE_FILES}
+                --
+                -std=c++${CMAKE_CXX_STANDARD}
+                -I${CMAKE_SOURCE_DIR}
+                $<$<PLATFORM_ID:Windows>:-D_WIN32_WINNT=0x0601>
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            COMMENT "Running clang-tidy analysis"
+            VERBATIM
+        )
+        
+        # Manual clang-tidy fix target
+        add_custom_target(STATIC_ANALYSIS_FIX
+            COMMAND ${CLANG_TIDY_EXE}
+                --config-file=${CMAKE_SOURCE_DIR}/.clang-tidy
+                --header-filter=.*
+                --fix
+                --fix-errors
+                ${SOURCE_FILES}
+                --
+                -std=c++${CMAKE_CXX_STANDARD}
+                -I${CMAKE_SOURCE_DIR}
+                $<$<PLATFORM_ID:Windows>:-D_WIN32_WINNT=0x0601>
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            COMMENT "Running clang-tidy with automatic fixes (USE WITH CAUTION!)"
+            VERBATIM
+        )
+        
+    else()
+        message(WARNING "clang-tidy not found. Install it to use static analysis targets.")
     endif()
 endif()
 
@@ -281,22 +334,9 @@ if(ENABLE_CLANG_FORMAT)
     if(CLANG_FORMAT_EXE)
         message(STATUS "Found clang-format: ${CLANG_FORMAT_EXE}")
         
-        # Collect all source files for formatting
-        file(GLOB_RECURSE ALL_SOURCE_FILES 
-            ${CMAKE_SOURCE_DIR}/*.cpp
-            ${CMAKE_SOURCE_DIR}/*.h
-            ${CMAKE_SOURCE_DIR}/*.hpp
-            ${CMAKE_SOURCE_DIR}/*.inl
-        )
-        
-        # Exclude build directory and external dependencies
-        list(FILTER ALL_SOURCE_FILES EXCLUDE REGEX "${CMAKE_BINARY_DIR}/.*")
-        list(FILTER ALL_SOURCE_FILES EXCLUDE REGEX "build/.*")
-        list(FILTER ALL_SOURCE_FILES EXCLUDE REGEX "_deps/.*")
-        
         # Format target - applies formatting
         add_custom_target(FORMAT
-            COMMAND ${CLANG_FORMAT_EXE} -i -style=file ${ALL_SOURCE_FILES}
+            COMMAND ${CLANG_FORMAT_EXE} -i -style=file ${SOURCE_FILES}
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
             COMMENT "Formatting code with clang-format"
             VERBATIM
