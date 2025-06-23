@@ -5,72 +5,194 @@ pool:
   vmImage: 'windows-latest'
 
 variables:
-  solution: '**/*.sln'
   buildPlatform: 'x64'
   buildConfiguration: 'Release'
-  appxPackageDir: '$(build.artifactStagingDirectory)\AppxPackages\\'
-  vcpkgRoot: '$(Build.SourcesDirectory)\vcpkg'
+  buildDir: '$(Build.SourcesDirectory)\build'
 
-steps:
-- checkout: self
-  displayName: "Checkout repository"
+stages:
+- stage: Build
+  displayName: 'Build and Test'
+  jobs:
+  - job: BuildTest
+    displayName: 'Build and Test Framework'
+    
+    steps:
+    - checkout: self
+      displayName: "Checkout repository"
+      
+    # Cache CMake build directory for faster builds
+    - task: Cache@2
+      inputs:
+        key: 'cmake-build | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | CMakeLists.txt | tests'
+        path: '$(buildDir)'
+        restoreKeys: |
+          cmake-build | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration)
+          cmake-build | $(Agent.OS) | $(buildPlatform)
+      displayName: "Cache CMake build directory"
 
-- task: Cache@2
-  inputs:
-    key: 'vcpkg | $(Agent.OS) | $(buildPlatform)'
-    path: '$(vcpkgRoot)'
-  displayName: "Restore vcpkg from cache"
+    # Configure with CMake
+    - script: |
+        echo "Setting up CMake configuration..."
+        mkdir $(buildDir) 2>nul || echo "Build directory exists"
+        cd $(buildDir)
+        
+        cmake -G "Visual Studio 17 2022" -A x64 ^
+          -DCMAKE_BUILD_TYPE=$(buildConfiguration) ^
+          -DBUILD_TESTING=ON ^
+          -DENABLE_CLANG_TIDY=OFF ^
+          -DENABLE_CPPCHECK=OFF ^
+          -DENABLE_CLANG_FORMAT=ON ^
+          $(Build.SourcesDirectory)
+          
+        if %ERRORLEVEL% neq 0 (
+          echo "CMake configuration failed!"
+          exit /b %ERRORLEVEL%
+        )
+        echo "CMake configuration completed successfully"
+      displayName: "Configure with CMake"
 
-- script: |
-    if not exist "$(vcpkgRoot)" (
-      git clone https://github.com/microsoft/vcpkg.git $(vcpkgRoot)
-    )
-    cd $(vcpkgRoot)
-    bootstrap-vcpkg.bat
-  displayName: "Install vcpkg"
+    # Build the framework and tests
+    - script: |
+        echo "Building framework and tests..."
+        cd $(buildDir)
+        
+        cmake --build . --config $(buildConfiguration) --parallel 4 --target framework_tests
+        
+        if %ERRORLEVEL% neq 0 (
+          echo "Build failed!"
+          exit /b %ERRORLEVEL%
+        )
+        echo "Build completed successfully"
+      displayName: "Build Framework and Tests"
 
-- script: |
-    $(vcpkgRoot)/vcpkg.exe install gtest:$(buildPlatform)-windows
-  displayName: "Install Google Test dependencies"
+    # Run tests using CTest
+    - script: |
+        echo "Running tests with CTest..."
+        cd $(buildDir)
+        
+        ctest --output-on-failure --verbose --build-config $(buildConfiguration)
+        
+        set CTEST_EXIT_CODE=%ERRORLEVEL%
+        echo "CTest completed with exit code: %CTEST_EXIT_CODE%"
+        exit /b %CTEST_EXIT_CODE%
+      displayName: "Run Tests (CTest)"
+      continueOnError: true
 
-- script: |
-    dir $(vcpkgRoot)\installed
-    dir $(vcpkgRoot)\installed\$(buildPlatform)-windows\lib
-    dir $(vcpkgRoot)\installed\$(buildPlatform)-windows\lib\manual-link
-    dir $(vcpkgRoot)\installed\$(buildPlatform)-windows\include\gtest
-  displayName: "Verify vcpkg && gtest installation"
+    # Run tests directly for XML output (GoogleTest format)
+    - script: |
+        echo "Running tests directly for XML output..."
+        cd $(buildDir)
+        
+        .\bin\$(buildConfiguration)\framework_tests.exe --gtest_output=xml:GoogleTestResults.xml
+        
+        echo "Direct test execution completed"
+      displayName: "Run Tests (XML Output)"
+      continueOnError: true
 
-- task: NuGetToolInstaller@1
+    # Publish test results
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: '$(buildDir)/GoogleTestResults.xml'
+        testRunTitle: 'Framework Unit Tests'
+        mergeTestResults: true
+        failTaskOnFailedTests: true
+      displayName: "Publish Test Results"
+      condition: always()
 
-- task: NuGetCommand@2
-  inputs:
-    restoreSolution: '$(solution)'
-  displayName: "Restore NuGet packages"
+    # Show test files for debugging
+    - script: |
+        echo "=== Test Output Files ==="
+        cd $(buildDir)
+        dir /s *.xml
+        if exist GoogleTestResults.xml (
+          echo "=== GoogleTest Results Preview ==="
+          type GoogleTestResults.xml | findstr /C:"testcase" /C:"failure" /C:"error" /C:"testsuite"
+        )
+      displayName: "Debug Test Output"
+      condition: always()
 
-- task: VSBuild@1
-  inputs:
-    platform: '$(buildPlatform)'
-    solution: '$(solution)'
-    configuration: '$(buildConfiguration)'
-    msbuildArgs: '
-    /p:AppxBundlePlatforms="$(buildPlatform)" 
-    /p:AppxPackageDir="$(appxPackageDir)" 
-    /p:AppxBundle=Always 
-    /p:UapAppxPackageBuildMode=StoreUpload 
-    /p:VcpkgRoot="$(vcpkgRoot)" 
-    /p:VcpkgTriplet="$(buildPlatform)-windows" 
-    /p:AdditionalIncludeDirectories="$(vcpkgRoot)\installed\$(buildPlatform)-windows\include"
-    /p:AdditionalLibraryDirectories="$(vcpkgRoot)\installed\$(buildPlatform)-windows\lib;$(vcpkgRoot)\installed\$(buildPlatform)-windows\lib\manual-link"'
+    # Publish build artifacts
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: '$(buildDir)/bin'
+        artifactName: 'framework-binaries-$(buildConfiguration)'
+        publishLocation: 'Container'
+      displayName: "Publish Build Artifacts"
+      condition: always()
 
-- script: |
-    $(Build.SourcesDirectory)\$(buildPlatform)\$(buildConfiguration)\FrameworkTests.exe --gtest_output=xml:TestResults.xml
-  displayName: "Run tests"
-  continueOnError: true
+    # Build summary
+    - script: |
+        echo "=== Build Summary ==="
+        echo "Configuration: $(buildConfiguration)"
+        echo "Platform: $(buildPlatform)"
+        echo "Build Directory: $(buildDir)"
+        
+        cd $(buildDir)
+        echo "=== Available executables ==="
+        dir bin\$(buildConfiguration)\*.exe
+        
+        echo "=== CMake targets ==="
+        cmake --build . --target help | findstr "... "
+      displayName: "Build Summary"
+      condition: always()
 
+- stage: StaticAnalysis
+  displayName: 'Static Analysis'
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  jobs:
+  - job: StaticAnalysis
+    displayName: 'Run Static Analysis'
+    
+    steps:
+    - checkout: self
+      displayName: "Checkout repository"
+      
+    # Restore CMake build cache
+    - task: Cache@2
+      inputs:
+        key: 'cmake-build | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | CMakeLists.txt | tests'
+        path: '$(buildDir)'
+      displayName: "Restore CMake build cache"
 
-- task: PublishTestResults@2
-  inputs:
-    testResultsFiles: '**/TestResults.xml'
-    testRunTitle: 'Google Unit Tests'
-    mergeTestResults: true
-  displayName: "Publish test results"
+    # Re-configure if cache miss
+    - script: |
+        cd $(buildDir)
+        if not exist CMakeCache.txt (
+          echo "CMake cache not found, reconfiguring..."
+          cmake -G "Visual Studio 17 2022" -A x64 ^
+            -DCMAKE_BUILD_TYPE=$(buildConfiguration) ^
+            -DBUILD_TESTING=ON ^
+            -DENABLE_CLANG_TIDY=OFF ^
+            -DENABLE_CPPCHECK=OFF ^
+            -DENABLE_CLANG_FORMAT=ON ^
+            $(Build.SourcesDirectory)
+        )
+      displayName: "Ensure CMake Configuration"
+
+    # Run format check
+    - script: |
+        cd $(buildDir)
+        echo "Running format check..."
+        cmake --build . --target FORMAT_CHECK
+      displayName: "Format Check"
+      continueOnError: true
+
+    # Run custom static analysis targets if available
+    - script: |
+        cd $(buildDir)
+        echo "Running static analysis..."
+        cmake --build . --target STATIC_ANALYSIS_CHECK
+      displayName: "Static Analysis"
+      continueOnError: true
+
+    # Publish analysis artifacts
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: '$(buildDir)'
+        artifactName: 'static-analysis-results'
+        publishLocation: 'Container'
+        parallel: true
+      displayName: "Publish Analysis Results"
+      condition: always()
