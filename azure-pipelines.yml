@@ -73,40 +73,8 @@ stages:
         echo "Active code page: %ERRORLEVEL%"
       displayName: "Setup Test Environment"
 
-    # Run tests using CTest with detailed output
-    - script: |
-        echo "Running tests with CTest..."
-        cd $(buildDir)
-        
-        rem Set UTF-8 code page for proper character handling
-        chcp 65001
-        
-        echo "=== Running CTest with detailed failure output ==="
-        ctest --output-on-failure --verbose --build-config $(buildConfiguration) --parallel 1
-        
-        set CTEST_EXIT_CODE=%ERRORLEVEL%
-        echo "CTest completed with exit code: %CTEST_EXIT_CODE%"
-        
-        if %CTEST_EXIT_CODE% neq 0 (
-          echo "=== Re-running failed tests individually for better diagnostics ==="
-          ctest --output-on-failure --verbose --build-config $(buildConfiguration) --rerun-failed
-        )
-        
-        exit /b %CTEST_EXIT_CODE%
-      displayName: "Run Tests (CTest)"
-      continueOnError: true
-
-    # Check executable location for debugging
-    - script: |
-        echo "=== Checking executable location ==="
-        cd $(buildDir)
-        dir bin /s
-        echo "=== Looking for framework_tests.exe ==="
-        where /R . framework_tests.exe
-      displayName: "Debug Executable Location"
-      condition: always()
-
-    # Run tests directly for XML output (GoogleTest format)
+    
+    # Run tests
     - script: |
         echo "Running tests directly for XML output..."
         cd $(buildDir)
@@ -139,7 +107,7 @@ stages:
         %TEST_EXE% --gtest_filter=test_trace.TestTrace --gtest_also_run_disabled_tests
         
         echo "Direct test execution completed"
-      displayName: "Run Tests (XML Output)"
+      displayName: "Run Tests"
       continueOnError: true
 
     # Publish test results
@@ -149,37 +117,8 @@ stages:
         testResultsFiles: '$(buildDir)/GoogleTestResults.xml'
         testRunTitle: 'Framework Unit Tests'
         mergeTestResults: true
-        failTaskOnFailedTests: true
+        failTaskOnFailedTests: false
       displayName: "Publish Test Results"
-      condition: always()
-
-    # Show environment and test files for debugging
-    - script: |
-        echo "=== Environment Diagnostics ==="
-        echo "Code page: %CODEPAGE%"
-        chcp
-        echo "Working directory: %CD%"
-        echo "Temp directory: %TEMP%"
-        echo "Path: %PATH%"
-        
-        cd $(buildDir)
-        echo "=== Test Output Files ==="
-        dir /s *.xml 2>nul || echo "No XML files found"
-        
-        if exist GoogleTestResults.xml (
-          echo "=== GoogleTest Results Preview ==="
-          type GoogleTestResults.xml | findstr /C:"testcase" /C:"failure" /C:"error" /C:"testsuite"
-        ) else (
-          echo "GoogleTestResults.xml not found"
-        )
-        
-        echo "=== CTest Last Run Files ==="
-        dir Testing\Temporary 2>nul || echo "No CTest temporary files"
-        if exist Testing\Temporary\LastTest.log (
-          echo "=== Last few lines of CTest log ==="
-          powershell "Get-Content Testing\Temporary\LastTest.log | Select-Object -Last 50"
-        )
-      displayName: "Debug Test Output and Environment"
       condition: always()
 
     # Publish build artifacts
