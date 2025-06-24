@@ -117,7 +117,7 @@ stages:
 - stage: StaticAnalysis
   displayName: 'Static Analysis'
   dependsOn: Build
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  condition: and(succeeded(), eq(variables['System.PullRequest.TargetBranch'], 'refs/heads/master'))
   jobs:
   - job: StaticAnalysis
     displayName: 'Run Static Analysis'
