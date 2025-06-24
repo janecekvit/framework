@@ -64,51 +64,19 @@ stages:
         )
         echo "Build completed successfully"
       displayName: "Build Framework and Tests"
-
-    # Set up Windows environment for proper Unicode handling
-    - script: |
-        echo "Setting up Windows environment for tests..."
-        chcp 65001
-        set LANG=en_US.UTF-8
-        echo "Active code page: %ERRORLEVEL%"
-      displayName: "Setup Test Environment"
-
     
     # Run tests
     - script: |
-        echo "Running tests directly for XML output..."
+        echo "Running tests..."
         cd $(buildDir)
-        
-        rem Try the flat structure first (based on CMakeLists.txt config)
-        if exist ".\bin\framework_tests.exe" (
-          echo "Found executable in flat structure"
-          set TEST_EXE=.\bin\framework_tests.exe
-        ) else if exist ".\bin\$(buildConfiguration)\framework_tests.exe" (
-          echo "Found executable in config-specific directory"
-          set TEST_EXE=.\bin\$(buildConfiguration)\framework_tests.exe
-        ) else (
-          echo "ERROR: framework_tests.exe not found in expected locations"
-          dir bin
-          exit /b 1
-        )
-        
-        rem Set UTF-8 for proper character handling
         chcp 65001
-        
-        echo "=== Running all tests for XML output ==="
-        %TEST_EXE% --gtest_output=xml:GoogleTestResults.xml
-        
-        echo "=== Running individual failing tests for debugging ==="
-        echo "Testing exception handling..."
-        %TEST_EXE% --gtest_filter=test_exception.TestSimpleTextException --gtest_also_run_disabled_tests
-        %TEST_EXE% --gtest_filter=test_exception.TestWideTextException --gtest_also_run_disabled_tests
-        
-        echo "Testing trace functionality..."
-        %TEST_EXE% --gtest_filter=test_trace.TestTrace --gtest_also_run_disabled_tests
-        
-        echo "Direct test execution completed"
+        .\bin\framework_tests.exe --gtest_output=xml:GoogleTestResults.xml
+        echo Running tests completed"
       displayName: "Run Tests"
       continueOnError: true
+      env:
+        LANG: 'en_US.UTF-8'
+        LC_ALL: 'en_US.UTF-8'
 
     # Publish test results
     - task: PublishTestResults@2
