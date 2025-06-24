@@ -81,6 +81,14 @@ public:
 		return result;
 	}
 
+	std::list<std::string> ToList(const std::list<std::reference_wrapper<const char*>>& values)
+	{
+		std::list<std::string> result;
+		for (const auto& value : values)
+			result.emplace_back(value);
+		return result;
+	}
+
 	template <typename _T>
 	std::list<_T> ToList(const std::list<std::reference_wrapper<_T>>& values)
 	{
@@ -408,7 +416,7 @@ TEST_F(test_heterogeneous_container, TestTupleUnpack)
 	auto container = storage::heterogeneous_container(std::make_tuple(1, 2, 3, "1", "10"));
 
 	ASSERT_EQ(ToList(container.get<int>()), (std::list<int>{ 1, 2, 3 }));
-	ASSERT_EQ(ToList(container.get<const char*>()), (std::list<const char*>{ "1", "10" }));
+	ASSERT_EQ(ToList(container.get<const char*>()), (std::list<std::string>{ "1", "10" }));
 }
 
 TEST_F(test_heterogeneous_container, TestInitializerListUnpack)

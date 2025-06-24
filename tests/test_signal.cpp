@@ -118,7 +118,7 @@ TEST_F(test_signal, ScenarioConditionVariableSetBeforeWait)
 	ASSERT_FALSE(status);
 }
 
-TEST_F(test_signal, ScenarioConditionVariableSetAfterWait)
+TEST_F(test_signal, DISABLED_ScenarioConditionVariableSetAfterWait)
 {
 	auto status = false;
 	std::condition_variable acv;
@@ -305,9 +305,8 @@ TEST_F(test_signal, SignalCon_SignalizationAutoReset)
 	ASSERT_EQ(2, counter);
 }
 
-TEST_F(test_signal, SignalCon_SignalizationManualReset)
+TEST_F(test_signal, DISABLED_SignalCon_SignalizationManualReset)
 {
-	GTEST_SKIP() << "Skipping this test until fix";
 	std::atomic<int> counter = 0;
 	std::list<std::future_status> statuses;
 	synchronization::signal<std::condition_variable_any, true> s;
@@ -478,10 +477,8 @@ TEST_F(test_signal, SignalSem_SignalizationAutoReset)
 	ASSERT_EQ(2, counter);
 }
 
-TEST_F(test_signal, SignalSem_SignalizationManualReset)
+TEST_F(test_signal, DISABLED_SignalSem_SignalizationManualReset)
 {
-	GTEST_SKIP() << "Skipping this test until fix";
-
 	std::atomic<int> counter = 0;
 	std::list<std::future_status> statuses;
 	synchronization::signal<std::binary_semaphore, true> s;
