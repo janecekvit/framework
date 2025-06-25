@@ -30,6 +30,13 @@ stages:
           cmake-build | $(Agent.OS) | $(buildPlatform)
       displayName: "Cache CMake build directory"
 
+    # Setup Visual Studio Environment
+    - task: VSBuild@1
+      inputs:
+        vsVersion: '17.0'
+        msbuildArgs: '/version'
+      displayName: "Setup Visual Studio Environment"
+
     # Configure with CMake
     - script: |
         echo "Setting up CMake configuration..."
@@ -71,7 +78,7 @@ stages:
         cd $(buildDir)
         chcp 65001
         .\bin\framework_tests.exe --gtest_output=xml:GoogleTestResults.xml
-        echo Running tests completed"
+        echo "Running tests completed"
       displayName: "Run Tests"
       continueOnError: true
       env:
@@ -107,7 +114,7 @@ stages:
         
         cd $(buildDir)
         echo "=== Available executables ==="
-        dir bin\$(buildConfiguration)\*.exe
+        dir bin\*.exe
         
         echo "=== CMake targets ==="
         cmake --build . --target help | findstr "... "
@@ -132,6 +139,13 @@ stages:
         key: 'cmake-build | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | CMakeLists.txt | tests'
         path: '$(buildDir)'
       displayName: "Restore CMake build cache"
+
+    # Setup Visual Studio Environment (also needed for StaticAnalysis)
+    - task: VSBuild@1
+      inputs:
+        vsVersion: '17.0'
+        msbuildArgs: '/version'
+      displayName: "Setup Visual Studio Environment"
 
     # Re-configure if cache miss
     - script: |
@@ -159,7 +173,7 @@ stages:
     - script: |
         cd $(buildDir)
         echo "Running format check..."
-        cmake --build . --target FORMAT_CHECK
+        cmake --build . --config $(buildConfiguration) --target FORMAT_CHECK
       displayName: "Format Check"
       continueOnError: true
 
@@ -167,7 +181,7 @@ stages:
     - script: |
         cd $(buildDir)
         echo "Running static analysis..."
-        cmake --build . --target STATIC_ANALYSIS_CHECK
+        cmake --build . --config $(buildConfiguration) --target STATIC_ANALYSIS_CHECK
       displayName: "Static Analysis"
       continueOnError: true
 
