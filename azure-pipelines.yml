@@ -30,27 +30,31 @@ stages:
           cmake-build | $(Agent.OS) | $(buildPlatform)
       displayName: "Cache CMake build directory"
 
-    # Configure with CMake
+    # Create build directory
     - script: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
-        echo "Setting up CMake configuration..."
         mkdir $(buildDir) 2>nul || echo "Build directory exists"
-        cd $(buildDir)
-        
-        cmake -G "Visual Studio 17 2022" -A x64 ^
-          -DCMAKE_BUILD_TYPE=$(buildConfiguration) ^
-          -DBUILD_TESTING=ON ^
-          -DENABLE_CLANG_TIDY=OFF ^
-          -DENABLE_CPPCHECK=OFF ^
-          -DENABLE_CLANG_FORMAT=ON ^
-          $(Build.SourcesDirectory)
-          
-        if %ERRORLEVEL% neq 0 (
-          echo "CMake configuration failed!"
-          exit /b %ERRORLEVEL%
+      displayName: "Create Build Directory"
+
+    # Re-configure if cache miss
+    - script: |
+        if not exist $(buildDir)\CMakeCache.txt (
+          echo "CMake cache not found, will reconfigure..."
+        ) else (
+          echo "CMake cache found, skipping reconfiguration"
         )
-        echo "CMake configuration completed successfully"
-      displayName: "Configure with CMake"
+      displayName: "Check CMake Cache"
+      
+    - task: CMake@1
+      inputs:
+        workingDirectory: '$(buildDir)'
+        cmakeArgs: >-
+          -G "Visual Studio 17 2022" -A x64
+          -DCMAKE_BUILD_TYPE=$(buildConfiguration)
+          -DBUILD_TESTING=ON
+          -DENABLE_CLANG_TIDY=OFF
+          -DENABLE_CPPCHECK=OFF
+          -DENABLE_CLANG_FORMAT=ON
+          $(Build.SourcesDirectory)
 
     # Build the framework and tests
     - script: |
@@ -136,26 +140,33 @@ stages:
 
     # Re-configure if cache miss
     - script: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
-        cd $(buildDir)
-        if not exist CMakeCache.txt (
-          echo "CMake cache not found, reconfiguring..."
-          cmake -G "Visual Studio 17 2022" -A x64 ^
-            -DCMAKE_BUILD_TYPE=$(buildConfiguration) ^
-            -DBUILD_TESTING=ON ^
-            -DENABLE_CLANG_TIDY=OFF ^
-            -DENABLE_CPPCHECK=OFF ^
-            -DENABLE_CLANG_FORMAT=ON ^
-            $(Build.SourcesDirectory)
+        if not exist $(buildDir)\CMakeCache.txt (
+          echo "CMake cache not found, will reconfigure..."
+        ) else (
+          echo "CMake cache found, skipping reconfiguration"
         )
+      displayName: "Check CMake Cache"
+      
+    - task: CMake@1
+      inputs:
+        workingDirectory: '$(buildDir)'
+        cmakeArgs: >-
+          -G "Visual Studio 17 2022" -A x64
+          -DCMAKE_BUILD_TYPE=$(buildConfiguration)
+          -DBUILD_TESTING=ON
+          -DENABLE_CLANG_TIDY=OFF
+          -DENABLE_CPPCHECK=OFF
+          -DENABLE_CLANG_FORMAT=ON
+          $(Build.SourcesDirectory)
       displayName: "Ensure CMake Configuration"
+      condition: not(exists('$(buildDir)/CMakeCache.txt'))
 
-    # # Install LLVM/clang-format
-    # - script: |
-    #     choco install llvm -y
-    #     refreshenv
-    #     clang-format --version
-    #   displayName: "Install LLVM/clang-format"
+    # Install LLVM/clang-format
+    - script: |
+        choco install llvm -y
+        refreshenv
+        clang-format --version
+      displayName: "Install LLVM/clang-format"
 
     # Run format check
     - script: |
