@@ -1,4 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
+
+# Force CMake to find any available MSVC
+if(WIN32 AND NOT DEFINED CMAKE_CXX_COMPILER)
+    find_program(CMAKE_CXX_COMPILER NAMES cl.exe)
+    if(CMAKE_CXX_COMPILER)
+        message(STATUS "Found MSVC compiler: ${CMAKE_CXX_COMPILER}")
+    endif()
+endif()
+
 project(Framework VERSION 1.0.0 LANGUAGES CXX)
 
 # Set C++ standard to latest available
