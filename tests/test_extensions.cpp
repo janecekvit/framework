@@ -32,12 +32,12 @@ TEST_F(test_extensions, TestExecuteOnContainerObject)
 	std::unordered_map<size_t, std::string> myMap = {
 		{ 5, "tezko" }
 	};
-	auto value1 = extensions::execute_on_container(myMap, 5, [](std::string& oResult)
+	auto value1 = extensions::execute_on_container(myMap, 5, [](std::string& )
 		{
 			return 20;
 		});
 
-	auto value2 = extensions::execute_on_container(myMap, 6, [](std::string& oResult)
+	auto value2 = extensions::execute_on_container(myMap, 6, [](std::string& )
 		{
 			return 10;
 		});
@@ -51,12 +51,12 @@ TEST_F(test_extensions, TestExecuteOnContainerObjectConst)
 	const std::unordered_map<size_t, std::string> myMap = {
 		{ 5, "tezko" }
 	};
-	auto value1 = extensions::execute_on_container(myMap, 5, [](const std::string& oResult)
+	auto value1 = extensions::execute_on_container(myMap, 5, [](const std::string&)
 		{
 			return 20;
 		});
 
-	auto value2 = extensions::execute_on_container(myMap, 6, [](const std::string& oResult)
+	auto value2 = extensions::execute_on_container(myMap, 6, [](const std::string&)
 		{
 			return 10;
 		});
@@ -80,13 +80,11 @@ TEST_F(test_extensions, TestRecast)
 	ASSERT_TRUE(static_cast<bool>(ptr));
 
 	auto ptr2 = extensions::recast<derived, base>(std::move(ptr));
-#pragma warning(suppress : 26800)
 	ASSERT_FALSE(static_cast<bool>(ptr));
 	ASSERT_TRUE(static_cast<bool>(ptr2));
 
 	auto ptr3 = extensions::recast<base, derived>(std::move(ptr2));
 	ASSERT_FALSE(static_cast<bool>(ptr));
-#pragma warning(suppress : 26800)
 	ASSERT_FALSE(static_cast<bool>(ptr2));
 	ASSERT_TRUE(static_cast<bool>(ptr3));
 }
