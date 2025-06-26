@@ -100,16 +100,11 @@ jobs:
       run: |
         ./vcpkg/vcpkg install gtest:${{ matrix.vcpkg_triplet }}
 
-    # Create build directory
-    - name: Create build directory
-      run: cmake -E make_directory ${{ github.workspace }}/build
-
     # Configure
     - name: Configure CMake
-      shell: bash
-      working-directory: ${{ github.workspace }}/build
+      shell: bash      
       run: |
-        cmake -S .. -B . \
+        cmake -S . -B build \
           -G "${{ matrix.cmake_generator }}" \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" \
@@ -117,24 +112,22 @@ jobs:
 
     # Build
     - name: Build
-      working-directory: ${{ github.workspace }}/build
       shell: bash
       run: |
         if [ "${{ runner.os }}" = "Windows" ]; then
-          cmake --build . --config Release
+          cmake --build build --config Release
         else
-          cmake --build . -- -j$(nproc)
+          cmake --build build -- -j$(nproc)
         fi
 
     # Test
     - name: Test
-      working-directory: ${{ github.workspace }}/build
       shell: bash
       run: |
         if [ "${{ runner.os }}" = "Windows" ]; then
-          ctest -C Release --output-on-failure
+          ctest --test-dir build -C Release --output-on-failure
         else
-          ctest --output-on-failure
+          ctest --test-dir build --output-on-failure
         fi
 
     # Upload test results
