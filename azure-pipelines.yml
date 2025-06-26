@@ -166,10 +166,16 @@ stages:
         targetType: 'inline'
         script: |
           Write-Host "Installing winget..."
-          # Download and install winget
-          $progressPreference = 'silentlyContinue'
+          Write-Information "Downloading WinGet and its dependencies..."
           Invoke-WebRequest -Uri https://aka.ms/getwinget -OutFile Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
-          Add-AppxPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
+          Invoke-WebRequest -Uri https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx -OutFile Microsoft.VCLibs.x64.14.00.Desktop.appx
+          Invoke-WebRequest -Uri https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.x64.appx -OutFile Microsoft.UI.Xaml.2.8.x64.appx
+          Invoke-WebRequest -Uri https://github.com/microsoft/winget-cli/releases/download/v1.8.1522/cdc44a3f51ec4512b990fb5516afe12d_License1.xml -OutFile  cdc44a3f51ec4512b990fb5516afe12d_License1.xml
+          
+          Add-AppxPackage Microsoft.VCLibs.x64.14.00.Desktop.appx
+          Add-AppxPackage Microsoft.UI.Xaml.2.8.x64.appx
+          
+          Add-AppxProvisionedPackage  -Online -PackagePath Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle -LicensePath cdc44a3f51ec4512b990fb5516afe12d_License1.xml -Verbose
       displayName: "Install winget"
 
     # Upgrade LLVM/clang-format
