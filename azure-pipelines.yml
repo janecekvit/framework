@@ -48,7 +48,7 @@ stages:
           -G "Visual Studio 17 2022" -A x64
           -DCMAKE_BUILD_TYPE=$(buildConfiguration)
           -DBUILD_TESTING=ON
-          -DENABLE_CLANG_TIDY=OFF
+          -DENABLE_CLANG_TIDY=ON
           -DENABLE_CPPCHECK=OFF
           -DENABLE_CLANG_FORMAT=ON
           $(Build.SourcesDirectory)
@@ -154,43 +154,28 @@ stages:
           -G "Visual Studio 17 2022" -A x64
           -DCMAKE_BUILD_TYPE=$(buildConfiguration)
           -DBUILD_TESTING=ON
-          -DENABLE_CLANG_TIDY=OFF
+          -DENABLE_CLANG_TIDY=ON
           -DENABLE_CPPCHECK=OFF
           -DENABLE_CLANG_FORMAT=ON
           $(Build.SourcesDirectory)
       displayName: "Configure with CMake"
 
-    # Clang-format v18 compatibility
+    # Upgrade LLVM/clang-format
     - task: PowerShell@2
       inputs:
         targetType: 'inline'
         script: |
-          Write-Host "Current clang-format version:"
-          clang-format --version
+          Write-Host "Checking for LLVM updates..."
+          echo "Current LLVM:"
+          choco list llvm --local-only
           
-          Write-Host "Fixing .clang-format for v18 compatibility..."
-          if (Test-Path ".clang-format") {
-            $content = Get-Content ".clang-format"
-            $originalCount = $content.Count
-            
-            # Remove unsupported keys
-            $content = $content | Where-Object { 
-              $_ -notmatch "^MainIncludeChar:" -and
-              $_ -notmatch "^RemoveBracesLLVM:" -and
-              $_ -notmatch "^RequiresClausePosition:" -and
-              $_ -notmatch "^BreakFunctionDefinitionParameters:" -and
-              $_ -notmatch "^RequiresExpressionIndentation:"
-            }
-            
-            $newCount = $content.Count
-            $content | Set-Content ".clang-format"
-            
-            Write-Host "Removed $($originalCount - $newCount) unsupported lines from .clang-format"
-            Write-Host "✅ .clang-format is now compatible with clang-format v18"
-          } else {
-            Write-Host "❌ .clang-format file not found"
-          }
-      displayName: "Fix Clang-format v18 compatibility"
+          echo "Upgrading to latest:"
+          choco upgrade llvm -y
+          
+          refreshenv
+          Write-Host "Current version:"
+          clang-format --version
+      displayName: "Upgrade LLVM/clang-format"
 
     # Run format check
     - script: |
