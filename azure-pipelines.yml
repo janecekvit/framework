@@ -178,6 +178,7 @@ stages:
               $_ -notmatch "^MainIncludeChar:" -and
               $_ -notmatch "^RemoveBracesLLVM:" -and
               $_ -notmatch "^RequiresClausePosition:" -and
+              $_ -notmatch "^BreakFunctionDefinitionParameters:" -and
               $_ -notmatch "^RequiresExpressionIndentation:"
             }
             
