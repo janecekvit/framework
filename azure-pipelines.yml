@@ -23,11 +23,11 @@ stages:
     # Cache CMake build directory for faster builds
     - task: Cache@2
       inputs:
-        key: 'cmake-build | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | CMakeLists.txt | tests'
+        key: 'cmake-build-${{ format(''{0:yyyyMMdd}'', pipeline.startTime) }} | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | CMakeLists.txt | tests'
         path: '$(buildDir)'
         restoreKeys: |
-          cmake-build | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration)
-          cmake-build | $(Agent.OS) | $(buildPlatform)
+          cmake-build-${{ format(''{0:yyyyMMdd}'', pipeline.startTime) }} | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration)
+          cmake-build-${{ format(''{0:yyyyMMdd}'', pipeline.startTime) }} | $(Agent.OS) | $(buildPlatform)
       displayName: "Cache CMake build directory"
 
     # Re-configure if cache miss
@@ -130,7 +130,7 @@ stages:
     # Restore CMake build cache
     - task: Cache@2
       inputs:
-        key: 'cmake-build | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | CMakeLists.txt | tests'
+        key: 'cmake-build-${{ format(''{0:yyyyMMdd}'', pipeline.startTime) }} | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | CMakeLists.txt | tests'
         path: '$(buildDir)'
       displayName: "Restore CMake build cache"
 
