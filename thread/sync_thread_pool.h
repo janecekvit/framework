@@ -36,6 +36,9 @@ Purpose: header file of static thread pool class
 #include <list>
 #include <queue>
 #include <ranges>
+#include <thread>
+#include <mutex>
+#include <ranges>
 
 namespace janecekvit::thread
 {

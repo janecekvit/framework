@@ -593,7 +593,7 @@ TEST_F(test_concurrent, TestReassign)
 {
 	auto container = _prepare_testing_data();
 	// exclusive
-	auto scope(std::move(container.exclusive()));
+	auto scope(container.exclusive());
 	ASSERT_THROW(
 		{
 			scope.lock();
@@ -624,7 +624,7 @@ TEST_F(test_concurrent, TestReassign)
 		std::system_error);
 
 	// concurrent
-	auto scopeRead(std::move(container.concurrent()));
+	auto scopeRead(container.concurrent());
 	ASSERT_THROW(
 		{
 			scopeRead.lock();

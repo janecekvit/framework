@@ -104,7 +104,7 @@ public:
 		template <typename _T>
 		constexpr auto& get()
 		{
-			return const_cast<_T&>(std::as_const(*this).get<_T>());
+			return const_cast<_T&>(std::as_const(*this).template get<_T>());
 		}
 
 		template <typename _T>
@@ -310,7 +310,7 @@ public:
 	template <class _T>
 	[[nodiscard]] constexpr decltype(auto) get(size_t position)
 	{
-		return const_cast<_T&>(std::as_const(*this)._get<_T>(position));
+		return const_cast<_T&>(std::as_const(*this).template _get<_T>(position));
 	}
 
 	template <class _T, class _Callable>
@@ -471,7 +471,7 @@ private:
 
 			auto& storage = _get_storage_by_find<_T>();
 			for (auto&& item : storage)
-				values.emplace_back(item.get<_T>());
+				values.emplace_back(item.template get<_T>());
 
 			return values;
 		}
@@ -494,7 +494,7 @@ private:
 			if (storage.size() <= position)
 				throw bad_access(typeid(_T), "Cannot retrieve value on position " + std::to_string(position));
 
-			return storage[position].get<_T>();
+			return storage[position].template get<_T>();
 		}
 		catch (const std::bad_variant_access& ex)
 		{
@@ -515,9 +515,9 @@ private:
 			for (auto&& item : storage)
 			{
 				if constexpr (_IsConst)
-					std::invoke(std::forward<_Callable>(callback), std::as_const(item.get<_T>()));
+					std::invoke(std::forward<_Callable>(callback), std::as_const(item.template get<_T>()));
 				else
-					std::invoke(std::forward<_Callable>(callback), item.get<_T>());
+					std::invoke(std::forward<_Callable>(callback), item.template get<_T>());
 			}
 		}
 		catch (const std::bad_any_cast& ex)

@@ -51,7 +51,7 @@ public:
 			_text = "resource_wrapper: Deleter with specified type cannot be found: "s + type_info.name();
 		}
 
-		const char* what() const override
+		const char* what() const noexcept override
 		{
 			return _text.data();
 		}
