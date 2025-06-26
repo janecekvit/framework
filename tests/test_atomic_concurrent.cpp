@@ -1,5 +1,3 @@
-#include "stdafx.h"
-
 #include "extensions/extensions.h"
 #include "storage/resource_wrapper.h"
 #include "synchronization/atomic_concurrent.h"

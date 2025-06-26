@@ -1,5 +1,3 @@
-#include "stdafx.h"
-
 #include "extensions/cloneable.h"
 #include "extensions/property.h"
 #include "storage/heterogeneous_container.h"

@@ -1,5 +1,3 @@
-﻿#include "stdafx.h"
-
 #include "storage/resource_wrapper.h"
 
 #include <fstream>

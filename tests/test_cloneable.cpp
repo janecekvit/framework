@@ -1,5 +1,3 @@
-#include "stdafx.h"
-
 #include "extensions/cloneable.h"
 
 #include <gtest/gtest.h>

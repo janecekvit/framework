@@ -1,5 +1,3 @@
-﻿#include "stdafx.h"
-
 #include "synchronization/wait_for_multiple_signals.h"
 
 #include <chrono>

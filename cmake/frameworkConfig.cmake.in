@@ -1,0 +1,15 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# Find required dependencies
+find_dependency(Threads REQUIRED)
+
+# Include the targets file
+include("${CMAKE_CURRENT_LIST_DIR}/frameworkTargets.cmake")
+
+# Set variables for compatibility
+set(framework_LIBRARIES framework::framework)
+set(framework_INCLUDE_DIRS "@PACKAGE_CMAKE_INSTALL_INCLUDEDIR@/framework")
+
+check_required_components(framework)

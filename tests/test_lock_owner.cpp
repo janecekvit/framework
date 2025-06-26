@@ -1,5 +1,3 @@
-#include "stdafx.h"
-
 #include "synchronization/lock_owner.h"
 
 #include <fstream>

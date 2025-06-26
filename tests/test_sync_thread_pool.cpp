@@ -1,5 +1,3 @@
-#include "stdafx.h"
-
 #include "Thread/sync_thread_pool.h"
 
 #include <future>
