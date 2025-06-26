@@ -128,7 +128,17 @@ stages:
     steps:
     - checkout: self
       displayName: "Checkout repository"
-      
+    
+    # set date for cache key
+    - task: PowerShell@2
+      inputs:
+        targetType: 'inline'
+        script: |
+          $date = Get-Date -Format "yyyyMMdd"
+          Write-Host "##vso[task.setvariable variable=BuildDate]$date"
+          Write-Host "Build date for cache: $date"
+      displayName: "Set Build Date"
+    
     # Restore CMake build cache
     - task: Cache@2
       inputs:
@@ -149,7 +159,6 @@ stages:
           -DENABLE_CLANG_FORMAT=ON
           $(Build.SourcesDirectory)
       displayName: "Configure with CMake"
-      condition: not(exists('$(buildDir)/CMakeCache.txt'))
 
     # Install LLVM/clang-format
     - script: |
