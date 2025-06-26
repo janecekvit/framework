@@ -161,10 +161,15 @@ stages:
       displayName: "Configure with CMake"
 
     # Install LLVM/clang-format
-    - script: |
-        choco install llvm -y
-        refreshenv
-        clang-format --version
+    - task: PowerShell@2
+      inputs:
+        targetType: 'inline'
+        script: |
+          echo "Installing/upgrading to latest LLVM..."
+          choco install llvm -y --force
+          refreshenv
+          echo "Installed clang-format version:"
+          clang-format --version
       displayName: "Install LLVM/clang-format"
 
     # Run format check
