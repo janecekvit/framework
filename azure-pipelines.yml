@@ -160,13 +160,25 @@ stages:
           $(Build.SourcesDirectory)
       displayName: "Configure with CMake"
 
+    #Install winget first, then LLVM
+    - task: PowerShell@2
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Host "Installing winget..."
+          # Download and install winget
+          $progressPreference = 'silentlyContinue'
+          Invoke-WebRequest -Uri https://aka.ms/getwinget -OutFile Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
+          Add-AppxPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
+      displayName: "Install winget"
+
     # Upgrade LLVM/clang-format
     - task: PowerShell@2
       inputs:
         targetType: 'inline'
         script: |
           Write-Host "Checking for LLVM updates..."
-          winget upgrade --id LLVM.LLVM --accept-source-agreements --accept-package-agreements
+          winget upgrade --id LLVM.LLVM --accept-source-agreements --accept-package-agreements --silent
           refreshenv
           $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
           Write-Host "Current version:"
