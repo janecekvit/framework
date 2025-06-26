@@ -1,0 +1,253 @@
+name: 'Framework CI/CD'
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:  
+
+env:
+  BUILD_PLATFORM: 'x64'
+  BUILD_CONFIGURATION: 'Release'
+  BUILD_DIR: '${{ github.workspace }}/build'
+
+jobs:
+  build-and-test:
+    name: 'Build and Test Framework'
+    runs-on: windows-latest
+    
+    steps:
+    - name: 'Checkout repository'
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for accurate cache key
+
+    - name: 'Set Build Date'
+      shell: pwsh
+      run: |
+        $date = Get-Date -Format "yyyyMMdd"
+        echo "BUILD_DATE=$date" >> $env:GITHUB_ENV
+        Write-Host "Build date for cache: $date"
+
+    - name: 'Cache CMake build directory'
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.BUILD_DIR }}
+        key: cmake-build-${{ env.BUILD_DATE }}-${{ runner.os }}-${{ env.BUILD_PLATFORM }}-${{ env.BUILD_CONFIGURATION }}-${{ hashFiles('CMakeLists.txt', 'tests/**') }}
+        restore-keys: |
+          cmake-build-${{ env.BUILD_DATE }}-${{ runner.os }}-${{ env.BUILD_PLATFORM }}-${{ env.BUILD_CONFIGURATION }}
+          cmake-build-${{ env.BUILD_DATE }}-${{ runner.os }}-${{ env.BUILD_PLATFORM }}
+
+    - name: 'Setup CMake'
+      uses: jwlawson/actions-setup-cmake@v2
+      with:
+        cmake-version: '3.20'
+
+    - name: 'Configure with CMake'
+      shell: cmd
+      run: |
+        mkdir "${{ env.BUILD_DIR }}" 2>nul || echo Build directory exists
+        cd "${{ env.BUILD_DIR }}"
+        cmake -G "Visual Studio 17 2022" -A x64 ^
+              -DCMAKE_BUILD_TYPE=${{ env.BUILD_CONFIGURATION }} ^
+              -DBUILD_TESTING=ON ^
+              -DENABLE_CLANG_TIDY=ON ^
+              -DENABLE_CPPCHECK=OFF ^
+              -DENABLE_CLANG_FORMAT=ON ^
+              "${{ github.workspace }}"
+
+    - name: 'Build Framework and Tests'
+      shell: cmd
+      run: |
+        echo Building framework and tests...
+        cd "${{ env.BUILD_DIR }}"
+        cmake --build . --config ${{ env.BUILD_CONFIGURATION }} --parallel 4 --target framework_tests
+        if %ERRORLEVEL% neq 0 (
+          echo Build failed!
+          exit /b %ERRORLEVEL%
+        )
+        echo Build completed successfully
+
+    - name: 'Run Tests'
+      shell: cmd
+      continue-on-error: true
+      env:
+        LANG: 'en_US.UTF-8'
+        LC_ALL: 'en_US.UTF-8'
+      run: |
+        echo Running tests...
+        cd "${{ env.BUILD_DIR }}"
+        chcp 65001
+        .\bin\framework_tests.exe --gtest_output=xml:GoogleTestResults.xml
+        echo Running tests completed
+
+    - name: 'Publish Test Results'
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: 'Framework Unit Tests'
+        path: '${{ env.BUILD_DIR }}/GoogleTestResults.xml'
+        reporter: 'java-junit'
+        fail-on-error: false
+
+    - name: 'Upload Build Artifacts'
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: framework-binaries-${{ env.BUILD_CONFIGURATION }}
+        path: ${{ env.BUILD_DIR }}/bin/
+        retention-days: 5
+
+    - name: 'Build Summary'
+      if: always()
+      shell: cmd
+      run: |
+        echo === Build Summary ===
+        echo Configuration: ${{ env.BUILD_CONFIGURATION }}
+        echo Platform: ${{ env.BUILD_PLATFORM }}
+        echo Build Directory: ${{ env.BUILD_DIR }}
+        cd "${{ env.BUILD_DIR }}"
+        echo === Available executables ===
+        dir bin\*.exe 2>nul || echo No executables found
+        echo === CMake targets ===
+        cmake --build . --target help | findstr "... " 2>nul || echo No targets listed
+
+  static-analysis:
+    name: 'Static Analysis'
+    runs-on: windows-latest
+    needs: build-and-test
+    if: github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'master'
+    
+    steps:
+    - name: 'Checkout repository'
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: 'Set Build Date'
+      shell: pwsh
+      run: |
+        $date = Get-Date -Format "yyyyMMdd"
+        echo "BUILD_DATE=$date" >> $env:GITHUB_ENV
+        Write-Host "Build date for cache: $date"
+
+    - name: 'Restore CMake build cache'
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.BUILD_DIR }}
+        key: cmake-build-${{ env.BUILD_DATE }}-${{ runner.os }}-${{ env.BUILD_PLATFORM }}-${{ env.BUILD_CONFIGURATION }}-${{ hashFiles('CMakeLists.txt', 'tests/**') }}
+
+    - name: 'Setup CMake'
+      uses: actions/setup-cmake@v2
+      with:
+        cmake-version: '3.20'
+
+    - name: 'Configure with CMake'
+      shell: cmd
+      run: |
+        mkdir "${{ env.BUILD_DIR }}" 2>nul || echo Build directory exists
+        cd "${{ env.BUILD_DIR }}"
+        cmake -G "Visual Studio 17 2022" -A x64 ^
+              -DCMAKE_BUILD_TYPE=${{ env.BUILD_CONFIGURATION }} ^
+              -DBUILD_TESTING=ON ^
+              -DENABLE_CLANG_TIDY=ON ^
+              -DENABLE_CPPCHECK=OFF ^
+              -DENABLE_CLANG_FORMAT=ON ^
+              "${{ github.workspace }}"
+
+    - name: 'Setup LLVM/Clang tools'
+      shell: pwsh
+      run: |
+        Write-Host "Installing/Upgrading LLVM..."
+        
+        # Try chocolatey first (should be available on windows-latest)
+        try {
+          choco upgrade llvm -y
+          Write-Host "LLVM installed via Chocolatey"
+        }
+        catch {
+          Write-Host "Chocolatey failed, trying winget..."
+          winget install LLVM.LLVM
+        }
+        
+        # Refresh environment
+        $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH","User")
+        
+        Write-Host "Current clang-format version:"
+        clang-format --version
+
+    - name: 'Format Check'
+      shell: cmd
+      continue-on-error: true
+      run: |
+        cd "${{ env.BUILD_DIR }}"
+        echo Running format check...
+        cmake --build . --config ${{ env.BUILD_CONFIGURATION }} --target FORMAT_CHECK
+
+    - name: 'Static Analysis'
+      shell: cmd
+      continue-on-error: true
+      run: |
+        cd "${{ env.BUILD_DIR }}"
+        echo Running static analysis...
+        cmake --build . --config ${{ env.BUILD_CONFIGURATION }} --target STATIC_ANALYSIS_CHECK
+
+    - name: 'Upload Analysis Results'
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: static-analysis-results
+        path: ${{ env.BUILD_DIR }}/
+        retention-days: 7
+
+  # Cross-Platform Build
+  # This job builds the framework on multiple platforms and compilers
+  cross-platform-build:
+    name: 'Cross-Platform Build'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: gcc-13
+            build_type: Release
+          - os: ubuntu-latest  
+            compiler: clang-17
+            build_type: Release
+          - os: macos-latest
+            compiler: clang
+            build_type: Release
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: 'Checkout'
+      uses: actions/checkout@v4
+
+    - name: 'Setup Compiler (Ubuntu)'
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        if [[ "${{ matrix.compiler }}" == gcc-* ]]; then
+          sudo apt update
+          sudo apt install -y ${{ matrix.compiler }} g++-$(echo ${{ matrix.compiler }} | cut -d- -f2)
+          echo "CC=${{ matrix.compiler }}" >> $GITHUB_ENV
+          echo "CXX=g++-$(echo ${{ matrix.compiler }} | cut -d- -f2)" >> $GITHUB_ENV
+        elif [[ "${{ matrix.compiler }}" == clang-* ]]; then
+          sudo apt update
+          sudo apt install -y ${{ matrix.compiler }} libc++-$(echo ${{ matrix.compiler }} | cut -d- -f2)-dev
+          echo "CC=${{ matrix.compiler }}" >> $GITHUB_ENV  
+          echo "CXX=clang++-$(echo ${{ matrix.compiler }} | cut -d- -f2)" >> $GITHUB_ENV
+        fi
+
+    - name: 'Build'
+      run: |
+        mkdir build && cd build
+        cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DBUILD_TESTING=ON
+        cmake --build . --parallel $(nproc 2>/dev/null || sysctl -n hw.ncpu)
+
+    - name: 'Test'
+      run: |
+        cd build
+        ctest --output-on-failure --parallel $(nproc 2>/dev/null || sysctl -n hw.ncpu)
