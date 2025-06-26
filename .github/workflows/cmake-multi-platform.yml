@@ -46,6 +46,20 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    # Cache vcpkg
+    - name: Cache vcpkg
+      id: cache-vcpkg
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ github.workspace }}/vcpkg
+          !${{ github.workspace }}/vcpkg/buildtrees
+          !${{ github.workspace }}/vcpkg/packages
+          !${{ github.workspace }}/vcpkg/downloads
+        key: ${{ runner.os }}-vcpkg-${{ hashFiles('**/vcpkg.json') }}
+        restore-keys: |
+          ${{ runner.os }}-vcpkg-
+
     # Setup build environment
     - name: Setup MSVC (Windows)
       if: matrix.os == 'windows-latest'
@@ -63,6 +77,28 @@ jobs:
         fi
         echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
         echo "CXX=${{ matrix.cxx }}" >> $GITHUB_ENV
+
+    # Install vcpkg
+    - name: Setup vcpkg
+      shell: bash
+      run: |
+        if [ ! -d "vcpkg" ]; then
+          git clone https://github.com/Microsoft/vcpkg.git
+          cd vcpkg
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            ./bootstrap-vcpkg.bat -disableMetrics
+          else
+            ./bootstrap-vcpkg.sh -disableMetrics
+          fi
+          cd ..
+        fi
+        ./vcpkg/vcpkg --version
+
+    # Install dependencies
+    - name: Install dependencies
+      shell: bash
+      run: |
+        ./vcpkg/vcpkg install gtest:${{ matrix.vcpkg_triplet }}
 
     # Create build directory
     - name: Create build directory
