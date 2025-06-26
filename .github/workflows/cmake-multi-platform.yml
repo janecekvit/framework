@@ -14,7 +14,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          
           # Windows MSVC
           - os: windows-latest
             compiler: msvc
@@ -121,21 +120,13 @@ jobs:
     - name: Build
       shell: pwsh
       run: |
-        if ($IsWindows) {
-          cmake --build build --config Release
-        } else {
-          cmake --build build -- -j$(nproc)
-        }
+        cmake --build build --config Release --parallel
 
     # Test
     - name: Test
       shell: pwsh
       run: |
-        if ($IsWindows) {
-          ctest --test-dir build -C Release --output-on-failure
-        } else {
-          ctest --test-dir build --output-on-failure
-        }
+        ctest --test-dir build --config Release --output-on-failure --parallel
 
     # Upload test results
     - name: Upload test results
