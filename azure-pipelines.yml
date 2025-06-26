@@ -30,11 +30,6 @@ stages:
           cmake-build | $(Agent.OS) | $(buildPlatform)
       displayName: "Cache CMake build directory"
 
-    # Create build directory
-    - script: |
-        mkdir $(buildDir) 2>nul || echo "Build directory exists"
-      displayName: "Create Build Directory"
-
     # Re-configure if cache miss
     - script: |
         if not exist $(buildDir)\CMakeCache.txt (
@@ -55,6 +50,7 @@ stages:
           -DENABLE_CPPCHECK=OFF
           -DENABLE_CLANG_FORMAT=ON
           $(Build.SourcesDirectory)
+      displayName: "Configure with CMake"
 
     # Build the framework and tests
     - script: |
@@ -158,7 +154,7 @@ stages:
           -DENABLE_CPPCHECK=OFF
           -DENABLE_CLANG_FORMAT=ON
           $(Build.SourcesDirectory)
-      displayName: "Ensure CMake Configuration"
+      displayName: "Configure with CMake"
       condition: not(exists('$(buildDir)/CMakeCache.txt'))
 
     # Install LLVM/clang-format
