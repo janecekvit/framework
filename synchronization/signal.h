@@ -195,8 +195,8 @@ private:
 	{
 		if constexpr (_ManualReset)
 			return _signalized;
-
-		return _signalized.exchange(false);
+		else
+			return _signalized.exchange(false);
 	}
 
 private:

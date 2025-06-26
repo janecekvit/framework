@@ -260,8 +260,8 @@ public:
 	{
 		if constexpr (!std::is_same_v<_T, void>)
 			return _get_storage<_T>().size();
-
-		return _values.size();
+		else
+			return _values.size();
 	}
 
 	template <class _T = void>

@@ -119,7 +119,7 @@ TEST_F(test_concurrent, TestExclusiveAccessMultipleThreads)
 	auto&& container = _prepare_testing_data_perf_test();
 
 	ASSERT_EQ((int) container.exclusive(), 1);
-	auto thread1 = std::jthread([&](std::stop_token token)
+	auto thread1 = std::jthread([&]()
 		{
 			for (size_t i = 0; i < IterationCount; i++)
 			{
@@ -128,7 +128,7 @@ TEST_F(test_concurrent, TestExclusiveAccessMultipleThreads)
 			}
 		});
 
-	auto thread2 = std::jthread([&](std::stop_token token)
+	auto thread2 = std::jthread([&]()
 		{
 			for (size_t i = 0; i < IterationCount; i++)
 			{
@@ -204,7 +204,7 @@ TEST_F(test_concurrent, TestConcurrentAccessMultipleThreads)
 {
 	auto&& container = _prepare_testing_data_perf_test();
 	ASSERT_EQ((int) container.concurrent(), 1);
-	auto thread1 = std::jthread([&](std::stop_token token)
+	auto thread1 = std::jthread([&]()
 		{
 			for (size_t i = 0; i < IterationCount; i++)
 			{
@@ -213,7 +213,7 @@ TEST_F(test_concurrent, TestConcurrentAccessMultipleThreads)
 			}
 		});
 
-	auto thread2 = std::jthread([&](std::stop_token token)
+	auto thread2 = std::jthread([&]()
 		{
 			for (size_t i = 0; i < IterationCount; i++)
 			{
@@ -251,11 +251,11 @@ TEST_F(test_concurrent, TestIterators)
 
 	{ // begin const
 
-		auto begin = container.exclusive()->begin();
+		auto beginScope = container.exclusive()->begin();
 
 		// beginConst->second++; //concurrent
-		begin->second++; // exclusive
-		ASSERT_EQ(begin->second, 6);
+		beginScope->second++; // exclusive
+		ASSERT_EQ(beginScope->second, 6);
 	}
 }
 
@@ -466,12 +466,12 @@ TEST_F(test_concurrent, TestUserDefinedConversion)
 {
 	int iCalls = 0;
 	auto container = _prepare_testing_data();
-	auto testLambda = [&](std::unordered_map<int, int>& container)
+	auto testLambda = [&](std::unordered_map<int, int>&)
 	{
 		iCalls++;
 	};
 
-	auto testLambdaConst = [&](const std::unordered_map<int, int>& container)
+	auto testLambdaConst = [&](const std::unordered_map<int, int>&)
 	{
 		iCalls++;
 	};
@@ -487,7 +487,6 @@ TEST_F(test_concurrent, TestUserDefinedConversion)
 TEST_F(test_concurrent, TestSynchronisationSemantics)
 {
 	size_t size = 0;
-	size_t notifications = 0;
 	std::condition_variable_any cv;
 	auto container = _prepare_testing_data();
 	auto oFuture = std::async(std::launch::async, [&size, &cv, &container]()
@@ -712,7 +711,7 @@ TEST_F(test_concurrent, TestDebugLocksInformation)
 	{ // exclusive
 		ASSERT_FALSE(container.get_exclusive_lock_details().has_value());
 		{
-			auto&& oScope = container.exclusive();
+			[[maybe_unused]] auto&& oScope = container.exclusive();
 			ASSERT_TRUE(container.get_exclusive_lock_details().has_value());
 		}
 
@@ -728,8 +727,8 @@ TEST_F(test_concurrent, TestDebugLocksInformation)
 	{ // concurrent
 		ASSERT_TRUE(container.get_concurrent_lock_details().empty());
 		{
-			auto&& oScope = container.concurrent();
-			auto&& oScope2 = container.concurrent();
+			[[maybe_unused]] auto&& oScope = container.concurrent();
+			[[maybe_unused]] auto&& oScope2 = container.concurrent();
 
 			ASSERT_EQ((size_t) 2, container.get_concurrent_lock_details().size());
 		}
