@@ -126,7 +126,7 @@ jobs:
     - name: Test
       shell: pwsh
       run: |
-        ctest --test-dir build --config Release --output-on-failure --parallel
+        ctest --test-dir build --output-on-failure --parallel
 
     # Upload test results
     - name: Upload test results
