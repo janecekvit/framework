@@ -31,19 +31,21 @@ jobs:
             cxx: g++-14
             cxx_standard: "23"
             
-          # # Ubuntu Clang
-          # - os: ubuntu-latest
-          #   compiler: clang
-          #   cmake_generator: "Unix Makefiles"
-          #   vcpkg_triplet: x64-linux
-          #   cc: clang-14
-          #   cxx: clang++-14
+          # Ubuntu Clang
+          - os: ubuntu-latest
+            compiler: clang
+            cmake_generator: "Unix Makefiles"
+            vcpkg_triplet: x64-linux
+            cc: clang-18
+            cxx: clang++-18
+            cxx_standard: "23"
             
-          # # macOS Clang
-          # - os: macos-latest
-          #   compiler: clang
-          #   cmake_generator: "Unix Makefiles"
-          #   vcpkg_triplet: x64-osx
+          # macOS Clang
+          - os: macos-latest
+            compiler: clang
+            cmake_generator: "Unix Makefiles"
+            vcpkg_triplet: x64-osx
+            cxx_standard: "23"
 
     steps:
     - name: Checkout code
@@ -70,69 +72,70 @@ jobs:
 
     - name: Setup GCC/Clang (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
+      shell: pwsh
       run: |
-        if [ "${{ matrix.compiler }}" = "gcc" ]; then
+        if ("${{ matrix.compiler }}" -eq "gcc") {
           sudo apt-get update
           sudo apt-get install -y gcc-14 g++-14
-        elif [ "${{ matrix.compiler }}" = "clang" ]; then
+        } elseif ("${{ matrix.compiler }}" -eq "clang") {
           sudo apt-get update
-          sudo apt-get install -y clang-14
-        fi
-        echo "CC=${{ matrix.cc }}" >> $GITHUB_ENV
-        echo "CXX=${{ matrix.cxx }}" >> $GITHUB_ENV
+          sudo apt-get install -y clang-18
+        }
+        echo "CC=${{ matrix.cc }}" | Out-File -FilePath $env:GITHUB_ENV -Append
+        echo "CXX=${{ matrix.cxx }}" | Out-File -FilePath $env:GITHUB_ENV -Append
 
     # Install vcpkg
     - name: Setup vcpkg
-      shell: bash
+      shell: pwsh
       run: |
-        if [ ! -d "vcpkg" ]; then
+        if (-not (Test-Path "vcpkg")) {
           git clone https://github.com/Microsoft/vcpkg.git
-          cd vcpkg
-          if [ "${{ runner.os }}" = "Windows" ]; then
+          Set-Location vcpkg
+          if ($IsWindows) {
             ./bootstrap-vcpkg.bat -disableMetrics
-          else
+          } else {
             ./bootstrap-vcpkg.sh -disableMetrics
-          fi
-          cd ..
-        fi
+          }
+          Set-Location ..
+        }
         ./vcpkg/vcpkg --version
 
     # Install dependencies
     - name: Install dependencies
-      shell: bash
+      shell: pwsh
       run: |
         ./vcpkg/vcpkg install gtest:${{ matrix.vcpkg_triplet }}
 
     # Configure
     - name: Configure CMake
-      shell: bash      
+      shell: pwsh
       run: |
-        cmake -S . -B build \
-          -G "${{ matrix.cmake_generator }}" \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} \              
-          -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" \
+        cmake -S . -B build `
+          -G "${{ matrix.cmake_generator }}" `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} `
+          -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" `
           -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }}
 
     # Build
     - name: Build
-      shell: bash
+      shell: pwsh
       run: |
-        if [ "${{ runner.os }}" = "Windows" ]; then
+        if ($IsWindows) {
           cmake --build build --config Release
-        else
+        } else {
           cmake --build build -- -j$(nproc)
-        fi
+        }
 
     # Test
     - name: Test
-      shell: bash
+      shell: pwsh
       run: |
-        if [ "${{ runner.os }}" = "Windows" ]; then
+        if ($IsWindows) {
           ctest --test-dir build -C Release --output-on-failure
-        else
+        } else {
           ctest --test-dir build --output-on-failure
-        fi
+        }
 
     # Upload test results
     - name: Upload test results
