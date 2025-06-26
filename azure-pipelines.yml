@@ -160,36 +160,36 @@ stages:
           $(Build.SourcesDirectory)
       displayName: "Configure with CMake"
 
-    #Install winget first, then LLVM
+    # Clang-format v18 compatibility
     - task: PowerShell@2
       inputs:
         targetType: 'inline'
         script: |
-          Write-Host "Installing winget..."
-          Write-Information "Downloading WinGet and its dependencies..."
-          Invoke-WebRequest -Uri https://aka.ms/getwinget -OutFile Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle
-          Invoke-WebRequest -Uri https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx -OutFile Microsoft.VCLibs.x64.14.00.Desktop.appx
-          Invoke-WebRequest -Uri https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.x64.appx -OutFile Microsoft.UI.Xaml.2.8.x64.appx
-          Invoke-WebRequest -Uri https://github.com/microsoft/winget-cli/releases/download/v1.8.1522/cdc44a3f51ec4512b990fb5516afe12d_License1.xml -OutFile  cdc44a3f51ec4512b990fb5516afe12d_License1.xml
-          
-          Add-AppxPackage Microsoft.VCLibs.x64.14.00.Desktop.appx
-          Add-AppxPackage Microsoft.UI.Xaml.2.8.x64.appx
-          
-          Add-AppxProvisionedPackage  -Online -PackagePath Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle -LicensePath cdc44a3f51ec4512b990fb5516afe12d_License1.xml -Verbose
-      displayName: "Install winget"
-
-    # Upgrade LLVM/clang-format
-    - task: PowerShell@2
-      inputs:
-        targetType: 'inline'
-        script: |
-          Write-Host "Checking for LLVM updates..."
-          winget upgrade --id LLVM.LLVM --accept-source-agreements --accept-package-agreements --silent
-          refreshenv
-          $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
-          Write-Host "Current version:"
+          Write-Host "Current clang-format version:"
           clang-format --version
-      displayName: "Upgrade LLVM/clang-format"
+          
+          Write-Host "Fixing .clang-format for v18 compatibility..."
+          if (Test-Path ".clang-format") {
+            $content = Get-Content ".clang-format"
+            $originalCount = $content.Count
+            
+            # Remove unsupported keys
+            $content = $content | Where-Object { 
+              $_ -notmatch "^MainIncludeChar:" -and
+              $_ -notmatch "^RemoveBracesLLVM:" -and
+              $_ -notmatch "^RequiresClausePosition:" -and
+              $_ -notmatch "^RequiresExpressionIndentation:"
+            }
+            
+            $newCount = $content.Count
+            $content | Set-Content ".clang-format"
+            
+            Write-Host "Removed $($originalCount - $newCount) unsupported lines from .clang-format"
+            Write-Host "✅ .clang-format is now compatible with clang-format v18"
+          } else {
+            Write-Host "❌ .clang-format file not found"
+          }
+      displayName: "Fix Clang-format v18 compatibility"
 
     # Run format check
     - script: |
