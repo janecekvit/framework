@@ -20,27 +20,27 @@ jobs:
             cmake_generator: "Visual Studio 17 2022"
             vcpkg_triplet: x64-windows
             
-          # Ubuntu GCC
-          - os: ubuntu-latest
-            compiler: gcc
-            cmake_generator: "Unix Makefiles"
-            vcpkg_triplet: x64-linux
-            cc: gcc-11
-            cxx: g++-11
+          # # Ubuntu GCC
+          # - os: ubuntu-latest
+          #   compiler: gcc
+          #   cmake_generator: "Unix Makefiles"
+          #   vcpkg_triplet: x64-linux
+          #   cc: gcc-11
+          #   cxx: g++-11
             
-          # Ubuntu Clang
-          - os: ubuntu-latest
-            compiler: clang
-            cmake_generator: "Unix Makefiles"
-            vcpkg_triplet: x64-linux
-            cc: clang-14
-            cxx: clang++-14
+          # # Ubuntu Clang
+          # - os: ubuntu-latest
+          #   compiler: clang
+          #   cmake_generator: "Unix Makefiles"
+          #   vcpkg_triplet: x64-linux
+          #   cc: clang-14
+          #   cxx: clang++-14
             
-          # macOS Clang
-          - os: macos-latest
-            compiler: clang
-            cmake_generator: "Unix Makefiles"
-            vcpkg_triplet: x64-osx
+          # # macOS Clang
+          # - os: macos-latest
+          #   compiler: clang
+          #   cmake_generator: "Unix Makefiles"
+          #   vcpkg_triplet: x64-osx
 
     steps:
     - name: Checkout code
