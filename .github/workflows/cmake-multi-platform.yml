@@ -20,6 +20,7 @@ jobs:
             compiler: msvc
             cmake_generator: "Visual Studio 17 2022"
             vcpkg_triplet: x64-windows
+            cxx_standard: "23"
             
           # Ubuntu GCC
           - os: ubuntu-latest
@@ -109,6 +110,7 @@ jobs:
         cmake -S . -B build \
           -G "${{ matrix.cmake_generator }}" \
           -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} \              
           -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" \
           -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }}
 
