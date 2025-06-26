@@ -79,14 +79,6 @@ if(DEFINED ENV{VCPKG_ROOT})
         CACHE STRING "Vcpkg toolchain file")
 endif()
 
-
-# Clear target that works from any directory
-add_custom_target(CLEAN_BUILD
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target clean
-    COMMENT "Cleaning build artifacts..."
-    VERBATIM
-)
-
 # Framework library
 set(FRAMEWORK_HEADERS
     exception/exception.h
@@ -214,6 +206,51 @@ if(BUILD_TESTING)
     gtest_discover_tests(framework_tests)
 endif()
 
+# CppCheck
+if(ENABLE_CPPCHECK)
+    find_program(CPPCHECK_EXE NAMES "cppcheck")
+    if(CPPCHECK_EXE)
+        set(CMAKE_CXX_CPPCHECK 
+            "${CPPCHECK_EXE}"
+            "--enable=all"
+            "--inconclusive"
+            "--force"
+            "--inline-suppr"
+            "--suppress=missingInclude"
+        )
+    endif()
+endif()
+
+# ======================
+#     CUSTOM TARGETS
+# ======================
+
+# Clear target that works from any directory
+add_custom_target(CLEAN_BUILD
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target clean
+    COMMENT "Cleaning build artifacts..."
+    VERBATIM
+)
+
+# Framework target
+if(BUILD_TESTING)
+    # When testing enabled: build framework + tests
+    add_custom_target(BUILD_FRAMEWORK
+        DEPENDS framework framework_tests
+        COMMENT "Building framework and tests"
+        VERBATIM
+    )
+    message(STATUS "✅ BUILD_FRAMEWORK target: builds framework + tests")
+else()
+    # When testing disabled: build framework only
+    add_custom_target(BUILD_FRAMEWORK
+        DEPENDS framework
+        COMMENT "Building framework only"
+        VERBATIM
+    )
+    message(STATUS "✅ BUILD_FRAMEWORK target: builds framework only")
+endif()
+
 # Static analysis
 if(ENABLE_CLANG_TIDY)
     find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
@@ -261,21 +298,6 @@ if(ENABLE_CLANG_TIDY)
         
     else()
         message(WARNING "clang-tidy not found. Install it to use static analysis targets.")
-    endif()
-endif()
-
-# CppCheck
-if(ENABLE_CPPCHECK)
-    find_program(CPPCHECK_EXE NAMES "cppcheck")
-    if(CPPCHECK_EXE)
-        set(CMAKE_CXX_CPPCHECK 
-            "${CPPCHECK_EXE}"
-            "--enable=all"
-            "--inconclusive"
-            "--force"
-            "--inline-suppr"
-            "--suppress=missingInclude"
-        )
     endif()
 endif()
 
