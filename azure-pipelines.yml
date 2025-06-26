@@ -39,16 +39,8 @@ stages:
           cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration)
           cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform)
       displayName: "Cache CMake build directory"
-
-    # Re-configure if cache miss
-    - script: |
-        if not exist $(buildDir)\CMakeCache.txt (
-          echo "CMake cache not found, will reconfigure..."
-        ) else (
-          echo "CMake cache found, skipping reconfiguration"
-        )
-      displayName: "Check CMake Cache"
       
+    # cofigure cmake
     - task: CMake@1
       inputs:
         workingDirectory: '$(buildDir)'
@@ -144,15 +136,7 @@ stages:
         path: '$(buildDir)'
       displayName: "Restore CMake build cache"
 
-    # Re-configure if cache miss
-    - script: |
-        if not exist $(buildDir)\CMakeCache.txt (
-          echo "CMake cache not found, will reconfigure..."
-        ) else (
-          echo "CMake cache found, skipping reconfiguration"
-        )
-      displayName: "Check CMake Cache"
-      
+    # cofigure cmake
     - task: CMake@1
       inputs:
         workingDirectory: '$(buildDir)'
