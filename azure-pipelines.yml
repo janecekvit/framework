@@ -31,10 +31,11 @@ stages:
       displayName: "Cache CMake build directory"
 
     # Setup Visual Studio Environment
-    - task: VSBuild@1
+    - task: BatchScript@1
       inputs:
-        vsVersion: '17.0'
-        msbuildArgs: '/version'
+        filename: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat'
+        arguments: '-arch=x64'
+        modifyEnvironment: true
       displayName: "Setup Visual Studio Environment"
 
     # Configure with CMake
@@ -141,10 +142,11 @@ stages:
       displayName: "Restore CMake build cache"
 
     # Setup Visual Studio Environment (also needed for StaticAnalysis)
-    - task: VSBuild@1
+    - task: BatchScript@1
       inputs:
-        vsVersion: '17.0'
-        msbuildArgs: '/version'
+        filename: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat'
+        arguments: '-arch=x64'
+        modifyEnvironment: true
       displayName: "Setup Visual Studio Environment"
 
     # Re-configure if cache miss
