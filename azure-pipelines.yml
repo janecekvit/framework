@@ -150,12 +150,12 @@ stages:
         )
       displayName: "Ensure CMake Configuration"
 
-    # Install LLVM/clang-format
-    - script: |
-        choco install llvm -y
-        refreshenv
-        clang-format --version
-      displayName: "Install LLVM/clang-format"
+    # # Install LLVM/clang-format
+    # - script: |
+    #     choco install llvm -y
+    #     refreshenv
+    #     clang-format --version
+    #   displayName: "Install LLVM/clang-format"
 
     # Run format check
     - script: |
