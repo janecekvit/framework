@@ -160,17 +160,18 @@ stages:
           $(Build.SourcesDirectory)
       displayName: "Configure with CMake"
 
-    # Install LLVM/clang-format
+    # Upgrade LLVM/clang-format
     - task: PowerShell@2
       inputs:
         targetType: 'inline'
         script: |
-          echo "Installing/upgrading to latest LLVM..."
-          choco install llvm -y --force
+          Write-Host "Checking for LLVM updates..."
+          winget upgrade --id LLVM.LLVM --accept-source-agreements --accept-package-agreements
           refreshenv
-          echo "Installed clang-format version:"
+          $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
+          Write-Host "Current version:"
           clang-format --version
-      displayName: "Install LLVM/clang-format"
+      displayName: "Upgrade LLVM/clang-format"
 
     # Run format check
     - script: |
