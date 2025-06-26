@@ -94,11 +94,11 @@ jobs:
         fi
         ./vcpkg/vcpkg --version
 
-    # Install dependencies
-    - name: Install dependencies
-      shell: bash
-      run: |
-        ./vcpkg/vcpkg install gtest:${{ matrix.vcpkg_triplet }}
+    # # Install dependencies
+    # - name: Install dependencies
+    #   shell: bash
+    #   run: |
+    #     ./vcpkg/vcpkg install gtest:${{ matrix.vcpkg_triplet }}
 
     # Create build directory
     - name: Create build directory
