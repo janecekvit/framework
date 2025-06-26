@@ -109,7 +109,7 @@ jobs:
       shell: bash
       working-directory: ${{ github.workspace }}/build
       run: |
-        cmake .. \
+        cmake -S .. -B . \
           -G "${{ matrix.cmake_generator }}" \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" \
