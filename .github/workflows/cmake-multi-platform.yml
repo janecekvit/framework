@@ -14,19 +14,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          
           # Windows MSVC
           - os: windows-latest
             compiler: msvc
             cmake_generator: "Visual Studio 17 2022"
             vcpkg_triplet: x64-windows
             
-          # # Ubuntu GCC
-          # - os: ubuntu-latest
-          #   compiler: gcc
-          #   cmake_generator: "Unix Makefiles"
-          #   vcpkg_triplet: x64-linux
-          #   cc: gcc-11
-          #   cxx: g++-11
+          # Ubuntu GCC
+          - os: ubuntu-latest
+            compiler: gcc
+            cmake_generator: "Unix Makefiles"
+            vcpkg_triplet: x64-linux
+            cc: gcc-14
+            cxx: g++-14
+            cxx_standard: "23"
             
           # # Ubuntu Clang
           # - os: ubuntu-latest
@@ -70,7 +72,7 @@ jobs:
       run: |
         if [ "${{ matrix.compiler }}" = "gcc" ]; then
           sudo apt-get update
-          sudo apt-get install -y gcc-11 g++-11
+          sudo apt-get install -y gcc-14 g++-14
         elif [ "${{ matrix.compiler }}" = "clang" ]; then
           sudo apt-get update
           sudo apt-get install -y clang-14
