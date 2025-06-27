@@ -541,9 +541,17 @@ private:
 		return it->second;
 	}
 
-private:
 	template <typename _T>
-	const inline static size_t TypeKey = reinterpret_cast<size_t>(&TypeKey<_T>);
+    static size_t _get_type_key()
+    {
+        static char dummy{};
+        return reinterpret_cast<size_t>(&dummy);
+    }
+
+private:
+
+	template <typename _T>
+	const inline static size_t TypeKey = _get_type_key<_T>();
 
 	mutable container _values;
 };
