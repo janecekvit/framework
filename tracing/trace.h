@@ -60,7 +60,7 @@ public:
 
 	constexpr operator std::thread::id&&() &&
 	{
-		return _thread;
+		return std::move(_thread);
 	}
 
 	constexpr operator const std::source_location&() const&
