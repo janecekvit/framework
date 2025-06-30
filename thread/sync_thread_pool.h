@@ -132,10 +132,10 @@ public:
 public:
 	virtual ~sync_thread_pool()
 	{
-		std::ranges::for_each(_workers, [](const std::jthread& t)
-			{
-				const_cast<std::jthread&>(t).request_stop();
-			});
+		for (auto& t : const_cast<std::list<std::jthread>&>(_workers))
+		{
+			t.request_stop();
+		}
 
 		_event.notify_all();
 	}

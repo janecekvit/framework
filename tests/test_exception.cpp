@@ -17,7 +17,12 @@ std::string GetStringLocation(int origLine, int origColumn, const std::string& s
 {
 	auto file_name = location.file_name();
     auto function_name = location.function_name();
-	return std::vformat("File: {}({}:{}) '{}'. Thread: {}. {}", std::make_format_args(file_name, origLine, origColumn, function_name, thread, suffix));
+
+	std::ostringstream oss;
+    oss << thread;
+    std::string thread_str = oss.str();
+
+	return std::vformat("File: {}({}:{}) '{}'. Thread: {}. {}", std::make_format_args(file_name, origLine, origColumn, function_name, thread_str, suffix));
 }
 
 TEST_F(test_exception, TestSimpleTextException)

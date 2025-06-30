@@ -656,52 +656,46 @@ TEST_F(test_concurrent, TestReassign)
 TEST_F(test_concurrent, TestContainerCopy)
 {
 	{ // exclusive
-		std::optional<concurrent::unordered_map<int, int>::exclusive_holder_type> scope;
 		concurrent::unordered_map<int, int> container2;
-		ASSERT_FALSE(scope.has_value());
-
+		int originalValue = 0;
 		{
 			auto container = _prepare_testing_data();
-			scope = container.exclusive();
-			ASSERT_TRUE(scope.has_value());
-			ASSERT_EQ(scope.value()->at(15), 15);
-			scope->unlock();
+			auto&& scope = container.exclusive();
+			ASSERT_EQ(scope->at(15), 15);
+			originalValue = scope->at(15);
+			scope.unlock();
 			container2 = container;
 		}
-		scope = container2.exclusive();
-		ASSERT_TRUE(scope.has_value());
-		ASSERT_EQ(scope.value()->at(15), 15);
 
-		scope->unlock();
-		scope->lock();
+		auto scope = container2.exclusive();
+		ASSERT_EQ(scope->at(15), originalValue);
 
-		ASSERT_EQ(scope.value()->at(15), 15);
-		scope.reset();
+		scope.unlock();
+		scope.lock();
+
+		ASSERT_EQ(scope->at(15), originalValue);
 	}
 
 	{ // concurrent
-		std::optional<concurrent::unordered_map<int, int>::concurrent_holder_type> scope;
 		concurrent::unordered_map<int, int> container2;
-		ASSERT_FALSE(scope.has_value());
+		int originalValue = 0;
 
 		{
 			auto container = _prepare_testing_data();
-			scope = container.concurrent();
-			ASSERT_TRUE(scope.has_value());
-			ASSERT_EQ(scope.value()->at(15), 15);
-			scope->unlock();
+			auto scope = container.concurrent();
+			ASSERT_EQ(scope->at(15), 15);
+			originalValue = scope->at(15);
+			scope.unlock();
 			container2 = container;
 		}
 
-		scope = container2.concurrent();
-		ASSERT_TRUE(scope.has_value());
-		ASSERT_EQ(scope.value()->at(15), 15);
+		auto scope = container2.concurrent();
+		ASSERT_EQ(scope->at(15), originalValue);
 
-		scope->unlock();
-		scope->lock();
+		scope.unlock();
+		scope.lock();
 
-		ASSERT_EQ(scope.value()->at(15), 15);
-		scope.reset();
+		ASSERT_EQ(scope->at(15), originalValue);
 	}
 }
 

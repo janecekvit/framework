@@ -321,7 +321,7 @@ protected:
 	void _check_deleter() const
 	{
 		if (!_deleter)
-			throw deleter_missing_exception(typeid(std::declval<_ResourceDeleter>()));
+			throw deleter_missing_exception(typeid(_ResourceDeleter));
 	}
 
 protected:
