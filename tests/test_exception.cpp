@@ -33,7 +33,7 @@ TEST_F(test_exception, TestSimpleTextException)
 	}
 	catch (const exception::exception& ex)
 	{
-		auto location = GetStringLocation(27, 29, "Ano: true, Ne: false.");
+		auto location = GetStringLocation(32, 29, "Ano: true, Ne: false.");
 		ASSERT_STREQ(ex.what(), location.c_str());
 	}
 
@@ -43,7 +43,7 @@ TEST_F(test_exception, TestSimpleTextException)
 	}
 	catch (const std::exception& ex)
 	{
-		auto location = GetStringLocation(37, 52, "Ano: true, Ne: false.");
+		auto location = GetStringLocation(42, 52, "Ano: true, Ne: false.");
 		ASSERT_STREQ(ex.what(), location.c_str());
 	}
 
@@ -53,7 +53,7 @@ TEST_F(test_exception, TestSimpleTextException)
 	}
 	catch (const std::exception& ex)
 	{
-		auto location = GetStringLocation(47, 29, "");
+		auto location = GetStringLocation(52, 29, "");
 		ASSERT_STREQ(ex.what(), location.c_str());
 	}
 
@@ -63,7 +63,7 @@ TEST_F(test_exception, TestSimpleTextException)
 	}
 	catch (const std::exception& ex)
 	{
-		auto location = GetStringLocation(57, 29, "Ano: true, Ne: false.");
+		auto location = GetStringLocation(62, 29, "Ano: true, Ne: false.");
 		ASSERT_STREQ(ex.what(), location.c_str());
 	}
 }
@@ -76,7 +76,7 @@ TEST_F(test_exception, TestWideTextException)
 	}
 	catch (const std::exception& ex)
 	{
-		auto location = GetStringLocation(70, 29, "Ano: true, Ne: false.");
+		auto location = GetStringLocation(75, 29, "Ano: true, Ne: false.");
 		ASSERT_STREQ(ex.what(), location.c_str());
 	}
 
@@ -86,7 +86,7 @@ TEST_F(test_exception, TestWideTextException)
 	}
 	catch (const std::exception& ex)
 	{
-		auto location = GetStringLocation(80, 52, "Ano: true, Ne: false.");
+		auto location = GetStringLocation(85, 52, "Ano: true, Ne: false.");
 		ASSERT_STREQ(ex.what(), location.c_str());
 	}
 
@@ -96,7 +96,7 @@ TEST_F(test_exception, TestWideTextException)
 	}
 	catch (const std::exception& ex)
 	{
-		auto location = GetStringLocation(90, 29, "");
+		auto location = GetStringLocation(95, 29, "");
 		ASSERT_STREQ(ex.what(), location.c_str());
 	}
 
@@ -106,7 +106,7 @@ TEST_F(test_exception, TestWideTextException)
 	}
 	catch (const std::exception& ex)
 	{
-		auto location = GetStringLocation(100, 29, "Ano: true, Ne: false.");
+		auto location = GetStringLocation(105, 29, "Ano: true, Ne: false.");
 		ASSERT_STREQ(ex.what(), location.c_str());
 	}
 }
