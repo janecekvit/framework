@@ -62,7 +62,7 @@ constexpr decltype(auto) execute_on_container(
 {
 	if constexpr (constraints::is_foundable_v<_Container, _Key>)
 	{
-		if constexpr (constraints::is_pair_v<std::_Iter_value_t<decltype(container.find(key))>>)
+		if constexpr (constraints::is_pair_v<std::iter_value_t<decltype(container.find(key))>>)
 		{
 			auto&& it = container.find(key);
 			if (it != container.end())

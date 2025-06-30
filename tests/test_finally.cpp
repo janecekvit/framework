@@ -42,8 +42,7 @@ TEST_F(test_finally, TestFinallyActionWithException)
 		auto finally = extensions::final_action([&]()
 			{
 				result = 5;
-				throw std::exception("HH");
-				result = 10;
+				throw std::runtime_error("HH");
 			},
 			[&](const std::exception& ex)
 			{
@@ -85,8 +84,7 @@ TEST_F(test_finally, TestFinallyMethodWithException)
 		auto finally = extensions::finally([&]()
 			{
 				result = 5;
-				throw std::exception("HH");
-				result = 10;
+				throw std::runtime_error("HH");
 			},
 			[&](const std::exception& ex)
 			{

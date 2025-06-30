@@ -486,8 +486,8 @@ TEST_F(test_heterogeneous_container, PerformanceVariant)
 
 	for (size_t i = 0; i < N; i++)
 	{
-		int& result = std::get<int>(value);
-		std::string& result2 = std::get<std::string>(value2);
+		[[maybe_unused]] int& result = std::get<int>(value);
+		[[maybe_unused]] std::string& result2 = std::get<std::string>(value2);
 	}
 }
 
@@ -497,8 +497,8 @@ TEST_F(test_heterogeneous_container, PerformanceAnyCast)
 	std::any value2 = std::string("ANO");
 	for (size_t i = 0; i < N; i++)
 	{
-		auto result = std::any_cast<int&>(value);
-		auto result2 = std::any_cast<std::string&>(value2);
+		[[maybe_unused]] auto result = std::any_cast<int&>(value);
+		[[maybe_unused]] auto result2 = std::any_cast<std::string&>(value2);
 	}
 }
 
@@ -507,8 +507,8 @@ TEST_F(test_heterogeneous_container, PerformanceHeterogenousContainer)
 	storage::heterogeneous_container value(5, std::string("ANO"));
 	for (size_t i = 0; i < N; i++)
 	{
-		auto& result = value.first<int>();
-		auto& result2 = value.first<std::string>();
+		[[maybe_unused]] auto& result = value.first<int>();
+		[[maybe_unused]] auto& result2 = value.first<std::string>();
 	}
 }
 
