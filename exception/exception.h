@@ -8,6 +8,7 @@
 #include <memory>
 #include <source_location>
 #include <string>
+#include <thread>
 
 #ifdef __cpp_lib_concepts
 
@@ -48,6 +49,21 @@ public:
 	[[nodiscard]] const char* what() const noexcept override
 	{
 		return _error.c_str();
+	}
+
+	[[nodiscard]] const std::string& error() const noexcept
+	{
+		return _error;
+	}
+
+	[[nodiscard]] const std::source_location& source_location() const noexcept
+	{
+		return _srcl;
+	}
+
+	[[nodiscard]] const std::thread::id& thread_id() const noexcept
+	{
+		return _thread;
 	}
 
 private:
