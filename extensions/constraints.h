@@ -353,7 +353,7 @@ template <class _Condition>
 concept condition_variable_type = std::is_same_v<std::condition_variable, _Condition> || std::is_same_v<std::condition_variable_any, _Condition>;
 
 #ifdef __cpp_lib_semaphore
-template <class _Semaphore, ptrdiff_t _LeastMaxValue = std::_Semaphore_max>
+template <class _Semaphore, ptrdiff_t _LeastMaxValue = std::numeric_limits<ptrdiff_t>::max()>
 concept semaphore_type = std::is_same_v<std::binary_semaphore, _Semaphore> || std::is_same_v<std::counting_semaphore<_LeastMaxValue>, _Semaphore>;
 #endif // __cpp_lib_semaphore
 

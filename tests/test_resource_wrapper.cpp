@@ -102,7 +102,7 @@ TEST_F(test_resource_wrapper, TestRetrieve)
 	ASSERT_EQ(size_t{ 2 }, oWrapperList->size());
 
 	bool bRetrieveCalled = false;
-	oWrapperList.retrieve([&](auto&& list)
+	oWrapperList.retrieve([&](auto&&)
 		{
 			ASSERT_EQ(size_t{ 2 }, oWrapperList->size());
 			bRetrieveCalled = true;
@@ -120,7 +120,6 @@ TEST_F(test_resource_wrapper, TestUpdate)
 
 	ASSERT_EQ(size_t{ 2 }, oWrapperList->size());
 
-	bool bRetrieveCalled = false;
 	oWrapperList.update([](auto&& list)
 		{
 			list.emplace_back(3);

@@ -6,23 +6,30 @@ using namespace janecekvit;
 
 namespace framework_tests
 {
+
 class test_exception : public ::testing::Test
 {
-protected:
-	void SetUp() override
-	{
-	}
-
-	void TearDown() override
-	{
-	}
 };
 
 #ifdef __cpp_lib_concepts
 
-std::string GetStringLocation(int origLine, int origColumn, std::string suffix, std::source_location location = std::source_location::current(), std::thread::id&& thread = std::this_thread::get_id())
+std::string GetStringLocation(const std::source_location& location, const std::thread::id& thread, const std::string& suffix)
 {
-	return std::format("File: {}({}:{}) '{}'. Thread: {}. {}", location.file_name(), origLine, origColumn, location.function_name(), thread, suffix);
+	auto file_name = location.file_name();
+    auto function_name = location.function_name();
+	auto line = location.line();
+    auto column = location.column();
+
+#ifdef __cpp_lib_formatters
+	std::string thread_str = std::format("{}", thread);
+#else
+	std::ostringstream oss;
+	oss << thread ;
+	std::string thread_str = oss.str();
+#endif
+
+	return std::vformat("File: {}({}:{}) '{}'. Thread: {}. {}", std::make_format_args(file_name, line, column, function_name, thread_str, suffix));
+
 }
 
 TEST_F(test_exception, TestSimpleTextException)
@@ -33,39 +40,64 @@ TEST_F(test_exception, TestSimpleTextException)
 	}
 	catch (const exception::exception& ex)
 	{
-		auto location = GetStringLocation(32, 29, "Ano: true, Ne: false.");
-		ASSERT_EQ(ex.what(), location);
+		auto location = GetStringLocation(ex.source_location(), ex.thread_id(), "Ano: true, Ne: false.");
+		ASSERT_STREQ(ex.what(), location.c_str());
 	}
 
 	try
 	{
 		throw exception::exception(std::source_location::current(), std::this_thread::get_id(), "Ano: {}, Ne: {}.", true, false);
 	}
-	catch (const std::exception& ex)
+	catch (const exception::exception& ex)
 	{
-		auto location = GetStringLocation(42, 52, "Ano: true, Ne: false.");
-		ASSERT_EQ(ex.what(), location);
+		auto location = GetStringLocation(ex.source_location(), ex.thread_id(), "Ano: true, Ne: false.");
+		ASSERT_STREQ(ex.what(), location.c_str());
 	}
 
 	try
 	{
 		throw exception::exception();
 	}
-	catch (const std::exception& ex)
+	catch (const exception::exception& ex)
 	{
-		auto location = GetStringLocation(52, 29, "");
-		ASSERT_EQ(ex.what(), location);
+		auto location = GetStringLocation(ex.source_location(), ex.thread_id(), "");
+		ASSERT_STREQ(ex.what(), location.c_str());
 	}
 
 	try
 	{
 		exception::throw_exception("Ano: {}, Ne: {}.", true, false);
 	}
-	catch (const std::exception& ex)
+	catch (const exception::exception& ex)
 	{
-		auto location = GetStringLocation(62, 29, "Ano: true, Ne: false.");
-		ASSERT_EQ(ex.what(), location);
+		auto location = GetStringLocation(ex.source_location(), ex.thread_id(), "Ano: true, Ne: false.");
+		ASSERT_STREQ(ex.what(), location.c_str());
 	}
+
+	// std exception catch test
+	bool caught = false;
+	try
+	{
+		throw exception::exception();
+	}
+	catch (const std::exception&)
+	{
+		caught = true;
+	}
+	
+	ASSERT_TRUE(caught);
+
+	caught = false;
+	try
+	{
+		exception::throw_exception("Ano: {}, Ne: {}.", true, false);
+	}
+	catch (const std::exception&)
+	{
+		caught = true;
+	}
+	
+	ASSERT_TRUE(caught);
 }
 
 TEST_F(test_exception, TestWideTextException)
@@ -74,41 +106,66 @@ TEST_F(test_exception, TestWideTextException)
 	{
 		throw exception::exception(L"Ano: {}, Ne: {}.", std::make_tuple(true, false));
 	}
-	catch (const std::exception& ex)
+	catch (const exception::exception& ex)
 	{
-		auto location = GetStringLocation(75, 29, "Ano: true, Ne: false.");
-		ASSERT_EQ(ex.what(), location);
+		auto location = GetStringLocation(ex.source_location(), ex.thread_id(), "Ano: true, Ne: false.");
+		ASSERT_STREQ(ex.what(), location.c_str());
 	}
 
 	try
 	{
 		throw exception::exception(std::source_location::current(), std::this_thread::get_id(), L"Ano: {}, Ne: {}.", true, false);
 	}
-	catch (const std::exception& ex)
+	catch (const exception::exception& ex)
 	{
-		auto location = GetStringLocation(85, 52, "Ano: true, Ne: false.");
-		ASSERT_EQ(ex.what(), location);
+		auto location = GetStringLocation(ex.source_location(), ex.thread_id(), "Ano: true, Ne: false.");
+		ASSERT_STREQ(ex.what(), location.c_str());
 	}
 
 	try
 	{
 		throw exception::exception();
 	}
-	catch (const std::exception& ex)
+	catch (const exception::exception& ex)
 	{
-		auto location = GetStringLocation(95, 29, "");
-		ASSERT_EQ(ex.what(), location);
+		auto location = GetStringLocation(ex.source_location(), ex.thread_id(), "");
+		ASSERT_STREQ(ex.what(), location.c_str());
 	}
 
 	try
 	{
 		exception::throw_exception(L"Ano: {}, Ne: {}.", true, false);
 	}
-	catch (const std::exception& ex)
+	catch (const exception::exception& ex)
 	{
-		auto location = GetStringLocation(105, 29, "Ano: true, Ne: false.");
-		ASSERT_EQ(ex.what(), location);
+		auto location = GetStringLocation(ex.source_location(), ex.thread_id(), "Ano: true, Ne: false.");
+		ASSERT_STREQ(ex.what(), location.c_str());
 	}
+
+	// std exception catch test
+	bool caught = false;
+	try
+	{
+		throw exception::exception();
+	}
+	catch (const std::exception&)
+	{
+		caught = true;
+	}
+	
+	ASSERT_TRUE(caught);
+
+	caught = false;
+	try
+	{
+		exception::throw_exception(L"Ano: {}, Ne: {}.", true, false);
+	}
+	catch (const std::exception&)
+	{
+		caught = true;
+	}
+
+	ASSERT_TRUE(caught);
 }
 #else
 TEST_F(test_exception, TestExceptionNotSupportedConcepts)

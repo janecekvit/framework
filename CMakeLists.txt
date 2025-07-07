@@ -1,61 +1,14 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.25)
 project(Framework VERSION 1.0.0 LANGUAGES CXX)
 
-# Set C++ standard to latest available
-if(MSVC)
-	# MSVC standard
+# Set C++ standard based on compiler
+if(NOT DEFINED CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 23)
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
-    set(CMAKE_CXX_EXTENSIONS OFF)
-    
-    # MSVC uses /std:c++latest
-    add_compile_options(/std:c++latest)
-    
-    # Set experimental  Standard Library Modules
-    add_compile_options(/experimental:module)
-
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-
-    message(STATUS "MSVC detected - using C++23 with /std:c++latest")
-else()
-	# Try to use the latest C++ standard available
-    include(CheckCXXCompilerFlag)
-    
-    # Check for C++26 support
-	CHECK_CXX_COMPILER_FLAG("-std=c++26" COMPILER_SUPPORTS_CXX26)
-	CHECK_CXX_COMPILER_FLAG("-std=c++2c" COMPILER_SUPPORTS_CXX2C)
-
-	# Check for C++23 support
-	CHECK_CXX_COMPILER_FLAG("-std=c++23" COMPILER_SUPPORTS_CXX23)
-	CHECK_CXX_COMPILER_FLAG("-std=c++2b" COMPILER_SUPPORTS_CXX2B)
-    
-    # Set the highest available standard
-	if(COMPILER_SUPPORTS_CXX26 OR COMPILER_SUPPORTS_CXX2C)
-        set(CMAKE_CXX_STANDARD 26)
-        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-            add_compile_options(-std=c++26)
-            message(STATUS "GCC detected - using C++26 with -std=c++26")
-        elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-            add_compile_options(-std=c++2c)  # Clang používá -std=c++2c pro C++26
-            message(STATUS "Clang detected - using C++26 with -std=c++2c")
-        endif()
-    elseif(COMPILER_SUPPORTS_CXX23 OR COMPILER_SUPPORTS_CXX2B)
-        set(CMAKE_CXX_STANDARD 23)
-        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-            add_compile_options(-std=c++23)
-            message(STATUS "GCC detected - using C++23 with -std=c++23")
-        elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-            add_compile_options(-std=c++2b)  # Clang používá -std=c++2b pro C++23
-            message(STATUS "Clang detected - using C++23 with -std=c++2b")
-        endif()
-    else()
-        set(CMAKE_CXX_STANDARD 20)
-        message(STATUS "Using C++20 standard as fallback")
-    endif()
-    
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
-    set(CMAKE_CXX_EXTENSIONS OFF)
 endif()
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+message(STATUS "Using C++${CMAKE_CXX_STANDARD} standard")
 
 # Options
 option(BUILD_TESTING "Build tests" ON)
@@ -108,8 +61,6 @@ elseif(UNIX)
         endif()
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         add_compile_options(-Wno-gnu-zero-variadic-macro-arguments)
-        
-        # Clang doesn't support -std=c++latest, will use CMAKE_CXX_STANDARD
     endif()
     
     # Enable sanitizers
@@ -127,14 +78,6 @@ if(DEFINED ENV{VCPKG_ROOT})
     set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" 
         CACHE STRING "Vcpkg toolchain file")
 endif()
-
-
-# Clear target that works from any directory
-add_custom_target(CLEAN_BUILD
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target clean
-    COMMENT "Cleaning build artifacts..."
-    VERBATIM
-)
 
 # Framework library
 set(FRAMEWORK_HEADERS
@@ -263,6 +206,51 @@ if(BUILD_TESTING)
     gtest_discover_tests(framework_tests)
 endif()
 
+# CppCheck
+if(ENABLE_CPPCHECK)
+    find_program(CPPCHECK_EXE NAMES "cppcheck")
+    if(CPPCHECK_EXE)
+        set(CMAKE_CXX_CPPCHECK 
+            "${CPPCHECK_EXE}"
+            "--enable=all"
+            "--inconclusive"
+            "--force"
+            "--inline-suppr"
+            "--suppress=missingInclude"
+        )
+    endif()
+endif()
+
+# ======================
+#     CUSTOM TARGETS
+# ======================
+
+# Clear target that works from any directory
+add_custom_target(CLEAN_BUILD
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target clean
+    COMMENT "Cleaning build artifacts..."
+    VERBATIM
+)
+
+# Framework target
+if(BUILD_TESTING)
+    # When testing enabled: build framework + tests
+    add_custom_target(BUILD_FRAMEWORK
+        DEPENDS framework framework_tests
+        COMMENT "Building framework and tests"
+        VERBATIM
+    )
+    message(STATUS "✅ BUILD_FRAMEWORK target: builds framework + tests")
+else()
+    # When testing disabled: build framework only
+    add_custom_target(BUILD_FRAMEWORK
+        DEPENDS framework
+        COMMENT "Building framework only"
+        VERBATIM
+    )
+    message(STATUS "✅ BUILD_FRAMEWORK target: builds framework only")
+endif()
+
 # Static analysis
 if(ENABLE_CLANG_TIDY)
     find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
@@ -310,21 +298,6 @@ if(ENABLE_CLANG_TIDY)
         
     else()
         message(WARNING "clang-tidy not found. Install it to use static analysis targets.")
-    endif()
-endif()
-
-# CppCheck
-if(ENABLE_CPPCHECK)
-    find_program(CPPCHECK_EXE NAMES "cppcheck")
-    if(CPPCHECK_EXE)
-        set(CMAKE_CXX_CPPCHECK 
-            "${CPPCHECK_EXE}"
-            "--enable=all"
-            "--inconclusive"
-            "--force"
-            "--inline-suppr"
-            "--suppress=missingInclude"
-        )
     endif()
 endif()
 

@@ -23,8 +23,12 @@ using namespace std::string_literals;
 struct SimpleValue
 {
 	SimpleValue(int val)
-		: Value(val)
+		: Value()
 	{
+		Value.reserve(val);
+		for (int i = 0; i < val; ++i) {
+			Value.push_back(i);  // Explicit element insertion
+		}
 	}
 
 	std::vector<int> Value;
@@ -296,6 +300,7 @@ TEST_F(test_property, TestPropertyArrowOperatorOnPointerPrivate)
 	auto property = PropertyHolderPtr(vector);
 	property->emplace_back(10);
 	ASSERT_EQ(property->size(), size_t(6));
+	ASSERT_GT(property->size(), 5);
 
 	const auto propertyConst = property;
 	ASSERT_EQ(propertyConst->at(5), 10);

@@ -2,14 +2,6 @@
 
 #include <gtest/gtest.h>
 
-#if _WIN32 || _WIN64
-#if _WIN64
-#define ENVIRONMENT_64
-#else
-#define ENVIRONMENT_32
-#endif
-#endif
-
 using namespace janecekvit;
 using namespace std::string_literals;
 
@@ -32,12 +24,12 @@ TEST_F(test_extensions, TestExecuteOnContainerObject)
 	std::unordered_map<size_t, std::string> myMap = {
 		{ 5, "tezko" }
 	};
-	auto value1 = extensions::execute_on_container(myMap, 5, [](std::string& oResult)
+	auto value1 = extensions::execute_on_container(myMap, 5, [](std::string& )
 		{
 			return 20;
 		});
 
-	auto value2 = extensions::execute_on_container(myMap, 6, [](std::string& oResult)
+	auto value2 = extensions::execute_on_container(myMap, 6, [](std::string& )
 		{
 			return 10;
 		});
@@ -51,12 +43,12 @@ TEST_F(test_extensions, TestExecuteOnContainerObjectConst)
 	const std::unordered_map<size_t, std::string> myMap = {
 		{ 5, "tezko" }
 	};
-	auto value1 = extensions::execute_on_container(myMap, 5, [](const std::string& oResult)
+	auto value1 = extensions::execute_on_container(myMap, 5, [](const std::string&)
 		{
 			return 20;
 		});
 
-	auto value2 = extensions::execute_on_container(myMap, 6, [](const std::string& oResult)
+	auto value2 = extensions::execute_on_container(myMap, 6, [](const std::string&)
 		{
 			return 10;
 		});
@@ -80,13 +72,11 @@ TEST_F(test_extensions, TestRecast)
 	ASSERT_TRUE(static_cast<bool>(ptr));
 
 	auto ptr2 = extensions::recast<derived, base>(std::move(ptr));
-#pragma warning(suppress : 26800)
 	ASSERT_FALSE(static_cast<bool>(ptr));
 	ASSERT_TRUE(static_cast<bool>(ptr2));
 
 	auto ptr3 = extensions::recast<base, derived>(std::move(ptr2));
 	ASSERT_FALSE(static_cast<bool>(ptr));
-#pragma warning(suppress : 26800)
 	ASSERT_FALSE(static_cast<bool>(ptr2));
 	ASSERT_TRUE(static_cast<bool>(ptr3));
 }
@@ -96,7 +86,7 @@ TEST_F(test_extensions, TestTupleGenerate)
 	auto callback = [](auto&&... oArgs) -> int
 	{
 		auto tt = std::forward_as_tuple(oArgs...);
-		return std::get<0>(tt);
+		return static_cast<int>(std::get<0>(tt));
 	};
 	auto oResultGenerator = extensions::tuple::generate<10>(callback);
 	ASSERT_EQ(oResultGenerator, std::make_tuple(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
@@ -120,9 +110,9 @@ TEST_F(test_extensions, TestHashFunction)
 	int i = 5;
 	size_t uHash = extensions::hash::combine(s, i);
 
-#if defined ENVIRONMENT_64
+#if defined(_WIN64) || defined(__x86_64__) || defined(__x86_64) || defined(__amd64__) || defined(__amd64)
 	ASSERT_EQ(uHash, static_cast<size_t>(8002369318281051212));
-#elif defined ENVIRONMENT_32
+#elif defined(_WIN32) || defined(__i386__) || defined(__i386) || defined(__x86__)
 	ASSERT_EQ(uHash, static_cast<size_t>(730160148));
 #endif
 }
