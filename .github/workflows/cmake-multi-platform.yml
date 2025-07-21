@@ -10,6 +10,7 @@ jobs:
   build:
     name: ${{ matrix.os }} - ${{ matrix.compiler }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -126,7 +127,7 @@ jobs:
     - name: Test
       shell: pwsh
       run: |
-        ctest --test-dir build --output-on-failure --parallel
+        ctest --test-dir build --output-on-failure --parallel --timeout 30
 
     # Upload test results
     - name: Upload test results

@@ -282,7 +282,10 @@ TEST_F(test_concurrent, TestExclusiveAccessSynchroAsync)
 {
 	auto container = _prepare_testing_data();
 
+	std::mutex mutex;
 	std::condition_variable con;
+	bool async_done = false;
+
 	auto future = std::async(std::launch::async, [&]()
 		{
 			int i = 5;
@@ -293,12 +296,17 @@ TEST_F(test_concurrent, TestExclusiveAccessSynchroAsync)
 
 				item.second += 1;
 			}
+			
+			{
+				std::lock_guard<std::mutex> lock(mutex);
+				async_done = true;
+			}
 			con.notify_one();
 		});
 
-	std::mutex mutex;
 	std::unique_lock<std::mutex> oLock(mutex);
-	con.wait(oLock);
+	con.wait(oLock, [&] { return async_done; });
+	
 	int i = 6;
 	for (auto&& item : container.exclusive())
 	{

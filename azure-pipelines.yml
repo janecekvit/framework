@@ -15,6 +15,7 @@ stages:
   jobs:
   - job: BuildTest
     displayName: 'Build and Test Framework'
+    timeoutInMinutes: 20
     
     steps:
     - checkout: self
@@ -74,7 +75,7 @@ stages:
         echo "Running tests..."
         cd $(buildDir)
         chcp 65001
-        .\bin\framework_tests.exe --gtest_output=xml:GoogleTestResults.xml
+        .\bin\framework_tests.exe --gtest_output=xml:GoogleTestResults.xml --timeout=30
         echo "Running tests completed"
       displayName: "Run Tests"
       continueOnError: true
@@ -125,6 +126,7 @@ stages:
   jobs:
   - job: StaticAnalysis
     displayName: 'Run Static Analysis'
+    timeoutInMinutes: 20
     
     steps:
     - checkout: self
