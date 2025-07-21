@@ -37,6 +37,20 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
 endif()
 
+# Debug information settings
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        add_compile_options(-g -O0)
+        # Force debug symbols for all targets
+        set(CMAKE_CXX_FLAGS_DEBUG "-g -O0" CACHE STRING "" FORCE)
+        message(STATUS "Debug build (Linux): enabled debug symbols and disabled optimizations")
+    elseif(WIN32 AND MSVC)
+        add_compile_options(/Zi /Od)
+        add_link_options(/DEBUG)
+        message(STATUS "Debug build (Windows): enabled debug symbols and disabled optimizations")
+    endif()
+endif()
+
 # Platform-specific settings
 if(WIN32)
     add_compile_definitions(_WIN32_WINNT=0x0601)
@@ -200,6 +214,16 @@ if(BUILD_TESTING)
 			 gtest_main
     )
     target_include_directories(framework_tests PRIVATE tests)
+    
+    # Ensure debug symbols for tests
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            target_compile_options(framework_tests PRIVATE -g -O0)
+        elseif(WIN32 AND MSVC)
+            target_compile_options(framework_tests PRIVATE /Zi /Od)
+            target_link_options(framework_tests PRIVATE /DEBUG)
+        endif()
+    endif()
     
     # Add tests to CTest
     include(GoogleTest)

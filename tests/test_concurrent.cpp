@@ -43,9 +43,9 @@ protected:
 	{
 	}
 
-	[[nodiscard]] static concurrent::unordered_map<int, int> _prepare_testing_data()
+	[[nodiscard]] static concurrent::map<int, int> _prepare_testing_data()
 	{
-		concurrent::unordered_map<int, int> container;
+		concurrent::map<int, int> container;
 		container.exclusive()->emplace(5, 5); // exclusive access with lifetime of one operation
 
 		// exclusive access with extended lifetime for more that only one
@@ -358,7 +358,7 @@ TEST_F(test_concurrent, TestSwapSemantics)
 {
 	auto container = _prepare_testing_data();
 
-	std::unordered_map<int, int> tmpContainer;
+	std::map<int, int> tmpContainer;
 	tmpContainer.emplace(30, 30);
 	tmpContainer.emplace(35, 35);
 
@@ -414,7 +414,7 @@ TEST_F(test_concurrent, TestSetSemantics)
 {
 	auto container = _prepare_testing_data();
 
-	std::unordered_map<int, int> tmpContainer;
+	std::map<int, int> tmpContainer;
 	tmpContainer.emplace(30, 30);
 	tmpContainer.emplace(35, 35);
 
@@ -467,12 +467,12 @@ TEST_F(test_concurrent, TestUserDefinedConversion)
 {
 	int iCalls = 0;
 	auto container = _prepare_testing_data();
-	auto testLambda = [&](std::unordered_map<int, int>&)
+	auto testLambda = [&](std::map<int, int>&)
 	{
 		iCalls++;
 	};
 
-	auto testLambdaConst = [&](const std::unordered_map<int, int>&)
+	auto testLambdaConst = [&](const std::map<int, int>&)
 	{
 		iCalls++;
 	};
@@ -657,7 +657,7 @@ TEST_F(test_concurrent, TestReassign)
 TEST_F(test_concurrent, TestContainerCopy)
 {
 	{ // exclusive
-		concurrent::unordered_map<int, int> container2;
+		concurrent::map<int, int> container2;
 		int originalValue = 0;
 		{
 			auto container = _prepare_testing_data();
@@ -678,7 +678,7 @@ TEST_F(test_concurrent, TestContainerCopy)
 	}
 
 	{ // concurrent
-		concurrent::unordered_map<int, int> container2;
+		concurrent::map<int, int> container2;
 		int originalValue = 0;
 
 		{
