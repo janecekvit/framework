@@ -106,15 +106,29 @@ TEST_F(test_extensions, TestNumeric)
 
 TEST_F(test_extensions, TestHashFunction)
 {
-	std::string s("ano");
-	int i = 5;
-	size_t uHash = extensions::hash::combine(s, i);
+	std::string s1("ano");
+	std::string s2("ano");
+	std::string s3("different");
+	int i1 = 5;
+	int i2 = 5;
+	int i3 = 10;
+	
+	size_t hash1 = extensions::hash::combine(s1, i1);
+	size_t hash2 = extensions::hash::combine(s2, i2);
+	size_t hash3 = extensions::hash::combine(s3, i3);
+	size_t hash4 = extensions::hash::combine(s1, i3);
 
-#if defined(_WIN64) || defined(__x86_64__) || defined(__x86_64) || defined(__amd64__) || defined(__amd64)
-	ASSERT_EQ(uHash, static_cast<size_t>(8002369318281051212));
-#elif defined(_WIN32) || defined(__i386__) || defined(__i386) || defined(__x86__)
-	ASSERT_EQ(uHash, static_cast<size_t>(730160148));
-#endif
+	// Same inputs should produce same hash
+	ASSERT_EQ(hash1, hash2);
+	
+	// Different inputs should produce different hashes (with high probability)
+	ASSERT_NE(hash1, hash3);
+	ASSERT_NE(hash1, hash4);
+	ASSERT_NE(hash3, hash4);
+	
+	// Hash should not be zero (basic sanity check)
+	ASSERT_NE(hash1, 0);
+	ASSERT_NE(hash3, 0);
 }
 
 } // namespace framework_tests

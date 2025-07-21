@@ -282,30 +282,23 @@ TEST_F(test_concurrent, TestExclusiveAccessSynchroAsync)
 {
 	auto container = _prepare_testing_data();
 
-	std::mutex mutex;
-	std::condition_variable con;
-	bool async_done = false;
+	std::promise<void> promise;
+	auto future = promise.get_future();
 
-	auto future = std::async(std::launch::async, [&]()
+	auto async_task = std::async(std::launch::async, [&]()
 		{
 			int i = 5;
 			for (auto&& item : container.exclusive())
 			{
 				ASSERT_EQ(item.second, i);
 				i += 5;
-
 				item.second += 1;
 			}
-			
-			{
-				std::lock_guard<std::mutex> lock(mutex);
-				async_done = true;
-			}
-			con.notify_one();
+			promise.set_value();
 		});
 
-	std::unique_lock<std::mutex> oLock(mutex);
-	con.wait(oLock, [&] { return async_done; });
+	// Wait for first thread to complete
+	future.wait();
 	
 	int i = 6;
 	for (auto&& item : container.exclusive())
@@ -315,7 +308,7 @@ TEST_F(test_concurrent, TestExclusiveAccessSynchroAsync)
 		item.second -= 1;
 	}
 
-	future.get();
+	async_task.get();
 }
 
 TEST_F(test_concurrent, TestIndexOperator)
