@@ -2,3 +2,5 @@
 **/Debug/
 **Release/
 /build
+/out
+CLAUDE.md
