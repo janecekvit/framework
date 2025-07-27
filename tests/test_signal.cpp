@@ -60,7 +60,80 @@ public:
 				task();
 			});
 	}
+
+	template <typename T>
+	void WaitForChange(synchronization::signal<T>& signal)
+	{
+		const auto oldSignalNumber = signal.get_signal_version();
+		while (signal.is_signalized() && oldSignalNumber == signal.get_signal_version())
+			std::this_thread::yield();
+	}
 };
+
+TEST_F(test_signal, AutoReset_ConditionVariable)
+{
+	synchronization::signal<std::condition_variable_any> s;
+	std::atomic<int> counter = 0;
+	auto callback = [&]()
+	{
+		std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
+		s.wait(mtxQueueLock);
+		counter.fetch_add(1, std::memory_order_acq_rel);
+	};
+
+	ASSERT_FALSE(s.is_signalized());
+	ASSERT_EQ(0, s.get_signal_version());
+
+	auto task1 = AddTask(callback);
+	auto task2 = AddTask(callback);
+
+	s.signalize();
+	WaitForChange(s);
+
+	ASSERT_EQ(1, s.get_signal_version());
+	ASSERT_FALSE(s.is_signalized());
+
+	s.signalize();
+	WaitForChange(s);
+
+	ASSERT_EQ(2, s.get_signal_version());
+	ASSERT_FALSE(s.is_signalized());
+
+	// result
+	ASSERT_EQ(2, counter.load());
+}
+
+TEST_F(test_signal, AutoReset_Signal)
+{
+	synchronization::signal<std::binary_semaphore> s;
+	std::atomic<int> counter = 0;
+	auto callback = [&]()
+	{
+		s.wait();
+		counter.fetch_add(1, std::memory_order_acq_rel);
+	};
+
+	ASSERT_FALSE(s.is_signalized());
+	ASSERT_EQ(0, s.get_signal_version());
+
+	auto task1 = AddTask(callback);
+	auto task2 = AddTask(callback);
+
+	s.signalize();
+	WaitForChange(s);
+
+	ASSERT_EQ(1, s.get_signal_version());
+	ASSERT_FALSE(s.is_signalized());
+
+	s.signalize();
+	WaitForChange(s);
+
+	ASSERT_EQ(2, s.get_signal_version());
+	ASSERT_FALSE(s.is_signalized());
+
+	// result
+	ASSERT_EQ(2, counter.load());
+}
 
 TEST_F(test_signal, SignalCon_Signalization)
 {
@@ -83,37 +156,6 @@ TEST_F(test_signal, SignalCon_Signalization)
 
 	CompareStatuses(statuses, { std::future_status::timeout, std::future_status::ready });
 	ASSERT_EQ(1, counter);
-}
-
-TEST_F(test_signal, SignalCon_SignalizationAutoReset)
-{
-	std::atomic<int> counter = 0;
-	std::vector<std::future_status> statuses;
-	synchronization::signal<std::condition_variable_any> s;
-	auto callback = [&]()
-	{
-		std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
-		s.wait(mtxQueueLock);
-		counter++;
-	};
-
-	auto task1 = AddTask(callback);
-	auto task2 = AddTask(callback);
-
-	statuses.emplace_back(task1.wait_for(0ms));
-	statuses.emplace_back(task2.wait_for(0ms));
-	s.signalize();
-	statuses.emplace_back(task1.wait_for(100ms));
-	statuses.emplace_back(task2.wait_for(0ms));
-	s.signalize();
-	statuses.emplace_back(task1.wait_for(0ms));
-	statuses.emplace_back(task2.wait_for(100ms));
-
-	CompareStatuses(statuses, { std::future_status::timeout, std::future_status::timeout,
-								  std::future_status::ready, std::future_status::timeout,
-								  std::future_status::ready, std::future_status::ready });
-
-	ASSERT_EQ(2, counter);
 }
 
 TEST_F(test_signal, SignalCon_SignalizationManualReset)
@@ -292,36 +334,6 @@ TEST_F(test_signal, SignalSem_Signalization)
 
 	CompareStatuses(statuses, { std::future_status::timeout, std::future_status::ready });
 	ASSERT_EQ(1, counter);
-}
-
-TEST_F(test_signal, SignalSem_SignalizationAutoReset)
-{
-	std::atomic<int> counter = 0;
-	std::vector<std::future_status> statuses;
-	synchronization::signal<std::binary_semaphore> s;
-	auto callback = [&]()
-	{
-		s.wait();
-		counter++;
-	};
-
-	auto task1 = AddTask(callback);
-	auto task2 = AddTask(callback);
-
-	statuses.emplace_back(task1.wait_for(0ms));
-	statuses.emplace_back(task2.wait_for(0ms));
-	s.signalize();
-	statuses.emplace_back(task1.wait_for(100ms));
-	statuses.emplace_back(task2.wait_for(0ms));
-	s.signalize();
-	statuses.emplace_back(task1.wait_for(0ms));
-	statuses.emplace_back(task2.wait_for(100ms));
-
-	CompareStatuses(statuses, { std::future_status::timeout, std::future_status::timeout,
-								  std::future_status::ready, std::future_status::timeout,
-								  std::future_status::ready, std::future_status::ready });
-
-	ASSERT_EQ(2, counter);
 }
 
 TEST_F(test_signal, SignalSem_SignalizationManualReset)
