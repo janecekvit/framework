@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <mutex>
 #include <semaphore>
 
 namespace janecekvit::synchronization
@@ -22,9 +23,6 @@ template <class _Condition = std::condition_variable_any>
 #endif
 class signal
 {
-private:
-	using _predicate = typename std::function<bool()>;
-
 public:
 	signal()
 #ifdef __cpp_lib_concepts
@@ -40,6 +38,7 @@ public:
 	{
 	}
 #endif
+
 	virtual ~signal() = default;
 
 	template <class _TLock>
@@ -48,21 +47,37 @@ public:
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
 	{
-		_primitive.wait(lock, [this]()
+		const auto initial_reset_gen = _state.reset_generation.load(std::memory_order_acquire);
+
+		_primitive.wait(lock, [this, initial_reset_gen]() -> bool
 			{
+				// Check for hard reset first
+				if (_state.reset_generation.load(std::memory_order_acquire) != initial_reset_gen)
+				{
+					return true; // Wake up due to hard reset
+				}
+
 				return _reset_strategy();
 			});
 	}
 
-	template <class _TLock>
-	void wait(_TLock& lock, _predicate&& pred) const
+	template <class _TLock, class _PredicateType>
+	void wait(_TLock& lock, _PredicateType&& pred) const
 #ifdef __cpp_lib_concepts
-		requires constraints::condition_variable_type<_SyncPrimitive>
+		requires constraints::condition_variable_type<_SyncPrimitive> && std::predicate<_PredicateType>
 #endif
 	{
-		_primitive.wait(lock, [this, x = std::move(pred)]()
+		const auto initial_reset_gen = _state.reset_generation.load(std::memory_order_acquire);
+
+		_primitive.wait(lock, [this, initial_reset_gen, predicate = std::move(pred)]() -> bool
 			{
-				return _reset_strategy() || x();
+				// Check for hard reset first
+				if (_state.reset_generation.load(std::memory_order_acquire) != initial_reset_gen)
+				{
+					return true;
+				}
+
+				return _reset_strategy() || predicate();
 			});
 	}
 
@@ -73,11 +88,10 @@ public:
 		for (; !_reset_strategy();)
 			_primitive.acquire();
 	}
-#endif
 
-#ifdef __cpp_lib_semaphore
-	void wait(_predicate&& pred) const
-		requires constraints::semaphore_type<_SyncPrimitive, 1>
+	template <class _PredicateType>
+	void wait(_PredicateType&& pred) const
+		requires constraints::semaphore_type<_SyncPrimitive, 1> && std::predicate<_PredicateType>
 	{
 		for (; !(_reset_strategy() || pred());)
 			_primitive.acquire();
@@ -85,82 +99,138 @@ public:
 #endif
 
 	template <class _TLock, class TRep, class TPeriod>
-	[[nodiscard]] bool wait_for(_TLock& lock, const std::chrono::duration<TRep, TPeriod>& rel_time, std::optional<_predicate>&& pred = {}) const
+	[[nodiscard]] bool wait_for(_TLock& lock, const std::chrono::duration<TRep, TPeriod>& rel_time) const
 #ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
 	{
-		if (pred)
-		{
-			return _primitive.wait_for(lock, rel_time, [this, x = std::move(*pred)]()
-				{
-					return _reset_strategy() || x();
-				});
-		}
+		const auto initial_reset_gen = _state.reset_generation.load(std::memory_order_acquire);
+		const auto deadline = std::chrono::steady_clock::now() + rel_time;
 
-		return _primitive.wait_for(lock, rel_time, [&]()
+		return _primitive.wait_until(lock, deadline, [this, initial_reset_gen]() -> bool
 			{
+				if (_state.reset_generation.load(std::memory_order_acquire) != initial_reset_gen)
+				{
+					return true;
+				}
 				return _reset_strategy();
+			});
+	}
+
+	template <class _TLock, class TRep, class TPeriod, class _PredicateType>
+	[[nodiscard]] bool wait_for(_TLock& lock, const std::chrono::duration<TRep, TPeriod>& rel_time, _PredicateType&& pred) const
+#ifdef __cpp_lib_concepts
+		requires constraints::condition_variable_type<_SyncPrimitive> && std::predicate<_PredicateType>
+#endif
+	{
+		const auto initial_reset_gen = _state.reset_generation.load(std::memory_order_acquire);
+		const auto deadline = std::chrono::steady_clock::now() + rel_time;
+
+		return _primitive.wait_until(lock, deadline, [this, initial_reset_gen, predicate = std::move(pred)]() -> bool
+			{
+				if (_state.reset_generation.load(std::memory_order_acquire) != initial_reset_gen)
+				{
+					return true;
+				}
+				return _reset_strategy() || predicate();
 			});
 	}
 
 #ifdef __cpp_lib_semaphore
 	template <class TRep, class TPeriod>
-	[[nodiscard]] bool wait_for(const std::chrono::duration<TRep, TPeriod>& rel_time, std::optional<_predicate>&& pred = {}) const
+	[[nodiscard]] bool wait_for(const std::chrono::duration<TRep, TPeriod>& rel_time) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
-		if (pred)
+		const auto deadline = std::chrono::steady_clock::now() + rel_time;
+
+		while (!_reset_strategy())
 		{
-			auto x = std::move(*pred);
-			for (; !x();)
-			{
-				if (!_primitive.try_acquire_for(rel_time))
-					return x();
-			}
-			return true;
+			if (!_primitive.try_acquire_until(deadline))
+				return _reset_strategy();
 		}
 
-		return _primitive.try_acquire_for(rel_time);
+		return true;
+	}
+
+	template <class TRep, class TPeriod, class _PredicateType>
+	[[nodiscard]] bool wait_for(const std::chrono::duration<TRep, TPeriod>& rel_time, _PredicateType&& pred) const
+		requires constraints::semaphore_type<_SyncPrimitive, 1> && std::predicate<_PredicateType>
+	{
+		const auto deadline = std::chrono::steady_clock::now() + rel_time;
+		auto predicate = std::move(pred);
+		for (; !(_reset_strategy() || predicate());)
+		{
+			if (!_primitive.try_acquire_until(deadline))
+				return _reset_strategy() || predicate();
+		}
+		return true;
 	}
 #endif
 
 	template <class _TLock, class _TClock, class _TDuration>
-	[[nodiscard]] bool wait_until(_TLock& lock, const std::chrono::time_point<_TClock, _TDuration>& abs_time, std::optional<_predicate>&& pred = {}) const
+	[[nodiscard]] bool wait_until(_TLock& lock, const std::chrono::time_point<_TClock, _TDuration>& abs_time) const
 #ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
 	{
-		if (pred)
-		{
-			return _primitive.wait_until(lock, abs_time, [this, x = std::move(*pred)]()
-				{
-					return _reset_strategy() || x();
-				});
-		}
+		const auto initial_reset_gen = _state.reset_generation.load(std::memory_order_acquire);
 
-		return _primitive.wait_until(lock, abs_time, [this]()
+		return _primitive.wait_until(lock, abs_time, [this, initial_reset_gen]() -> bool
 			{
+				if (_state.reset_generation.load(std::memory_order_acquire) != initial_reset_gen)
+				{
+					return true;
+				}
 				return _reset_strategy();
+			});
+	}
+
+	template <class _TLock, class _TClock, class _TDuration, class _PredicateType>
+	[[nodiscard]] bool wait_until(_TLock& lock, const std::chrono::time_point<_TClock, _TDuration>& abs_time, _PredicateType&& pred) const
+#ifdef __cpp_lib_concepts
+		requires constraints::condition_variable_type<_SyncPrimitive> && std::predicate<_PredicateType>
+#endif
+	{
+		const auto initial_reset_gen = _state.reset_generation.load(std::memory_order_acquire);
+
+		return _primitive.wait_until(lock, abs_time, [this, initial_reset_gen, predicate = std::move(pred)]() -> bool
+			{
+				if (_state.reset_generation.load(std::memory_order_acquire) != initial_reset_gen)
+				{
+					return true;
+				}
+				return _reset_strategy() || predicate();
 			});
 	}
 
 #ifdef __cpp_lib_semaphore
 	template <class _TClock, class _TDuration>
-	[[nodiscard]] bool wait_until(const std::chrono::time_point<_TClock, _TDuration>& abs_time, std::optional<_predicate>&& pred = {}) const
+	[[nodiscard]] bool wait_until(const std::chrono::time_point<_TClock, _TDuration>& abs_time) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
-		if (pred)
+		while (!_reset_strategy())
 		{
-			auto x = std::move(*pred);
-			for (; !x();)
+			if (!_primitive.try_acquire_until(abs_time))
 			{
-				if (!_primitive.try_acquire_until(abs_time))
-					return x();
+				return _reset_strategy();
 			}
-			return true;
 		}
+		return true;
+	}
 
-		return _primitive.try_acquire_until(abs_time);
+	template <class _TClock, class _TDuration, class _PredicateType>
+	[[nodiscard]] bool wait_until(const std::chrono::time_point<_TClock, _TDuration>& abs_time, _PredicateType&& pred) const
+		requires constraints::semaphore_type<_SyncPrimitive, 1> && std::predicate<_PredicateType>
+	{
+		auto predicate = std::move(pred);
+		while (!(_reset_strategy() || predicate()))
+		{
+			if (!_primitive.try_acquire_until(abs_time))
+			{
+				return _reset_strategy() || predicate();
+			}
+		}
+		return true;
 	}
 #endif
 
@@ -169,7 +239,12 @@ public:
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
 	{
-		_signalized = true;
+		{
+			std::lock_guard lock(_state.state_mutex);
+			_state.signalized.store(true, std::memory_order_release);
+			_state.signal_generation.fetch_add(1, std::memory_order_acq_rel);
+		}
+
 		if constexpr (_ManualReset)
 			_primitive.notify_all();
 		else
@@ -181,7 +256,11 @@ public:
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
 	{
-		_signalized = true;
+		{
+			std::lock_guard lock(_state.state_mutex);
+			_state.signalized.store(true, std::memory_order_release);
+			_state.signal_generation.fetch_add(1, std::memory_order_acq_rel);
+		}
 		_primitive.notify_all();
 	}
 
@@ -189,31 +268,77 @@ public:
 	void signalize() noexcept
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
-		_signalized = true;
+		_state.signalized.store(true, std::memory_order_release);
+		_state.signal_generation.fetch_add(1, std::memory_order_acq_rel);
 		_primitive.release();
 	}
 #endif
 
-#ifdef __cpp_lib_concepts
 	void reset() noexcept
+#ifdef __cpp_lib_concepts
 		requires _ManualReset
-	{
-		_signalized = false;
-	}
 #endif
+	{
+		{
+			std::lock_guard lock(_state.state_mutex);
+			_state.signalized.store(false, std::memory_order_release);
+			_state.hard_reset_requested.store(true, std::memory_order_release);
+			_state.reset_generation.fetch_add(1, std::memory_order_acq_rel);
+		}
+
+#ifdef __cpp_lib_concepts
+		if constexpr (constraints::condition_variable_type<_SyncPrimitive>)
+		{
+			_primitive.notify_all();
+		}
+#else
+		_primitive.notify_all();
+#endif
+
+		// Clear hard reset flag after a brief moment
+		_state.hard_reset_requested.store(false, std::memory_order_release);
+	}
+
+	[[nodiscard]] bool is_signalized() const noexcept
+	{
+		return _state.signalized.load(std::memory_order_acquire);
+	}
+
+	[[nodiscard]] uint64_t get_signal_generation() const noexcept
+	{
+		return _state.signal_generation.load(std::memory_order_acquire);
+	}
 
 private:
 	bool _reset_strategy() const noexcept
 	{
 		if constexpr (_ManualReset)
-			return _signalized;
+		{
+			return _state.signalized.load(std::memory_order_acquire);
+		}
 		else
-			return _signalized.exchange(false);
+		{
+			// Auto-reset: atomically check and reset
+			return _state.signalized.exchange(false, std::memory_order_acq_rel);
+		}
 	}
 
 private:
+	// state management for persistent signaling
+	struct signal_state
+	{
+		std::atomic<bool> signalized{ false };
+		std::atomic<uint64_t> signal_generation{ 0 }; // Detects signal changes
+		mutable std::mutex state_mutex;
+
+		// For hard reset - wake all waiters
+		std::atomic<bool> hard_reset_requested{ false };
+		std::atomic<uint64_t> reset_generation{ 0 };
+	};
+
+private:
 	mutable _SyncPrimitive _primitive;
-	mutable std::atomic<bool> _signalized = false;
+	mutable signal_state _state;
 };
 
 #ifdef __cpp_lib_concepts
