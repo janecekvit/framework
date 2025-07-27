@@ -10,7 +10,7 @@ constraints.h, test_constraints.cpp
 -> DONE,
 
 extensions.h, test_extensions.cpp
-->DONE, (fix compilation when no libconcepts are present))
+->DONE,
 
 finally.h, test_finally.cpp
 -> DONE, 
@@ -30,14 +30,14 @@ parameter_pack.h, test_parameter_pack.cpp
 -> DONE
 
 resource_wrapper.h, resource_wrapper.cpp
--> fix compilation when no libconcepts are present
+-> DONE
 
  == synchronization ==
  signal.h, test_signal.cpp
- -> DONE (fix compilation when no libconcepts are present)
+ -> DONE 
 
 wait_for_multiple_signals.h, test_wait_for_multiple_signals.cpp
- -> DONE (fix compilation when no libconcepts are present)
+ -> DONE 
 
  == thread ==
 sync_thread.h, sync_thread.cpp, test_sync_thread.cpp,
@@ -56,11 +56,7 @@ trace.h, test_trace.cpp
 
 TODO:
 - Check concurrent and atomic_concurrent
-- Finish extensions.h cleanup
-- use this c++23 in all files
-- Rewrite asserts that use good style (expected value, actual value)
 - Better formatting
-- Create readme.md
 - Minimum supported version c++17 -> test it
 - Use wait_for_multiple_signals in _sync_thread
 - Implement notify all in signal condition variable and add testing for it

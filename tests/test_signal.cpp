@@ -118,7 +118,7 @@ TEST_F(test_signal, ScenarioConditionVariableSetBeforeWait)
 	ASSERT_FALSE(status);
 }
 
-TEST_F(test_signal, DISABLED_ScenarioConditionVariableSetAfterWait)
+TEST_F(test_signal, ScenarioConditionVariableSetAfterWait)
 {
 	auto status = false;
 	std::condition_variable acv;
@@ -305,7 +305,7 @@ TEST_F(test_signal, SignalCon_SignalizationAutoReset)
 	ASSERT_EQ(2, counter);
 }
 
-TEST_F(test_signal, DISABLED_SignalCon_SignalizationManualReset)
+TEST_F(test_signal, SignalCon_SignalizationManualReset)
 {
 	std::atomic<int> counter = 0;
 	std::list<std::future_status> statuses;
@@ -425,6 +425,42 @@ TEST_F(test_signal, SignalCon_WaitUntilPredicate)
 	ASSERT_TRUE(s.wait_until(mtxQueueLock, std::chrono::steady_clock::now()));
 }
 
+TEST_F(test_signal, SignalCon_SignalizeAll)
+{
+	std::atomic<int> counter = 0;
+	std::list<std::future_status> statuses;
+	synchronization::signal<std::condition_variable_any> s;
+	auto callback = [&]()
+	{
+		std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
+		s.wait(mtxQueueLock);
+		counter++;
+	};
+
+	auto task1 = AddTask(callback);
+	auto task2 = AddTask(callback);
+	auto task3 = AddTask(callback);
+
+	std::this_thread::sleep_for(500ms);
+	statuses.emplace_back(task1.wait_for(0ms));
+	statuses.emplace_back(task2.wait_for(0ms));
+	statuses.emplace_back(task3.wait_for(0ms));
+	s.signalize_all();
+	std::this_thread::sleep_for(500ms);
+	statuses.emplace_back(task1.wait_for(100ms));
+	statuses.emplace_back(task2.wait_for(100ms));
+	statuses.emplace_back(task3.wait_for(100ms));
+
+	CompareStatuses(statuses, { std::future_status::timeout, std::future_status::timeout, std::future_status::timeout,
+								  std::future_status::ready, std::future_status::ready, std::future_status::ready });
+
+	task1.get();
+	task2.get();
+	task3.get();
+
+	ASSERT_EQ(3, counter);
+}
+
 TEST_F(test_signal, SignalSem_Signalization)
 {
 	std::atomic<int> counter = 0;
@@ -477,7 +513,8 @@ TEST_F(test_signal, SignalSem_SignalizationAutoReset)
 	ASSERT_EQ(2, counter);
 }
 
-TEST_F(test_signal, DISABLED_SignalSem_SignalizationManualReset)
+
+TEST_F(test_signal, SignalSem_SignalizationManualReset)
 {
 	std::atomic<int> counter = 0;
 	std::list<std::future_status> statuses;

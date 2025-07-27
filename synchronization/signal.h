@@ -170,6 +170,18 @@ public:
 #endif
 	{
 		_signalized = true;
+		if constexpr (_ManualReset)
+			_primitive.notify_all();
+		else
+			_primitive.notify_one();
+	}
+
+	void signalize_all() noexcept
+#ifdef __cpp_lib_concepts
+		requires constraints::condition_variable_type<_SyncPrimitive>
+#endif
+	{
+		_signalized = true;
 		_primitive.notify_all();
 	}
 
