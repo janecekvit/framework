@@ -14,10 +14,11 @@ namespace janecekvit::synchronization
 /// The signal is used for synchronization between different threads.
 /// It sets an auto reset state by default, where it resets after each blocking call, or to the manual reset state.
 /// It could be used with std::condition_variable_any, std::condition_variable, or std::binary_semaphore.
+/// Manual reset works only with std::condition_variable_any, std::condition_variable.
 /// </summary>
 #if defined(__cpp_lib_concepts) && defined(__cpp_lib_semaphore)
 template <typename _SyncPrimitive = std::binary_semaphore, bool _ManualReset = false>
-	requires constraints::semaphore_type<_SyncPrimitive, 1> || constraints::condition_variable_type<_SyncPrimitive>
+	requires(constraints::semaphore_type<_SyncPrimitive, 1> || constraints::condition_variable_type<_SyncPrimitive>) && (!(constraints::semaphore_type<_SyncPrimitive> && _ManualReset))
 #else
 template <class _Condition = std::condition_variable_any>
 #endif
@@ -47,11 +48,11 @@ public:
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
 	{
-		const auto initial_reset_ver = _state.reset_version.load(std::memory_order_acquire);
+		const auto initial_version = _get_initial_version();
 
-		_primitive.wait(lock, [this, initial_reset_ver]() -> bool
+		_primitive.wait(lock, [this, initial_version]() -> bool
 			{
-				return _check_signal(initial_reset_ver);
+				return _check_signal(initial_version);
 			});
 	}
 
@@ -61,11 +62,11 @@ public:
 		requires constraints::condition_variable_type<_SyncPrimitive> && std::predicate<_PredicateType>
 #endif
 	{
-		const auto initial_reset_ver = _state.reset_version.load(std::memory_order_acquire);
+		const auto initial_version = _get_initial_version();
 
-		_primitive.wait(lock, [this, initial_reset_ver, predicate = std::move(pred)]() -> bool
+		_primitive.wait(lock, [this, initial_version, predicate = std::move(pred)]() -> bool
 			{
-				return _check_signal(initial_reset_ver) || predicate();
+				return _check_signal(initial_version) || predicate();
 			});
 	}
 
@@ -73,8 +74,9 @@ public:
 	void wait() const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
-		const auto initial_reset_ver = _state.reset_version.load(std::memory_order_acquire);
-		while (!_check_signal(initial_reset_ver))
+		const auto initial_version = _get_initial_version();
+
+		while (!_check_signal(initial_version))
 			_primitive.acquire();
 	}
 
@@ -82,8 +84,9 @@ public:
 	void wait(_PredicateType&& pred) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1> && std::predicate<_PredicateType>
 	{
-		const auto initial_reset_ver = _state.reset_version.load(std::memory_order_acquire);
-		while (!(_check_signal(initial_reset_ver) || pred()))
+		const auto initial_version = _get_initial_version();
+
+		while (!(_check_signal(initial_version) || pred()))
 			_primitive.acquire();
 	}
 #endif
@@ -94,12 +97,12 @@ public:
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
 	{
-		const auto initial_reset_ver = _state.reset_version.load(std::memory_order_acquire);
 		const auto deadline = std::chrono::steady_clock::now() + rel_time;
+		const auto initial_version = _get_initial_version();
 
-		return _primitive.wait_until(lock, deadline, [this, initial_reset_ver]() -> bool
+		return _primitive.wait_until(lock, deadline, [this, initial_version]() -> bool
 			{
-				return _check_signal(initial_reset_ver);
+				return _check_signal(initial_version);
 			});
 	}
 
@@ -110,11 +113,11 @@ public:
 #endif
 	{
 		const auto deadline = std::chrono::steady_clock::now() + rel_time;
-		const auto initial_reset_ver = _state.reset_version.load(std::memory_order_acquire);
+		const auto initial_version = _get_initial_version();
 
-		return _primitive.wait_until(lock, deadline, [this, initial_reset_ver, predicate = std::move(pred)]() -> bool
+		return _primitive.wait_until(lock, deadline, [this, initial_version, predicate = std::move(pred)]() -> bool
 			{
-				return _check_signal(initial_reset_ver) || predicate();
+				return _check_signal(initial_version) || predicate();
 			});
 	}
 
@@ -124,12 +127,12 @@ public:
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
 		const auto deadline = std::chrono::steady_clock::now() + rel_time;
-		const auto initial_reset_ver = _state.reset_version.load(std::memory_order_acquire);
+		const auto initial_version = _get_initial_version();
 
-		while (!_check_signal(initial_reset_ver))
+		while (!_check_signal(initial_version))
 		{
 			if (!_primitive.try_acquire_until(deadline))
-				return _check_signal(initial_reset_ver);
+				return _check_signal(initial_version);
 		}
 
 		return true;
@@ -141,12 +144,12 @@ public:
 	{
 		const auto deadline = std::chrono::steady_clock::now() + rel_time;
 		auto predicate = std::move(pred);
-		const auto initial_reset_ver = _state.reset_version.load(std::memory_order_acquire);
+		const auto initial_version = _get_initial_version();
 
-		while (!(_check_signal(initial_reset_ver) || predicate()))
+		while (!(_check_signal(initial_version) || predicate()))
 		{
 			if (!_primitive.try_acquire_until(deadline))
-				return _check_signal(initial_reset_ver) || predicate();
+				return _check_signal(initial_version) || predicate();
 		}
 		return true;
 	}
@@ -158,11 +161,11 @@ public:
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
 	{
-		const auto initial_reset_ver = _state.reset_version.load(std::memory_order_acquire);
+		const auto initial_version = _get_initial_version();
 
-		return _primitive.wait_until(lock, abs_time, [this, initial_reset_ver]() -> bool
+		return _primitive.wait_until(lock, abs_time, [this, initial_version]() -> bool
 			{
-				return _check_signal(initial_reset_ver);
+				return _check_signal(initial_version);
 			});
 	}
 
@@ -172,11 +175,11 @@ public:
 		requires constraints::condition_variable_type<_SyncPrimitive> && std::predicate<_PredicateType>
 #endif
 	{
-		const auto initial_reset_ver = _state.reset_version.load(std::memory_order_acquire);
+		const auto initial_version = _get_initial_version();
 
-		return _primitive.wait_until(lock, abs_time, [this, initial_reset_ver, predicate = std::move(pred)]() -> bool
+		return _primitive.wait_until(lock, abs_time, [this, initial_version, predicate = std::move(pred)]() -> bool
 			{
-				return _check_signal(initial_reset_ver) || predicate();
+				return _check_signal(initial_version) || predicate();
 			});
 	}
 
@@ -185,13 +188,13 @@ public:
 	[[nodiscard]] bool wait_until(const std::chrono::time_point<_TClock, _TDuration>& abs_time) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
-		const auto initial_reset_ver = _state.reset_version.load(std::memory_order_acquire);
+		const auto initial_version = _get_initial_version();
 
-		while (!_check_signal(initial_reset_ver))
+		while (!_check_signal(initial_version))
 		{
 			if (!_primitive.try_acquire_until(abs_time))
 			{
-				return _check_signal(initial_reset_ver);
+				return _check_signal(initial_version);
 			}
 		}
 		return true;
@@ -202,13 +205,13 @@ public:
 		requires constraints::semaphore_type<_SyncPrimitive, 1> && std::predicate<_PredicateType>
 	{
 		auto predicate = std::move(pred);
-		const auto initial_reset_ver = _state.reset_version.load(std::memory_order_acquire);
+		const auto initial_version = _get_initial_version();
 
-		while (!(_check_signal(initial_reset_ver) || predicate()))
+		while (!(_check_signal(initial_version) || predicate()))
 		{
 			if (!_primitive.try_acquire_until(abs_time))
 			{
-				return _check_signal(initial_reset_ver) || predicate();
+				return _check_signal(initial_version) || predicate();
 			}
 		}
 		return true;
@@ -241,6 +244,10 @@ public:
 			std::lock_guard lock(_state.state_mutex);
 			_state.signalized.store(true, std::memory_order_release);
 			_state.signal_version.fetch_add(1, std::memory_order_acq_rel);
+
+			// auto-reset mode - increment broadcast version
+			if constexpr (!_ManualReset)
+				_state.auto_reset_version.fetch_add(1, std::memory_order_acq_rel);
 		}
 		_primitive.notify_all();
 	}
@@ -263,21 +270,14 @@ public:
 		{
 			std::lock_guard lock(_state.state_mutex);
 			_state.signalized.store(false, std::memory_order_release);
-			_state.hard_reset_requested.store(true, std::memory_order_release);
-			_state.reset_version.fetch_add(1, std::memory_order_acq_rel);
+			_state.manual_reset_requested.store(true, std::memory_order_release);
+			_state.manual_reset_version.fetch_add(1, std::memory_order_acq_rel);
 		}
 
-#ifdef __cpp_lib_concepts
-		if constexpr (constraints::condition_variable_type<_SyncPrimitive>)
-		{
-			_primitive.notify_all();
-		}
-#else
 		_primitive.notify_all();
-#endif
 
 		// Clear hard reset flag
-		_state.hard_reset_requested.store(false, std::memory_order_release);
+		_state.manual_reset_requested.store(false, std::memory_order_release);
 	}
 
 	[[nodiscard]] bool is_signalized() const noexcept
@@ -290,21 +290,41 @@ public:
 		return _state.signal_version.load(std::memory_order_acquire);
 	}
 
-private:
-	bool _check_signal(uint64_t initial_reset_ver) const noexcept
+	[[nodiscard]] uint64_t get_reset_version() const noexcept
 	{
-		if constexpr (_ManualReset)
-		{
-			if (_state.reset_version.load(std::memory_order_acquire) != initial_reset_ver)
-				return true;
+		return _state.manual_reset_version.load(std::memory_order_acquire);
+	}
 
-			return _state.signalized.load(std::memory_order_acquire);
-		}
-		else
-		{
-			// Auto-reset: atomically check and reset
-			return _state.signalized.exchange(false, std::memory_order_acq_rel);
-		}
+private:
+	uint64_t _get_initial_version() const noexcept
+		requires _ManualReset
+	{
+		return _state.manual_reset_version.load(std::memory_order_acquire);
+	}
+
+	uint64_t _get_initial_version() const noexcept
+		requires(!_ManualReset)
+	{
+		return _state.auto_reset_version.load(std::memory_order_acquire);
+	}
+
+	bool _check_signal(uint64_t initial_ver) const noexcept
+		requires _ManualReset
+	{
+		if (_state.manual_reset_version.load(std::memory_order_acquire) != initial_ver)
+			return true;
+
+		return _state.signalized.load(std::memory_order_acquire);
+	}
+
+	bool _check_signal(uint64_t initial_ver) const noexcept
+		requires(!_ManualReset)
+	{
+		if (_state.auto_reset_version.load(std::memory_order_acquire) != initial_ver)
+			return true;
+
+		// Auto-reset: atomically check and reset
+		return _state.signalized.exchange(false, std::memory_order_acq_rel);
 	}
 
 private:
@@ -313,13 +333,16 @@ private:
 	/// </summary>
 	struct signal_state
 	{
+		mutable std::mutex state_mutex;
 		std::atomic<bool> signalized{ false };
 		std::atomic<uint64_t> signal_version{ 0 }; // Detects signal changes
-		mutable std::mutex state_mutex;
 
-		// For hard reset - wake all waiters
-		std::atomic<bool> hard_reset_requested{ false };
-		std::atomic<uint64_t> reset_version{ 0 };
+		// auto-reset mode - broadcast to all waiters signalize_all()
+		std::atomic<uint64_t> auto_reset_version{ 0 };
+
+		// manual-reset mode - wake all waiters
+		std::atomic<bool> manual_reset_requested{ false };
+		std::atomic<uint64_t> manual_reset_version{ 0 };
 	};
 
 private:

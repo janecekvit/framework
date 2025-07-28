@@ -574,9 +574,11 @@ auto concurrentDetails = resourceMapAlias.get_concurrent_lock_details();
 This header file, `synchronization/signal.h` provides a mechanism for thread synchronization. 
 It allows threads to wait for a signal and can be configured to reset automatically after each wait or to require manual reset. 
 It supports different synchronization primitives such as `std::condition_variable_any`, `std::condition_variable`, and `std::binary_semaphore`.
+Manual reset works only with `std::condition_variable_any`, `std::condition_variable`.
+
 
 - **Thread Synchronization**: Provides a mechanism for synchronizing threads using signals.
-- **Auto-Reset and Manual-Reset**: Supports both auto-reset and manual-reset modes.
+- **Auto-Reset and Manual-Reset**: Supports both auto-reset and manual-reset modes (only `std::condition_variable`).
 - **Flexible Synchronization Primitives**: Can be used with std::condition_variable_any, std::condition_variable, and std::binary_semaphore.
 - **Predicate Support**: Allows waiting with a predicate to customize the wake-up condition.
 
