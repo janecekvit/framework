@@ -43,9 +43,9 @@ protected:
 	{
 	}
 
-	[[nodiscard]] static concurrent::unordered_map<int, int> _prepare_testing_data()
+	[[nodiscard]] static concurrent::map<int, int> _prepare_testing_data()
 	{
-		concurrent::unordered_map<int, int> container;
+		concurrent::map<int, int> container;
 		container.exclusive()->emplace(5, 5); // exclusive access with lifetime of one operation
 
 		// exclusive access with extended lifetime for more that only one
@@ -119,7 +119,7 @@ TEST_F(test_concurrent, TestExclusiveAccessMultipleThreads)
 	auto&& container = _prepare_testing_data_perf_test();
 
 	ASSERT_EQ((int) container.exclusive(), 1);
-	auto thread1 = std::jthread([&](std::stop_token token)
+	auto thread1 = std::jthread([&]()
 		{
 			for (size_t i = 0; i < IterationCount; i++)
 			{
@@ -128,7 +128,7 @@ TEST_F(test_concurrent, TestExclusiveAccessMultipleThreads)
 			}
 		});
 
-	auto thread2 = std::jthread([&](std::stop_token token)
+	auto thread2 = std::jthread([&]()
 		{
 			for (size_t i = 0; i < IterationCount; i++)
 			{
@@ -204,7 +204,7 @@ TEST_F(test_concurrent, TestConcurrentAccessMultipleThreads)
 {
 	auto&& container = _prepare_testing_data_perf_test();
 	ASSERT_EQ((int) container.concurrent(), 1);
-	auto thread1 = std::jthread([&](std::stop_token token)
+	auto thread1 = std::jthread([&]()
 		{
 			for (size_t i = 0; i < IterationCount; i++)
 			{
@@ -213,7 +213,7 @@ TEST_F(test_concurrent, TestConcurrentAccessMultipleThreads)
 			}
 		});
 
-	auto thread2 = std::jthread([&](std::stop_token token)
+	auto thread2 = std::jthread([&]()
 		{
 			for (size_t i = 0; i < IterationCount; i++)
 			{
@@ -251,11 +251,11 @@ TEST_F(test_concurrent, TestIterators)
 
 	{ // begin const
 
-		auto begin = container.exclusive()->begin();
+		auto beginScope = container.exclusive()->begin();
 
 		// beginConst->second++; //concurrent
-		begin->second++; // exclusive
-		ASSERT_EQ(begin->second, 6);
+		beginScope->second++; // exclusive
+		ASSERT_EQ(beginScope->second, 6);
 	}
 }
 
@@ -282,23 +282,24 @@ TEST_F(test_concurrent, TestExclusiveAccessSynchroAsync)
 {
 	auto container = _prepare_testing_data();
 
-	std::condition_variable con;
-	auto future = std::async(std::launch::async, [&]()
+	std::promise<void> promise;
+	auto future = promise.get_future();
+
+	auto async_task = std::async(std::launch::async, [&]()
 		{
 			int i = 5;
 			for (auto&& item : container.exclusive())
 			{
 				ASSERT_EQ(item.second, i);
 				i += 5;
-
 				item.second += 1;
 			}
-			con.notify_one();
+			promise.set_value();
 		});
 
-	std::mutex mutex;
-	std::unique_lock<std::mutex> oLock(mutex);
-	con.wait(oLock);
+	// Wait for first thread to complete
+	future.wait();
+	
 	int i = 6;
 	for (auto&& item : container.exclusive())
 	{
@@ -307,7 +308,7 @@ TEST_F(test_concurrent, TestExclusiveAccessSynchroAsync)
 		item.second -= 1;
 	}
 
-	future.get();
+	async_task.get();
 }
 
 TEST_F(test_concurrent, TestIndexOperator)
@@ -357,7 +358,7 @@ TEST_F(test_concurrent, TestSwapSemantics)
 {
 	auto container = _prepare_testing_data();
 
-	std::unordered_map<int, int> tmpContainer;
+	std::map<int, int> tmpContainer;
 	tmpContainer.emplace(30, 30);
 	tmpContainer.emplace(35, 35);
 
@@ -413,7 +414,7 @@ TEST_F(test_concurrent, TestSetSemantics)
 {
 	auto container = _prepare_testing_data();
 
-	std::unordered_map<int, int> tmpContainer;
+	std::map<int, int> tmpContainer;
 	tmpContainer.emplace(30, 30);
 	tmpContainer.emplace(35, 35);
 
@@ -466,12 +467,12 @@ TEST_F(test_concurrent, TestUserDefinedConversion)
 {
 	int iCalls = 0;
 	auto container = _prepare_testing_data();
-	auto testLambda = [&](std::unordered_map<int, int>& container)
+	auto testLambda = [&](std::map<int, int>&)
 	{
 		iCalls++;
 	};
 
-	auto testLambdaConst = [&](const std::unordered_map<int, int>& container)
+	auto testLambdaConst = [&](const std::map<int, int>&)
 	{
 		iCalls++;
 	};
@@ -487,7 +488,6 @@ TEST_F(test_concurrent, TestUserDefinedConversion)
 TEST_F(test_concurrent, TestSynchronisationSemantics)
 {
 	size_t size = 0;
-	size_t notifications = 0;
 	std::condition_variable_any cv;
 	auto container = _prepare_testing_data();
 	auto oFuture = std::async(std::launch::async, [&size, &cv, &container]()
@@ -594,7 +594,7 @@ TEST_F(test_concurrent, TestReassign)
 {
 	auto container = _prepare_testing_data();
 	// exclusive
-	auto scope(std::move(container.exclusive()));
+	auto scope(container.exclusive());
 	ASSERT_THROW(
 		{
 			scope.lock();
@@ -625,7 +625,7 @@ TEST_F(test_concurrent, TestReassign)
 		std::system_error);
 
 	// concurrent
-	auto scopeRead(std::move(container.concurrent()));
+	auto scopeRead(container.concurrent());
 	ASSERT_THROW(
 		{
 			scopeRead.lock();
@@ -657,52 +657,46 @@ TEST_F(test_concurrent, TestReassign)
 TEST_F(test_concurrent, TestContainerCopy)
 {
 	{ // exclusive
-		std::optional<concurrent::unordered_map<int, int>::exclusive_holder_type> scope;
-		concurrent::unordered_map<int, int> container2;
-		ASSERT_FALSE(scope.has_value());
-
+		concurrent::map<int, int> container2;
+		int originalValue = 0;
 		{
 			auto container = _prepare_testing_data();
-			scope = container.exclusive();
-			ASSERT_TRUE(scope.has_value());
-			ASSERT_EQ(scope.value()->at(15), 15);
-			scope->unlock();
+			auto&& scope = container.exclusive();
+			ASSERT_EQ(scope->at(15), 15);
+			originalValue = scope->at(15);
+			scope.unlock();
 			container2 = container;
 		}
-		scope = container2.exclusive();
-		ASSERT_TRUE(scope.has_value());
-		ASSERT_EQ(scope.value()->at(15), 15);
 
-		scope->unlock();
-		scope->lock();
+		auto scope = container2.exclusive();
+		ASSERT_EQ(scope->at(15), originalValue);
 
-		ASSERT_EQ(scope.value()->at(15), 15);
-		scope.reset();
+		scope.unlock();
+		scope.lock();
+
+		ASSERT_EQ(scope->at(15), originalValue);
 	}
 
 	{ // concurrent
-		std::optional<concurrent::unordered_map<int, int>::concurrent_holder_type> scope;
-		concurrent::unordered_map<int, int> container2;
-		ASSERT_FALSE(scope.has_value());
+		concurrent::map<int, int> container2;
+		int originalValue = 0;
 
 		{
 			auto container = _prepare_testing_data();
-			scope = container.concurrent();
-			ASSERT_TRUE(scope.has_value());
-			ASSERT_EQ(scope.value()->at(15), 15);
-			scope->unlock();
+			auto scope = container.concurrent();
+			ASSERT_EQ(scope->at(15), 15);
+			originalValue = scope->at(15);
+			scope.unlock();
 			container2 = container;
 		}
 
-		scope = container2.concurrent();
-		ASSERT_TRUE(scope.has_value());
-		ASSERT_EQ(scope.value()->at(15), 15);
+		auto scope = container2.concurrent();
+		ASSERT_EQ(scope->at(15), originalValue);
 
-		scope->unlock();
-		scope->lock();
+		scope.unlock();
+		scope.lock();
 
-		ASSERT_EQ(scope.value()->at(15), 15);
-		scope.reset();
+		ASSERT_EQ(scope->at(15), originalValue);
 	}
 }
 
@@ -712,7 +706,7 @@ TEST_F(test_concurrent, TestDebugLocksInformation)
 	{ // exclusive
 		ASSERT_FALSE(container.get_exclusive_lock_details().has_value());
 		{
-			auto&& oScope = container.exclusive();
+			[[maybe_unused]] auto&& oScope = container.exclusive();
 			ASSERT_TRUE(container.get_exclusive_lock_details().has_value());
 		}
 
@@ -728,8 +722,8 @@ TEST_F(test_concurrent, TestDebugLocksInformation)
 	{ // concurrent
 		ASSERT_TRUE(container.get_concurrent_lock_details().empty());
 		{
-			auto&& oScope = container.concurrent();
-			auto&& oScope2 = container.concurrent();
+			[[maybe_unused]] auto&& oScope = container.concurrent();
+			[[maybe_unused]] auto&& oScope2 = container.concurrent();
 
 			ASSERT_EQ((size_t) 2, container.get_concurrent_lock_details().size());
 		}

@@ -34,7 +34,7 @@ class Ports
 public:
 	unsigned int uSourcePort, uDestinationPort;
 
-	Ports(_In_ unsigned int uSPort, _In_ unsigned int uDPort)
+	Ports(unsigned int uSPort, unsigned int uDPort)
 		: uSourcePort(uSPort)
 		, uDestinationPort(uDPort)
 	{
@@ -43,7 +43,7 @@ public:
 
 	void Compute() const
 	{
-		auto jj = extensions::execute_on_container(m_mapINT, 5, [](_In_ auto& oResult)
+		extensions::execute_on_container(m_mapINT, 5, [](auto& oResult)
 			{
 				return oResult;
 			});
@@ -55,12 +55,12 @@ private:
 
 struct PortsCmp
 {
-	size_t operator()(_In_ const Ports& x) const
+	size_t operator()(const Ports& x) const
 	{
 		return (std::hash<int>()(x.uSourcePort) ^ std::hash<int>()(x.uDestinationPort));
 	}
 
-	bool operator()(_In_ const Ports& a, _In_ const Ports& b) const
+	bool operator()(const Ports& a, const Ports& b) const
 	{
 		return a.uSourcePort == b.uSourcePort && a.uDestinationPort == b.uDestinationPort;
 	}
@@ -101,32 +101,27 @@ TEST_F(test_constraints, TestContainerTraits)
 {
 	struct WithoutEnd
 	{
-		int* begin();
-		size_t size();
+		int* begin() { return nullptr; }
+		size_t size() { return 0; }
 	};
 
 	struct WithoutBegin
 	{
-		int* end();
-		size_t size();
+		int* end() { return nullptr; }
+		size_t size() { return 0; }
 	};
 
 	struct WithoutSize
 	{
-		int* begin();
-		int* end();
-	};
-
-	{
-		int* end();
-		size_t size();
+		int* begin() { return nullptr; }
+		int* end() { return nullptr; }
 	};
 
 	struct MyContainer
 	{
-		int* begin();
-		int* end();
-		size_t size();
+		int* begin(){ return nullptr; }
+		int* end(){ return nullptr; }
+		size_t size(){ return 0; }
 	};
 
 	int a;

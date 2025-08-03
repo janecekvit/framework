@@ -1,4 +1,4 @@
-#include "Thread/sync_thread_pool.h"
+#include "thread/sync_thread_pool.h"
 
 #include <future>
 #include <gtest/gtest.h>

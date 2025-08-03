@@ -58,7 +58,7 @@ public:
 		return _thread;
 	}
 
-	constexpr operator std::thread::id&&() &&
+	constexpr operator std::thread::id() &&
 	{
 		return _thread;
 	}
@@ -68,9 +68,9 @@ public:
 		return _srcl;
 	}
 
-	constexpr operator std::source_location&&() &&
+	constexpr operator std::source_location() &&
 	{
-		return std::move(_srcl);
+		return _srcl;
 	}
 
 	constexpr operator const _FmtOutput&() const&
@@ -84,9 +84,9 @@ public:
 	}
 
 private:
-	const _Enum _priority;
-	const std::thread::id _thread;
-	const std::source_location _srcl;
+	_Enum _priority;
+	std::thread::id _thread;
+	std::source_location _srcl;
 	_FmtOutput _data;
 };
 
@@ -153,7 +153,7 @@ class trace
 
 		constexpr operator std::thread::id&&() &&
 		{
-			return _thread;
+			return std::move(_thread);
 		}
 
 		constexpr operator const std::source_location&() const&

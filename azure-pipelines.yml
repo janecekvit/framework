@@ -15,6 +15,7 @@ stages:
   jobs:
   - job: BuildTest
     displayName: 'Build and Test Framework'
+    timeoutInMinutes: 20
     
     steps:
     - checkout: self
@@ -47,6 +48,7 @@ stages:
         cmakeArgs: >-
           -G "Visual Studio 17 2022" -A x64
           -DCMAKE_BUILD_TYPE=$(buildConfiguration)
+          -DCMAKE_CXX_STANDARD=23              
           -DBUILD_TESTING=ON
           -DENABLE_CLANG_TIDY=ON
           -DENABLE_CPPCHECK=OFF
@@ -73,7 +75,7 @@ stages:
         echo "Running tests..."
         cd $(buildDir)
         chcp 65001
-        .\bin\framework_tests.exe --gtest_output=xml:GoogleTestResults.xml
+        .\bin\framework_tests.exe --gtest_output=xml:GoogleTestResults.xml --timeout=30
         echo "Running tests completed"
       displayName: "Run Tests"
       continueOnError: true
@@ -124,6 +126,7 @@ stages:
   jobs:
   - job: StaticAnalysis
     displayName: 'Run Static Analysis'
+    timeoutInMinutes: 20
     
     steps:
     - checkout: self
@@ -153,6 +156,7 @@ stages:
         cmakeArgs: >-
           -G "Visual Studio 17 2022" -A x64
           -DCMAKE_BUILD_TYPE=$(buildConfiguration)
+          -DCMAKE_CXX_STANDARD=23              
           -DBUILD_TESTING=ON
           -DENABLE_CLANG_TIDY=ON
           -DENABLE_CPPCHECK=OFF

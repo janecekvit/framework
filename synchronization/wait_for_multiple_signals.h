@@ -18,9 +18,6 @@ template <class _Enum, class _SyncPrimitive = std::condition_variable_any>
 #endif
 class wait_for_multiple_signals
 {
-private:
-	using predicate = typename std::function<bool()>;
-
 public:
 	wait_for_multiple_signals() = default;
 	virtual ~wait_for_multiple_signals() = default;
@@ -35,11 +32,11 @@ public:
 		return _get_state();
 	}
 
-	template <class _TLock>
+	template <class _TLock, class _PredicateType>
 #ifdef __cpp_lib_concepts
-		requires constraints::condition_variable_type<_SyncPrimitive>
+		requires constraints::condition_variable_type<_SyncPrimitive> && std::predicate<_PredicateType>
 #endif
-	[[nodiscard]] _Enum wait(_TLock& lock, predicate&& pred) const
+	[[nodiscard]] _Enum wait(_TLock& lock, _PredicateType&& pred) const
 	{
 		_primitive.wait(lock, std::move(pred));
 		return _get_state();
@@ -55,8 +52,9 @@ public:
 #endif
 
 #ifdef __cpp_lib_semaphore
-	[[nodiscard]] _Enum wait(predicate&& pred) const
-		requires constraints::semaphore_type<_SyncPrimitive, 1>
+	template <class _PredicateType>
+	[[nodiscard]] _Enum wait(_PredicateType&& pred) const
+		requires constraints::semaphore_type<_SyncPrimitive, 1> && std::predicate<_PredicateType>
 	{
 		_primitive.wait(std::move(pred));
 		return _get_state();
@@ -67,7 +65,18 @@ public:
 #ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
-	[[nodiscard]] std::optional<_Enum> wait_for(_TLock& lock, const std::chrono::duration<_TRep, _TPeriod>& rel_time, std::optional<predicate>&& pred = {}) const
+	[[nodiscard]] std::optional<_Enum> wait_for(_TLock& lock, const std::chrono::duration<_TRep, _TPeriod>& rel_time) const
+	{
+		if (_primitive.wait_for(lock, rel_time))
+			return _get_state();
+		return {};
+	}
+
+	template <class _TLock, class _TRep, class _TPeriod, class _PredicateType>
+#ifdef __cpp_lib_concepts
+		requires constraints::condition_variable_type<_SyncPrimitive> && std::predicate<_PredicateType>
+#endif
+	[[nodiscard]] std::optional<_Enum> wait_for(_TLock& lock, const std::chrono::duration<_TRep, _TPeriod>& rel_time, _PredicateType&& pred) const
 	{
 		if (_primitive.wait_for(lock, rel_time, std::move(pred)))
 			return _get_state();
@@ -76,8 +85,17 @@ public:
 
 #ifdef __cpp_lib_semaphore
 	template <class _TRep, class _TPeriod>
-	[[nodiscard]] std::optional<_Enum> wait_for(const std::chrono::duration<_TRep, _TPeriod>& rel_time, std::optional<predicate>&& pred = {}) const
+	[[nodiscard]] std::optional<_Enum> wait_for(const std::chrono::duration<_TRep, _TPeriod>& rel_time) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
+	{
+		if (_primitive.wait_for(rel_time))
+			return _get_state();
+		return {};
+	}
+
+	template <class _TRep, class TPeriod, class _PredicateType>
+	[[nodiscard]] std::optional<_Enum> wait_for(const std::chrono::duration<_TRep, TPeriod>& rel_time, _PredicateType&& pred) const
+		requires constraints::semaphore_type<_SyncPrimitive, 1> && std::predicate<_PredicateType>
 	{
 		if (_primitive.wait_for(rel_time, std::move(pred)))
 			return _get_state();
@@ -89,7 +107,18 @@ public:
 #ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
 #endif
-	[[nodiscard]] std::optional<_Enum> wait_until(_TLock& lock, const std::chrono::time_point<_TClock, _TDuration>& timeout_time, std::optional<predicate>&& pred = {}) const
+	[[nodiscard]] std::optional<_Enum> wait_until(_TLock& lock, const std::chrono::time_point<_TClock, _TDuration>& timeout_time) const
+	{
+		if (_primitive.wait_until(lock, timeout_time))
+			return _get_state();
+		return {};
+	}
+
+	template <class _TLock, class _TClock, class _TDuration, class _PredicateType>
+#ifdef __cpp_lib_concepts
+		requires constraints::condition_variable_type<_SyncPrimitive> && std::predicate<_PredicateType>
+#endif
+	[[nodiscard]] std::optional<_Enum> wait_until(_TLock& lock, const std::chrono::time_point<_TClock, _TDuration>& timeout_time, _PredicateType&& pred) const
 	{
 		if (_primitive.wait_until(lock, timeout_time, std::move(pred)))
 			return _get_state();
@@ -98,8 +127,17 @@ public:
 
 #ifdef __cpp_lib_semaphore
 	template <class _TClock, class _TDuration>
-	[[nodiscard]] std::optional<_Enum> wait_until(const std::chrono::time_point<_TClock, _TDuration>& timeout_time, std::optional<predicate>&& pred = {}) const
+	[[nodiscard]] std::optional<_Enum> wait_until(const std::chrono::time_point<_TClock, _TDuration>& timeout_time) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
+	{
+		if (_primitive.wait_until(timeout_time))
+			return _get_state();
+		return {};
+	}
+
+	template <class _TClock, class _TDuration, class _PredicateType>
+	[[nodiscard]] std::optional<_Enum> wait_until(const std::chrono::time_point<_TClock, _TDuration>& timeout_time, _PredicateType&& pred) const
+		requires constraints::semaphore_type<_SyncPrimitive, 1> && std::predicate<_PredicateType>
 	{
 		if (_primitive.wait_until(timeout_time, std::move(pred)))
 			return _get_state();

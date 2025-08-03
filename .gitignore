@@ -1,4 +1,7 @@
 ﻿/.vs
+/.vscode
 **/Debug/
 **Release/
 /build
+/out
+CLAUDE.md

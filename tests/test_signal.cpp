@@ -29,371 +29,336 @@ protected:
 	std::shared_mutex m_testMtx;
 
 public:
-	void CompareStatuses(const std::list<std::future_status>& actual, const std::list<std::future_status>& expected)
-	{
-		ASSERT_EQ(actual.size(), expected.size());
-		auto itExpected = expected.begin();
-		for (const auto& status : actual)
-		{
-			ASSERT_EQ(static_cast<size_t>(*itExpected), static_cast<size_t>(status));
-			++itExpected;
-		}
-	}
-
 	std::future<void> AddTask(std::function<void()>&& task)
 	{
-		auto work = std::async(std::launch::async, [task = std::move(task)]()
+		auto future = std::async(std::launch::async, [task = std::move(task)]()
 			{
 				task();
 			});
 
-		// replan scheduler
 		std::this_thread::yield();
-		work.wait_for(0ms);
-		std::this_thread::yield();
-
-		return work;
+		return future;
 	}
 
-	void PrepareScenarioSetBeforeWait(std::function<void()>&& setCallback, std::function<void()>&& waitCallback)
+	template <typename T, bool R>
+	void WaitForChange(synchronization::signal<T, R>& signal)
 	{
-		bool bSetClalled = false;
-		m_testMtx.lock();
-		auto task = AddTask([&, this]()
-			{
-				setCallback();
-				bSetClalled = true;
-				m_testMtx.unlock();
-			});
-
-		m_testMtx.lock();
-		waitCallback();
-
-		task.get();
-		m_testMtx.unlock();
-		ASSERT_TRUE(bSetClalled);
+		const auto oldSignalNumber = signal.get_signal_version();
+		while (signal.is_signalized() && oldSignalNumber == signal.get_signal_version())
+			std::this_thread::yield();
 	}
 
-	void PrepareScenarioSetAfterWait(std::function<void()>&& setCallback, std::function<void()>&& waitCallback)
+	void WaitForTasks(std::list<std::reference_wrapper<std::future<void>>> tasks)
 	{
-		bool bSetClalled = false;
-		m_testMtx.lock();
-		auto task = AddTask([&, this]()
-			{
-				std::unique_lock testLock(m_testMtx);
-				setCallback();
-				bSetClalled = true;
-			});
-
-		{
-			m_testMtx.unlock();
-			waitCallback();
-		}
-
-		task.get();
-		ASSERT_TRUE(bSetClalled);
+		for (auto&& task : tasks)
+			task.get().get();
 	}
 };
 
-TEST_F(test_signal, ScenarioConditionVariableSetBeforeWait)
+TEST_F(test_signal, PersistentState_ConditionVariable)
 {
-	std::condition_variable acv;
-	auto status = false;
-
-	PrepareScenarioSetBeforeWait(
-		[&]()
-		{
-			acv.notify_one();
-		},
-		[&]()
-		{
-			std::this_thread::yield();
-			std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
-			using namespace std::chrono_literals;
-			status = acv.wait_for(mtxQueueLock, 10ms) == std::cv_status::no_timeout;
-		});
-
-	// status is false because the condition variable was set before the wait
-	// and there is not any mechanism to wake-up the thread that waiting after notification
-	ASSERT_FALSE(status);
-}
-
-TEST_F(test_signal, DISABLED_ScenarioConditionVariableSetAfterWait)
-{
-	auto status = false;
-	std::condition_variable acv;
-
-	PrepareScenarioSetAfterWait(
-		[&]()
-		{
-			acv.notify_one();
-		},
-		[&]()
-		{
-			std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
-			using namespace std::chrono_literals;
-			status = acv.wait_for(mtxQueueLock, 100ms) == std::cv_status::no_timeout;
-		});
-
-	// status is true because the condition variable was set after the wait
-	ASSERT_TRUE(status);
-}
-
-TEST_F(test_signal, ScenarioSemaphoreSetBeforeWait)
-{
-	auto status = false;
-	std::binary_semaphore sem{ 0 };
-
-	PrepareScenarioSetBeforeWait(
-		[&]()
-		{
-			sem.release();
-		},
-		[&]()
-		{
-			using namespace std::chrono_literals;
-			status = sem.try_acquire_for(100ms);
-		});
-
-	ASSERT_TRUE(status);
-}
-
-TEST_F(test_signal, ScenarioSemaphorSetAfterWait)
-{
-	std::binary_semaphore sem{ 0 };
-	auto status = false;
-
-	PrepareScenarioSetAfterWait(
-		[&]()
-		{
-			sem.release();
-		},
-		[&]()
-		{
-			status = sem.try_acquire_for(100ms);
-		});
-
-	ASSERT_TRUE(status);
-}
-
-TEST_F(test_signal, ScenarioSignalConSetBeforeWait)
-{
-	auto status = false;
 	synchronization::signal<std::condition_variable_any> s;
+	std::atomic<int> woke_up_counter = 0;
 
-	PrepareScenarioSetBeforeWait(
-		[&]()
-		{
-			s.signalize();
-		},
-		[&]()
-		{
-			std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
-			status = s.wait_for(mtxQueueLock, 100ms);
-		});
+	s.signalize();
 
-	ASSERT_TRUE(status);
-}
-
-TEST_F(test_signal, ScenarioSignalConSetAfterWait)
-{
-	auto status = false;
-	synchronization::signal<std::condition_variable_any> s;
-
-	PrepareScenarioSetAfterWait(
-		[&]()
-		{
-			s.signalize();
-		},
-		[&]()
-		{
-			std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
-			using namespace std::chrono_literals;
-			status = s.wait_for(mtxQueueLock, 100ms);
-		});
-
-	ASSERT_TRUE(status);
-}
-
-TEST_F(test_signal, ScenarioSignalSemSetBeforeWait)
-{
-	auto status = false;
-	synchronization::signal<std::binary_semaphore> s;
-
-	PrepareScenarioSetBeforeWait(
-		[&]()
-		{
-			s.signalize();
-		},
-		[&]()
-		{
-			status = s.wait_for(100ms);
-		});
-
-	ASSERT_TRUE(status);
-}
-
-TEST_F(test_signal, ScenarioSignalSemSetAfterWait)
-{
-	auto status = false;
-	synchronization::signal<std::binary_semaphore> s;
-
-	PrepareScenarioSetAfterWait(
-		[&]()
-		{
-			s.signalize();
-		},
-		[&]()
-		{
-			status = s.wait_for(100ms);
-		});
-
-	ASSERT_TRUE(status);
-}
-
-TEST_F(test_signal, SignalCon_Signalization)
-{
-	std::atomic<int> counter = 0;
-	std::list<std::future_status> statuses;
-	synchronization::signal<std::condition_variable_any> s;
+	ASSERT_TRUE(s.is_signalized());
+	ASSERT_EQ(1, s.get_signal_version());
 
 	auto task1 = AddTask([&]()
 		{
 			std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
 			s.wait(mtxQueueLock);
-			counter++;
+			woke_up_counter.fetch_add(1, std::memory_order_acq_rel);
 		});
-
-	statuses.emplace_back(task1.wait_for(0ms));
-	s.signalize();
-	statuses.emplace_back(task1.wait_for(1s));
 
 	task1.get();
 
-	CompareStatuses(statuses, { std::future_status::timeout, std::future_status::ready });
-	ASSERT_EQ(1, counter);
+	ASSERT_FALSE(s.is_signalized());
+	ASSERT_EQ(1, s.get_signal_version());
+
+	// result
+	ASSERT_EQ(1, woke_up_counter.load());
 }
 
-TEST_F(test_signal, SignalCon_SignalizationAutoReset)
+TEST_F(test_signal, PersistentState_Semaphore)
 {
-	std::atomic<int> counter = 0;
-	std::list<std::future_status> statuses;
+	synchronization::signal<std::binary_semaphore> s;
+	std::atomic<int> woke_up_counter = 0;
+
+	s.signalize();
+
+	ASSERT_TRUE(s.is_signalized());
+	ASSERT_EQ(1, s.get_signal_version());
+
+	auto task1 = AddTask([&]()
+		{
+			s.wait();
+			woke_up_counter.fetch_add(1, std::memory_order_acq_rel);
+		});
+
+	task1.get();
+
+	ASSERT_FALSE(s.is_signalized());
+	ASSERT_EQ(1, s.get_signal_version());
+
+	// result
+	ASSERT_EQ(1, woke_up_counter.load());
+}
+
+TEST_F(test_signal, AutoReset_ConditionVariable)
+{
 	synchronization::signal<std::condition_variable_any> s;
+	std::atomic<int> woke_up_counter = 0;
 	auto callback = [&]()
 	{
 		std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
 		s.wait(mtxQueueLock);
-		counter++;
+		woke_up_counter.fetch_add(1, std::memory_order_acq_rel);
 	};
+
+	ASSERT_FALSE(s.is_signalized());
+	ASSERT_EQ(0, s.get_signal_version());
 
 	auto task1 = AddTask(callback);
 	auto task2 = AddTask(callback);
 
-	statuses.emplace_back(task1.wait_for(0ms));
-	statuses.emplace_back(task2.wait_for(0ms));
 	s.signalize();
-	statuses.emplace_back(task1.wait_for(100ms));
-	statuses.emplace_back(task2.wait_for(0ms));
+	WaitForChange(s);
+
+	ASSERT_EQ(1, s.get_signal_version());
+	ASSERT_FALSE(s.is_signalized());
+
 	s.signalize();
-	statuses.emplace_back(task1.wait_for(0ms));
-	statuses.emplace_back(task2.wait_for(100ms));
+	WaitForChange(s);
 
-	CompareStatuses(statuses, { std::future_status::timeout, std::future_status::timeout,
-								  std::future_status::ready, std::future_status::timeout,
-								  std::future_status::ready, std::future_status::ready });
+	ASSERT_EQ(2, s.get_signal_version());
+	ASSERT_FALSE(s.is_signalized());
 
-	ASSERT_EQ(2, counter);
+	// result
+	ASSERT_EQ(2, woke_up_counter.load());
 }
 
-TEST_F(test_signal, DISABLED_SignalCon_SignalizationManualReset)
+TEST_F(test_signal, AutoReset_Semaphore)
 {
-	std::atomic<int> counter = 0;
-	std::list<std::future_status> statuses;
-	synchronization::signal<std::condition_variable_any, true> s;
+	synchronization::signal<std::binary_semaphore> s;
+	std::atomic<int> woke_up_counter = 0;
 	auto callback = [&]()
 	{
-		std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
-		s.wait(mtxQueueLock);
-		counter++;
+		s.wait();
+		woke_up_counter.fetch_add(1, std::memory_order_acq_rel);
 	};
+
+	ASSERT_FALSE(s.is_signalized());
+	ASSERT_EQ(0, s.get_signal_version());
 
 	auto task1 = AddTask(callback);
 	auto task2 = AddTask(callback);
 
-	statuses.emplace_back(task1.wait_for(0ms));
-	statuses.emplace_back(task2.wait_for(0ms));
 	s.signalize();
-	statuses.emplace_back(task1.wait_for(1s));
-	statuses.emplace_back(task2.wait_for(1s));
+	WaitForChange(s);
 
-	CompareStatuses(statuses, { std::future_status::timeout, std::future_status::timeout,
-								  std::future_status::ready, std::future_status::ready });
+	ASSERT_EQ(1, s.get_signal_version());
+	ASSERT_FALSE(s.is_signalized());
 
-	ASSERT_EQ(2, counter);
+	s.signalize();
+	WaitForChange(s);
+
+	ASSERT_EQ(2, s.get_signal_version());
+	ASSERT_FALSE(s.is_signalized());
+
+	// result
+	ASSERT_EQ(2, woke_up_counter.load());
 }
 
-TEST_F(test_signal, SignalCon_SignalizationManualResetWithReset)
+TEST_F(test_signal, ManualReset_ConditionVariable)
 {
-	std::atomic<int> counter = 0;
-	std::list<std::future_status> statuses;
 	synchronization::signal<std::condition_variable_any, true> s;
+	std::atomic<int> woke_up_counter = 0;
 	auto callback = [&]()
 	{
 		std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
 		s.wait(mtxQueueLock);
-		counter++;
+		woke_up_counter.fetch_add(1, std::memory_order_acq_rel);
 	};
+
+	ASSERT_FALSE(s.is_signalized());
+	ASSERT_EQ(0, s.get_signal_version());
+
+	auto task1 = AddTask(callback);
+	auto task2 = AddTask(callback);
+	std::this_thread::sleep_for(100ms);
+
+	s.signalize();
+	WaitForTasks({ task1, task2 });
+
+	ASSERT_EQ(1, s.get_signal_version());
+	ASSERT_TRUE(s.is_signalized()); // still signalized - no manual reset
+
+	// result
+	ASSERT_EQ(2, woke_up_counter.load());
+}
+
+TEST_F(test_signal, ManualResetWithReset_ConditionVariable)
+{
+	synchronization::signal<std::condition_variable_any, true> s;
+	std::atomic<int> woke_up_counter = 0;
+	auto callback = [&]()
+	{
+		std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
+		s.wait(mtxQueueLock);
+		woke_up_counter.fetch_add(1, std::memory_order_acq_rel);
+	};
+
+	ASSERT_FALSE(s.is_signalized());
+	ASSERT_EQ(0, s.get_signal_version());
+	ASSERT_EQ(0, s.get_reset_version());
 
 	auto task1 = AddTask(callback);
 
-	statuses.emplace_back(task1.wait_for(0ms));
 	s.signalize();
-	statuses.emplace_back(task1.wait_for(1s));
+	WaitForTasks({ task1 });
+
+	ASSERT_EQ(1, s.get_signal_version());
+	ASSERT_TRUE(s.is_signalized()); // still signalized - no manual reset
+	ASSERT_EQ(0, s.get_reset_version());
+
+	// result
+	ASSERT_EQ(1, woke_up_counter.load());
+
+	// Reset sequence
 	s.reset();
 
+	ASSERT_EQ(1, s.get_signal_version());
+	ASSERT_FALSE(s.is_signalized());
+	ASSERT_EQ(1, s.get_reset_version());
+
 	auto task2 = AddTask(callback);
+	auto task3 = AddTask(callback);
 
-	statuses.emplace_back(task2.wait_for(0ms));
 	s.signalize();
-	statuses.emplace_back(task2.wait_for(1s));
+	WaitForTasks({ task2, task3 });
 
-	CompareStatuses(statuses, { std::future_status::timeout, std::future_status::ready,
-								  std::future_status::timeout, std::future_status::ready });
+	ASSERT_EQ(2, s.get_signal_version());
+	ASSERT_TRUE(s.is_signalized());
+	ASSERT_EQ(1, s.get_reset_version());
 
-	ASSERT_EQ(2, counter);
+	// result
+	ASSERT_EQ(3, woke_up_counter.load());
 }
 
-TEST_F(test_signal, SignalCon_WaitPredicate)
+TEST_F(test_signal, SignalizeAll_ConditionVariable)
 {
-	std::atomic<int> counter = 0;
-	std::list<std::future_status> statuses;
 	synchronization::signal<std::condition_variable_any> s;
+	std::atomic<int> woke_up_counter = 0;
+	std::atomic<int> future_ready_counter = 0;
 	auto callback = [&]()
 	{
 		std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
-		s.wait(mtxQueueLock, []()
-			{
-				return true;
-			});
-		counter++;
-		s.wait(mtxQueueLock, []()
-			{
-				return false;
-			});
-		counter++;
+		future_ready_counter.fetch_add(1, std::memory_order_acq_rel);
+		s.wait(mtxQueueLock);
+		woke_up_counter.fetch_add(1, std::memory_order_acq_rel);
 	};
 
-	auto task1 = AddTask(callback);
-	statuses.emplace_back(task1.wait_for(25ms));
-	ASSERT_EQ(1, counter);
-	s.signalize();
-	statuses.emplace_back(task1.wait_for(1s));
-	ASSERT_EQ(2, counter);
+	ASSERT_FALSE(s.is_signalized());
+	ASSERT_EQ(0, s.get_signal_version());
 
-	CompareStatuses(statuses, { std::future_status::timeout, std::future_status::ready });
+	auto task1 = AddTask(callback);
+	auto task2 = AddTask(callback);
+
+	while (future_ready_counter.load(std::memory_order_acquire) != 2)
+		std::this_thread::yield();
+
+	s.signalize_all();
+
+	ASSERT_EQ(1, s.get_signal_version());
+	// ASSERT_FALSE(s.is_signalized());
+
+	WaitForTasks({ task1, task2 });
+
+	// result
+	ASSERT_EQ(2, woke_up_counter.load());
 }
 
-TEST_F(test_signal, SignalCon_WaitForPredicate)
+TEST_F(test_signal, WaitPredicate_ConditionVariable)
+{
+	synchronization::signal<std::condition_variable_any> s;
+	std::atomic<int> woke_up_counter = 0;
+
+	s.signalize();
+
+	ASSERT_TRUE(s.is_signalized());
+	ASSERT_EQ(1, s.get_signal_version());
+
+	{
+		std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
+		s.wait(mtxQueueLock, [&]()
+			{
+				woke_up_counter.fetch_add(1, std::memory_order_acq_rel);
+				return true;
+			});
+	}
+
+	ASSERT_TRUE(s.is_signalized()); // because predicate is true
+	ASSERT_EQ(1, s.get_signal_version());
+
+	auto task1 = AddTask([&]()
+		{
+			std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
+			s.wait(mtxQueueLock, [&]()
+				{
+					woke_up_counter.fetch_add(1, std::memory_order_acq_rel);
+					return false;
+				});
+		});
+
+	task1.get();
+
+	ASSERT_FALSE(s.is_signalized());
+	ASSERT_EQ(1, s.get_signal_version());
+
+	// result
+	ASSERT_EQ(2, woke_up_counter.load());
+}
+
+TEST_F(test_signal, WaitPredicate_Semaphore)
+{
+	synchronization::signal<std::binary_semaphore> s;
+	std::atomic<int> woke_up_counter = 0;
+
+	s.signalize();
+
+	ASSERT_TRUE(s.is_signalized());
+	ASSERT_EQ(1, s.get_signal_version());
+
+	s.wait([&]()
+		{
+			woke_up_counter.fetch_add(1, std::memory_order_acq_rel);
+			return true;
+		});
+
+	ASSERT_TRUE(s.is_signalized()); // because predicate is true
+	ASSERT_EQ(1, s.get_signal_version());
+
+	auto task1 = AddTask([&]()
+		{
+			s.wait([&]()
+				{
+					woke_up_counter.fetch_add(1, std::memory_order_acq_rel);
+					return false;
+				});
+		});
+
+	task1.get();
+
+	ASSERT_FALSE(s.is_signalized());
+	ASSERT_EQ(1, s.get_signal_version());
+
+	// result
+	ASSERT_EQ(2, woke_up_counter.load());
+}
+
+TEST_F(test_signal, WaitForPredicate_ConditionVariable)
 {
 	synchronization::signal<std::condition_variable_any> s;
 	std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
@@ -409,7 +374,22 @@ TEST_F(test_signal, SignalCon_WaitForPredicate)
 	ASSERT_TRUE(s.wait_for(mtxQueueLock, 0ms));
 }
 
-TEST_F(test_signal, SignalCon_WaitUntilPredicate)
+TEST_F(test_signal, WaitForPredicate_Semaphore)
+{
+	synchronization::signal<std::binary_semaphore> s;
+
+	ASSERT_TRUE(s.wait_for(0ms, []()
+		{
+			return true;
+		}));
+
+	ASSERT_FALSE(s.wait_for(0ms));
+
+	s.signalize();
+	ASSERT_TRUE(s.wait_for(0ms));
+}
+
+TEST_F(test_signal, WaitUntilPredicate_ConditionVariable)
 {
 	synchronization::signal<std::condition_variable_any> s;
 	std::unique_lock<std::mutex> mtxQueueLock(m_conditionMtx);
@@ -425,159 +405,7 @@ TEST_F(test_signal, SignalCon_WaitUntilPredicate)
 	ASSERT_TRUE(s.wait_until(mtxQueueLock, std::chrono::steady_clock::now()));
 }
 
-TEST_F(test_signal, SignalSem_Signalization)
-{
-	std::atomic<int> counter = 0;
-	std::list<std::future_status> statuses;
-	synchronization::signal<std::binary_semaphore> s;
-
-	auto task1 = AddTask([&]()
-		{
-			s.wait();
-			counter++;
-		});
-
-	statuses.emplace_back(task1.wait_for(0ms));
-	s.signalize();
-	statuses.emplace_back(task1.wait_for(1s));
-
-	task1.get();
-
-	CompareStatuses(statuses, { std::future_status::timeout, std::future_status::ready });
-	ASSERT_EQ(1, counter);
-}
-
-TEST_F(test_signal, SignalSem_SignalizationAutoReset)
-{
-	std::atomic<int> counter = 0;
-	std::list<std::future_status> statuses;
-	synchronization::signal<std::binary_semaphore> s;
-	auto callback = [&]()
-	{
-		s.wait();
-		counter++;
-	};
-
-	auto task1 = AddTask(callback);
-	auto task2 = AddTask(callback);
-
-	statuses.emplace_back(task1.wait_for(0ms));
-	statuses.emplace_back(task2.wait_for(0ms));
-	s.signalize();
-	statuses.emplace_back(task1.wait_for(100ms));
-	statuses.emplace_back(task2.wait_for(0ms));
-	s.signalize();
-	statuses.emplace_back(task1.wait_for(0ms));
-	statuses.emplace_back(task2.wait_for(100ms));
-
-	CompareStatuses(statuses, { std::future_status::timeout, std::future_status::timeout,
-								  std::future_status::ready, std::future_status::timeout,
-								  std::future_status::ready, std::future_status::ready });
-
-	ASSERT_EQ(2, counter);
-}
-
-TEST_F(test_signal, DISABLED_SignalSem_SignalizationManualReset)
-{
-	std::atomic<int> counter = 0;
-	std::list<std::future_status> statuses;
-	synchronization::signal<std::binary_semaphore, true> s;
-	auto callback = [&]()
-	{
-		s.wait();
-		counter++;
-	};
-
-	auto task1 = AddTask(callback);
-	auto task2 = AddTask(callback);
-
-	statuses.emplace_back(task1.wait_for(0ms));
-	statuses.emplace_back(task2.wait_for(0ms));
-	s.signalize();
-	statuses.emplace_back(task1.wait_for(1s));
-	statuses.emplace_back(task2.wait_for(1s));
-
-	CompareStatuses(statuses, { std::future_status::timeout, std::future_status::timeout,
-								  std::future_status::ready, std::future_status::ready });
-
-	ASSERT_EQ(2, counter);
-}
-
-TEST_F(test_signal, SignalSem_SignalizationManualResetWithReset)
-{
-	std::atomic<int> counter = 0;
-	std::list<std::future_status> statuses;
-	synchronization::signal<std::binary_semaphore, true> s;
-	auto callback = [&]()
-	{
-		s.wait();
-		counter++;
-	};
-
-	auto task1 = AddTask(callback);
-
-	statuses.emplace_back(task1.wait_for(0ms));
-	s.signalize();
-	statuses.emplace_back(task1.wait_for(1s));
-	s.reset();
-
-	auto task2 = AddTask(callback);
-
-	statuses.emplace_back(task2.wait_for(0ms));
-	s.signalize();
-	statuses.emplace_back(task2.wait_for(1s));
-
-	CompareStatuses(statuses, { std::future_status::timeout, std::future_status::ready,
-								  std::future_status::timeout, std::future_status::ready });
-
-	ASSERT_EQ(2, counter);
-}
-
-TEST_F(test_signal, SignalSem_WaitPredicate)
-{
-	std::atomic<int> counter = 0;
-	std::list<std::future_status> statuses;
-	synchronization::signal<std::binary_semaphore> s;
-	auto callback = [&]()
-	{
-		s.wait([]()
-			{
-				return true;
-			});
-		counter++;
-		s.wait([]()
-			{
-				return false;
-			});
-		counter++;
-	};
-
-	auto task1 = AddTask(callback);
-	statuses.emplace_back(task1.wait_for(25ms));
-	ASSERT_EQ(1, counter);
-	s.signalize();
-	statuses.emplace_back(task1.wait_for(1s));
-	ASSERT_EQ(2, counter);
-
-	CompareStatuses(statuses, { std::future_status::timeout, std::future_status::ready });
-}
-
-TEST_F(test_signal, SignalSem_WaitForPredicate)
-{
-	synchronization::signal<std::binary_semaphore> s;
-
-	ASSERT_TRUE(s.wait_for(0ms, []()
-		{
-			return true;
-		}));
-
-	ASSERT_FALSE(s.wait_for(0ms));
-
-	s.signalize();
-	ASSERT_TRUE(s.wait_for(0ms));
-}
-
-TEST_F(test_signal, SignalSem_WaitUntilPredicate)
+TEST_F(test_signal, WaitUntilPredicate_Semaphore)
 {
 	synchronization::signal<std::binary_semaphore> s;
 
