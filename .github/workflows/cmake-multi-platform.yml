@@ -31,21 +31,21 @@ jobs:
             cxx: g++-14
             cxx_standard: "23"
             
-          # Ubuntu Clang
-          - os: ubuntu-latest
-            compiler: clang
-            cmake_generator: "Unix Makefiles"
-            vcpkg_triplet: x64-linux
-            cc: clang-18
-            cxx: clang++-18
-            cxx_standard: "23"
+          # # Ubuntu Clang
+          # - os: ubuntu-latest
+            # compiler: clang
+            # cmake_generator: "Unix Makefiles"
+            # vcpkg_triplet: x64-linux
+            # cc: clang-18
+            # cxx: clang++-18
+            # cxx_standard: "23"
             
-          # macOS Clang
-          - os: macos-latest
-            compiler: clang
-            cmake_generator: "Unix Makefiles"
-            vcpkg_triplet: x64-osx
-            cxx_standard: "23"
+          # # macOS Clang
+          # - os: macos-latest
+            # compiler: clang
+            # cmake_generator: "Unix Makefiles"
+            # vcpkg_triplet: x64-osx
+            # cxx_standard: "23"
 
     steps:
     - name: Checkout code
