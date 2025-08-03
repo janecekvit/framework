@@ -66,7 +66,7 @@ public:
 
 		_primitive.wait(lock, [this, initial_version, predicate = std::move(pred)]() -> bool
 			{
-				return _check_signal(initial_version) || predicate();
+				return predicate() || _check_signal(initial_version);
 			});
 	}
 
@@ -86,7 +86,7 @@ public:
 	{
 		const auto initial_version = _get_initial_version();
 
-		while (!(_check_signal(initial_version) || pred()))
+		while (!(pred() || _check_signal(initial_version)))
 			_primitive.acquire();
 	}
 #endif
@@ -117,7 +117,7 @@ public:
 
 		return _primitive.wait_until(lock, deadline, [this, initial_version, predicate = std::move(pred)]() -> bool
 			{
-				return _check_signal(initial_version) || predicate();
+				return predicate() || _check_signal(initial_version);
 			});
 	}
 
@@ -146,10 +146,10 @@ public:
 		auto predicate = std::move(pred);
 		const auto initial_version = _get_initial_version();
 
-		while (!(_check_signal(initial_version) || predicate()))
+		while (!(predicate() || _check_signal(initial_version)))
 		{
 			if (!_primitive.try_acquire_until(deadline))
-				return _check_signal(initial_version) || predicate();
+				return predicate() || _check_signal(initial_version);
 		}
 		return true;
 	}
@@ -179,7 +179,7 @@ public:
 
 		return _primitive.wait_until(lock, abs_time, [this, initial_version, predicate = std::move(pred)]() -> bool
 			{
-				return _check_signal(initial_version) || predicate();
+				return predicate() || _check_signal(initial_version);
 			});
 	}
 
@@ -207,11 +207,11 @@ public:
 		auto predicate = std::move(pred);
 		const auto initial_version = _get_initial_version();
 
-		while (!(_check_signal(initial_version) || predicate()))
+		while (!(predicate() || _check_signal(initial_version)))
 		{
 			if (!_primitive.try_acquire_until(abs_time))
 			{
-				return _check_signal(initial_version) || predicate();
+				return predicate() || _check_signal(initial_version);
 			}
 		}
 		return true;
