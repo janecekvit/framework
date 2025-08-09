@@ -84,20 +84,20 @@ function(add_strict_warnings TARGET_NAME)
         # GCC warnings
         $<$<CXX_COMPILER_ID:GNU>:
             -Wall -Wextra -Wpedantic -Werror         # Base warnings + errors
-            -Wunused-lambda-capture                   # Unused lambda captures
-            -Wunused-const-variable=2                 # Unused const variables (level 2)
-            -Wuninitialized -Wmaybe-uninitialized    # Uninitialized variables
-            -Wshadow                                  # Variable shadowing
+            -Wunused-variable -Wunused-parameter     # Unused variables/parameters
+            -Wunused-but-set-variable                # GCC specific: set but not used
+            -Wuninitialized                          # Uninitialized variables
+            -Wshadow                                 # Variable shadowing
             -Wno-missing-field-initializers          # Disable problematic warning
         >
         
         # Clang warnings
         $<$<CXX_COMPILER_ID:Clang>:
             -Wall -Wextra -Wpedantic -Werror         # Base warnings + errors
-            -Wunused-lambda-capture                   # Unused lambda captures
-            -Wunused-const-variable                   # Unused const variables
-            -Wuninitialized                           # Uninitialized variables
-            -Wshadow                                  # Variable shadowing
+            -Wunused-lambda-capture                  # Unused lambda captures
+            -Wunused-const-variable                  # Unused const variables
+            -Wuninitialized                          # Uninitialized variables
+            -Wshadow                                 # Variable shadowing
             -Wno-gnu-zero-variadic-macro-arguments   # Disable GNU extension warning
         >
     )
