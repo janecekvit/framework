@@ -53,22 +53,22 @@ public:
 		return _priority;
 	}
 
-	constexpr operator const std::thread::id&() const&
+	operator const std::thread::id&() const&
 	{
 		return _thread;
 	}
 
-	constexpr operator std::thread::id() &&
+	operator std::thread::id() &&
 	{
 		return _thread;
 	}
 
-	constexpr operator const std::source_location&() const&
+	operator const std::source_location&() const&
 	{
 		return _srcl;
 	}
 
-	constexpr operator std::source_location() &&
+	operator std::source_location() &&
 	{
 		return _srcl;
 	}
@@ -126,17 +126,17 @@ class trace
 			return _priority;
 		}
 
-		constexpr const std::thread::id& thread_id() const&
+		const std::thread::id& thread_id() const&
 		{
 			return _thread;
 		}
 
-		constexpr const std::source_location& source_location() const&
+		const std::source_location& source_location() const&
 		{
 			return _srcl;
 		}
 
-		constexpr const _Data& data() const&
+		const _Data& data() const&
 		{
 			return _data;
 		}
@@ -146,32 +146,32 @@ class trace
 			return _priority;
 		}
 
-		constexpr operator const std::thread::id&() const&
+		operator const std::thread::id&() const&
 		{
 			return _thread;
 		}
 
-		constexpr operator std::thread::id&&() &&
+		operator std::thread::id&&() &&
 		{
 			return std::move(_thread);
 		}
 
-		constexpr operator const std::source_location&() const&
+		operator const std::source_location&() const&
 		{
 			return _srcl;
 		}
 
-		constexpr operator std::source_location&&() &&
+		operator std::source_location&&() &&
 		{
 			return std::move(_srcl);
 		}
 
-		constexpr operator const _Data&() const&
+		operator const _Data&() const&
 		{
 			return _data;
 		}
 
-		constexpr operator _Data&&() &&
+		operator _Data&&() &&
 		{
 			return std::move(_data);
 		}

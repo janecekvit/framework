@@ -512,12 +512,12 @@ private:
 		try
 		{
 			auto& storage = _get_storage_by_find<_T>();
-			for (auto&& item : storage)
+			for (auto&& element : storage)
 			{
 				if constexpr (_IsConst)
-					std::invoke(std::forward<_Callable>(callback), std::as_const(item.template get<_T>()));
+					std::invoke(std::forward<_Callable>(callback), std::as_const(element.template get<_T>()));
 				else
-					std::invoke(std::forward<_Callable>(callback), item.template get<_T>());
+					std::invoke(std::forward<_Callable>(callback), element.template get<_T>());
 			}
 		}
 		catch (const std::bad_any_cast& ex)

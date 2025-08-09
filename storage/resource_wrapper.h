@@ -86,19 +86,19 @@ public:
 	constexpr resource_wrapper() = delete;
 
 	constexpr resource_wrapper(_ResourceDeleter&& deleter)
-		: _resource(_create_resource(_Resource{}, _ResourceDeleter(deleter), _ExceptionCallback(_exception_callback)))
+		: _resource(_create_resource(_Resource{}, _ResourceDeleter(deleter), _ExceptionCallback{}))
 		, _deleter(std::forward<_ResourceDeleter>(deleter))
 	{
 	}
 
 	constexpr resource_wrapper(_Resource&& resource, _ResourceDeleter&& deleter)
-		: _resource(_create_resource(std::forward<_Resource>(resource), _ResourceDeleter(deleter), _ExceptionCallback(_exception_callback)))
+		: _resource(_create_resource(std::forward<_Resource>(resource), _ResourceDeleter(deleter), _ExceptionCallback{}))
 		, _deleter(std::forward<_ResourceDeleter>(deleter))
 	{
 	}
 
 	constexpr resource_wrapper(const _Resource& resource, _ResourceDeleter&& deleter)
-		: _resource(_create_resource(resource, _ResourceDeleter(deleter), _ExceptionCallback(_exception_callback)))
+		: _resource(_create_resource(resource, _ResourceDeleter(deleter), _ExceptionCallback{}))
 		, _deleter(std::forward<_ResourceDeleter>(deleter))
 	{
 	}

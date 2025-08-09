@@ -186,8 +186,8 @@ TEST_F(test_resource_wrapper, TestMoveRessignmentWithCopyDestruction)
 				uDeleterCalled++;
 			});
 
-		int* i = oWrappedInt1;
-		ASSERT_EQ(*i, 5);
+		int* result = oWrappedInt1;
+		ASSERT_EQ(*result, 5);
 		ASSERT_EQ(*oWrappedInt1, 5);
 		ASSERT_EQ(uDeleterCalled, 0);
 

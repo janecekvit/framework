@@ -184,12 +184,12 @@ TEST_F(test_concurrent, TestConcurrentAccessScope)
 			},
 			std::out_of_range);
 
-		const int number = extensions::execute_on_container(container.concurrent().get(), 10, [&](const int& number)
+		const int result = extensions::execute_on_container(container.concurrent().get(), 10, [&](const int& number)
 			{
 				return number;
 			});
 
-		ASSERT_EQ(number, 10);
+		ASSERT_EQ(result, 10);
 
 	} // concurrent access ends, release all scopes
 
@@ -299,7 +299,7 @@ TEST_F(test_concurrent, TestExclusiveAccessSynchroAsync)
 
 	// Wait for first thread to complete
 	future.wait();
-	
+
 	int i = 6;
 	for (auto&& item : container.exclusive())
 	{
