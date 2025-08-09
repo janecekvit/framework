@@ -284,13 +284,13 @@ protected:
 #ifdef __cpp_lib_concepts
 	[[nodiscard]] constexpr std::shared_ptr<_Resource> _create_resource(_Resource&& resource, _ResourceDeleter&& deleter, _ExceptionCallback&& exceptionCallback)
 	{
-		return std::shared_ptr<_Resource>(new _Resource(std::forward<_Resource>(resource)), [stored_deleter = std::move(deleter), stored_callback = std::move(exceptionCallback)](_Resource* resource)
+		return std::shared_ptr<_Resource>(new _Resource(std::forward<_Resource>(resource)), [stored_deleter = std::move(deleter), stored_callback = std::move(exceptionCallback)](_Resource* ptr)
 			{
 				// call inner resource deleter
 				try
 				{
 					if (stored_deleter)
-						stored_deleter(*resource);
+						stored_deleter(*ptr);
 				}
 				catch (const std::exception& ex)
 				{
@@ -298,21 +298,21 @@ protected:
 						stored_callback(ex);
 				}
 
-				delete resource;
-				resource = nullptr;
+				delete ptr;
+				ptr = nullptr;
 			});
 	}
 #else
 	[[nodiscard]] constexpr std::shared_ptr<_Resource> _create_resource(_Resource&& resource, _ResourceDeleter&& deleter)
 	{
-		return std::shared_ptr<_Resource>(new _Resource(std::forward<_Resource>(resource)), [stored_deleter = std::move(deleter)](_Resource* resource)
+		return std::shared_ptr<_Resource>(new _Resource(std::forward<_Resource>(resource)), [stored_deleter = std::move(deleter)](_Resource* ptr)
 			{
 				// call inner resource deleter
 				if (stored_deleter)
-					stored_deleter(*resource);
+					stored_deleter(*ptr);
 
-				delete resource;
-				resource = nullptr;
+				delete ptr;
+				ptr = nullptr;
 			});
 	}
 #endif

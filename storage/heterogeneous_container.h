@@ -449,8 +449,8 @@ private:
 			}
 			else if constexpr (constraints::is_initializer_list_v<_T>)
 			{
-				for (auto&& item : value)
-					_insert(std::forward<decltype(item)>(item));
+				for (auto&& element : value)
+					_insert(std::forward<decltype(element)>(element));
 			}
 			else
 			{
@@ -470,8 +470,8 @@ private:
 			std::list<std::reference_wrapper<_Value>> values = {};
 
 			auto& storage = _get_storage_by_find<_T>();
-			for (auto&& item : storage)
-				values.emplace_back(item.template get<_T>());
+			for (auto&& element : storage)
+				values.emplace_back(element.template get<_T>());
 
 			return values;
 		}
@@ -542,14 +542,13 @@ private:
 	}
 
 	template <typename _T>
-    static size_t _get_type_key()
-    {
-        static char dummy{};
-        return reinterpret_cast<size_t>(&dummy);
-    }
+	static size_t _get_type_key()
+	{
+		static char dummy{};
+		return reinterpret_cast<size_t>(&dummy);
+	}
 
 private:
-
 	template <typename _T>
 	const inline static size_t TypeKey = _get_type_key<_T>();
 

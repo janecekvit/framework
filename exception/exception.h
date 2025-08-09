@@ -72,20 +72,25 @@ private:
 	{
 		_error = _format_source_location();
 		_error += _format_thread();
-
 		try
 		{
-			auto callback = [&](auto&&... arguments)
+			if constexpr (std::is_constructible_v<std::wstring_view, _Fmt>)
 			{
-				if constexpr (std::is_constructible_v<std::wstring_view, _Fmt>)
-				{
-					std::wstring errorWide = std::vformat(std::forward<_Fmt>(format), std::make_wformat_args(std::forward<decltype(arguments)>(arguments)...));
-					_error += conversions::to_string(errorWide);
-				}
-				else
-					_error += std::vformat(std::forward<_Fmt>(format), std::make_format_args(std::forward<decltype(arguments)>(arguments)...));
-			};
-			std::apply(callback, arguments);
+				std::wstring errorWide = std::apply([&format](auto&&... args)
+					{
+						return std::vformat(format, std::make_wformat_args(args...));
+					},
+					std::forward<decltype(arguments)>(arguments));
+				_error += conversions::to_string(errorWide);
+			}
+			else
+			{
+				_error += std::apply([&format](auto&&... args)
+					{
+						return std::vformat(format, std::make_format_args(args...));
+					},
+					std::forward<decltype(arguments)>(arguments));
+			}
 		}
 		catch (const std::exception& ex)
 		{
