@@ -14,21 +14,6 @@ using namespace janecekvit::synchronization;
 
 namespace framework_tests
 {
-template <template <class...> class TContainer, class TItem, std::enable_if_t<constraints::is_container_v<TContainer<TItem>>, int> = 0>
-void ContainerTest(const TContainer<TItem>& oContainer)
-{
-	int i = 0;
-	for (auto&& oItem : oContainer)
-		i++;
-
-	i *= 2;
-}
-
-template <template <class...> class TContainer, class TItem, std::enable_if_t<constraints::is_concurrent_container_v<TContainer<TItem>>, int> = 0>
-void ContainerTest(const TContainer<TItem>& oContainer)
-{
-	ContainerTest(oContainer.concurrent().get());
-}
 
 constexpr size_t IterationCount = 500000;
 
