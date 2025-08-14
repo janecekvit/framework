@@ -104,7 +104,7 @@ TEST_F(test_concurrent, TestExclusiveAccessMultipleThreads)
 	auto&& container = _prepare_testing_data_perf_test();
 
 	ASSERT_EQ((int) container.exclusive(), 1);
-	auto thread1 = std::jthread([&]()
+	auto thread1 = std::thread([&]()
 		{
 			for (size_t i = 0; i < IterationCount; i++)
 			{
@@ -113,7 +113,7 @@ TEST_F(test_concurrent, TestExclusiveAccessMultipleThreads)
 			}
 		});
 
-	auto thread2 = std::jthread([&]()
+	auto thread2 = std::thread([&]()
 		{
 			for (size_t i = 0; i < IterationCount; i++)
 			{
@@ -189,7 +189,7 @@ TEST_F(test_concurrent, TestConcurrentAccessMultipleThreads)
 {
 	auto&& container = _prepare_testing_data_perf_test();
 	ASSERT_EQ((int) container.concurrent(), 1);
-	auto thread1 = std::jthread([&]()
+	auto thread1 = std::thread([&]()
 		{
 			for (size_t i = 0; i < IterationCount; i++)
 			{
@@ -198,7 +198,7 @@ TEST_F(test_concurrent, TestConcurrentAccessMultipleThreads)
 			}
 		});
 
-	auto thread2 = std::jthread([&]()
+	auto thread2 = std::thread([&]()
 		{
 			for (size_t i = 0; i < IterationCount; i++)
 			{
