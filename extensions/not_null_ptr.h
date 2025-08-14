@@ -3,6 +3,7 @@
 #include "exception/exception.h"
 #include "extensions/constraints.h"
 
+#include <compare>
 #include <concepts>
 #include <memory>
 #include <stdexcept>
@@ -120,7 +121,7 @@ public:
 		return false;
 	}
 
-	constexpr auto operator<=>(const not_null_ptr&) const = default;
+	auto operator<=>(const not_null_ptr&) const = default;
 
 private:
 	_Type _pointer;

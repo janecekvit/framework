@@ -376,12 +376,12 @@ public:
 public:
 	virtual ~owner_lock_details() = default;
 
-	[[nodiscard]] constexpr exclusive_lock_details get_exclusive_lock_details() const noexcept
+	[[nodiscard]] exclusive_lock_details get_exclusive_lock_details() const noexcept
 	{
 		return _exclusive_lock_details;
 	}
 
-	[[nodiscard]] constexpr concurrent_lock_details get_concurrent_lock_details() const noexcept
+	[[nodiscard]] concurrent_lock_details get_concurrent_lock_details() const noexcept
 		requires(constraints::is_shared_mutex_type<_MutexType>)
 	{
 		return _concurrent_lock_details;
