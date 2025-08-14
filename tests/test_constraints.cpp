@@ -86,7 +86,7 @@ TEST_F(test_constraints, TestContainerTraitsSTL)
 	std::list<int> list;
 	std::set<std::string> set;
 	std::map<int, std::string> map;
-	std::unordered_set<int, int> uset;
+	std::unordered_set<int> uset;
 	std::unordered_map<std::string, int> umap;
 
 	ASSERT_EQ(constraints::is_container_v<decltype(vec)>, true);
@@ -101,27 +101,59 @@ TEST_F(test_constraints, TestContainerTraits)
 {
 	struct WithoutEnd
 	{
-		int* begin() { return nullptr; }
-		size_t size() { return 0; }
+		int* begin()
+		{
+			return nullptr;
+		}
+
+		size_t size()
+		{
+			return 0;
+		}
 	};
 
 	struct WithoutBegin
 	{
-		int* end() { return nullptr; }
-		size_t size() { return 0; }
+		int* end()
+		{
+			return nullptr;
+		}
+
+		size_t size()
+		{
+			return 0;
+		}
 	};
 
 	struct WithoutSize
 	{
-		int* begin() { return nullptr; }
-		int* end() { return nullptr; }
+		int* begin()
+		{
+			return nullptr;
+		}
+
+		int* end()
+		{
+			return nullptr;
+		}
 	};
 
 	struct MyContainer
 	{
-		int* begin(){ return nullptr; }
-		int* end(){ return nullptr; }
-		size_t size(){ return 0; }
+		int* begin()
+		{
+			return nullptr;
+		}
+
+		int* end()
+		{
+			return nullptr;
+		}
+
+		size_t size()
+		{
+			return 0;
+		}
 	};
 
 	int a;
