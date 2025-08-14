@@ -7,9 +7,10 @@
 
 using namespace janecekvit::thread;
 
+#if defined(HAS_JTHREAD)
+
 namespace framework_tests
 {
-
 constexpr const size_t thread_size = 4;
 
 class test_sync_thread_pool : public ::testing::Test
@@ -149,3 +150,5 @@ TEST_F(test_sync_thread_pool, AddMutipleTasks)
 	ASSERT_EQ(counter, task_count);
 }
 } // namespace framework_tests
+
+#endif // defined(HAS_JTHREAD)
