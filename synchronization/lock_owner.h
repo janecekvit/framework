@@ -34,6 +34,11 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 #include <unordered_set>
 #include <vector>
 
+#if defined(__cpp_lib_jthread) && __cpp_lib_jthread >= 201911L && defined(__has_include) && __has_include(<stop_token>)
+#include <stop_token>
+#define CONCURRENT_HAS_STOP_TOKEN
+#endif
+
 /// Namespace owns set of thread-safe concurrent containers and methods that implemented over basic stl containers
 ///  and thread-safe methods for every possible concurrent object
 namespace janecekvit::synchronization
@@ -148,12 +153,14 @@ public:
 		return cv.wait_for(_unique_lock, rel_time, std::move(pred));
 	}
 
+#if defined(CONCURRENT_HAS_STOP_TOKEN)
 	template <constraints::condition_variable_type _Condition, class _TRep, class _TPeriod, class _Predicate>
 	[[nodiscard]] decltype(auto) wait_for(_Condition& cv, std::stop_token stoken, const std::chrono::duration<_TRep, _TPeriod>& rel_time, _Predicate&& pred) const
 	{
 		_check_ownership();
 		return cv.wait_for(_unique_lock, std::move(stoken), rel_time, std::move(pred));
 	}
+#endif // defined(CONCURRENT_HAS_STOP_TOKEN)
 
 	constexpr bool owns_lock() const noexcept
 	{
@@ -309,12 +316,14 @@ public:
 		return cv.wait_for(_shared_lock, rel_time, std::move(pred));
 	}
 
+#if defined(CONCURRENT_HAS_STOP_TOKEN)
 	template <constraints::condition_variable_type _Condition, class _TRep, class _TPeriod, class _Predicate>
 	[[nodiscard]] decltype(auto) wait_for(_Condition& cv, std::stop_token stoken, const std::chrono::duration<_TRep, _TPeriod>& rel_time, _Predicate&& pred) const
 	{
 		_check_ownership();
 		return cv.wait_for(_shared_lock, std::move(stoken), rel_time, std::move(pred));
 	}
+#endif // defined(CONCURRENT_HAS_STOP_TOKEN)
 
 	constexpr bool owns_lock() const noexcept
 	{

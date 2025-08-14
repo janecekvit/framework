@@ -34,16 +34,16 @@ Purpose: header file of static thread pool class
 #include <functional>
 #include <future>
 #include <list>
+#include <mutex>
 #include <queue>
 #include <ranges>
 #include <thread>
-#include <mutex>
-#include <ranges>
 
 namespace janecekvit::thread
 {
 
-#ifdef __cpp_lib_jthread
+#if defined(__cpp_lib_jthread) && __cpp_lib_jthread >= 201911L && defined(__has_include) && __has_include(<stop_token>)
+#include <stop_token>
 
 /// <summary>
 /// Fixed sized thread pool that executes the task from the queue.
