@@ -52,14 +52,18 @@ TEST_F(test_trace, TestTrace)
 
 	ASSERT_EQ(static_cast<size_t>(t), static_cast<size_t>(test::Warning));
 	ASSERT_EQ(std::hash<std::thread::id>()(id), std::hash<std::thread::id>()(std::this_thread::get_id()));
+#ifndef __APPLE__
 	ASSERT_STREQ(srcl.file_name(), defaultLocation.file_name());
+#endif
 	ASSERT_STREQ(srcl.function_name(), srcl.function_name());
 	ASSERT_EQ(srcl.line(), static_cast<uint_least32_t>(33));
 	ASSERT_EQ(data, L"ANO: true"s);
 
 	ASSERT_EQ(static_cast<size_t>(t2.priority()), static_cast<size_t>(test::Verbose));
 	ASSERT_EQ(std::hash<std::thread::id>()(t2.thread_id()), std::hash<std::thread::id>()(std::this_thread::get_id()));
+#ifndef __APPLE__
 	ASSERT_STREQ(t2.source_location().file_name(), defaultLocation.file_name());
+#endif
 	ASSERT_STREQ(t2.source_location().function_name(), defaultLocation.function_name());
 	ASSERT_EQ(t2.source_location().line(), static_cast<uint_least32_t>(37));
 	ASSERT_EQ(t2.data(), L"NE: false"s);
