@@ -186,18 +186,18 @@ TEST_F(test_resource_wrapper, TestMoveRessignmentWithCopyDestruction)
 				uDeleterCalled++;
 			});
 
-		int* i = oWrappedInt1;
-		ASSERT_EQ(*i, 5);
+		int* result = oWrappedInt1;
+		ASSERT_EQ(*result, 5);
 		ASSERT_EQ(*oWrappedInt1, 5);
 		ASSERT_EQ(uDeleterCalled, 0);
 
 		// Move re-assignment
-		oWrappedInt1 = std::move(storage::resource_wrapper<int*>(new int(10), [&uDeleterCalled](int*& i)
+		oWrappedInt1 = storage::resource_wrapper<int*>(new int(10), [&uDeleterCalled](int*& i)
 			{
 				delete i;
 				i = nullptr;
 				uDeleterCalled++;
-			}));
+			});
 
 		ASSERT_EQ(*oWrappedInt1, 10);
 		ASSERT_EQ(uDeleterCalled, 1);

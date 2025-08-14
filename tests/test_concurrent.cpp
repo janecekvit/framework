@@ -14,21 +14,6 @@ using namespace janecekvit::synchronization;
 
 namespace framework_tests
 {
-template <template <class...> class TContainer, class TItem, std::enable_if_t<constraints::is_container_v<TContainer<TItem>>, int> = 0>
-void ContainerTest(const TContainer<TItem>& oContainer)
-{
-	int i = 0;
-	for (auto&& oItem : oContainer)
-		i++;
-
-	i *= 2;
-}
-
-template <template <class...> class TContainer, class TItem, std::enable_if_t<constraints::is_concurrent_container_v<TContainer<TItem>>, int> = 0>
-void ContainerTest(const TContainer<TItem>& oContainer)
-{
-	ContainerTest(oContainer.concurrent().get());
-}
 
 constexpr size_t IterationCount = 500000;
 
@@ -119,7 +104,7 @@ TEST_F(test_concurrent, TestExclusiveAccessMultipleThreads)
 	auto&& container = _prepare_testing_data_perf_test();
 
 	ASSERT_EQ((int) container.exclusive(), 1);
-	auto thread1 = std::jthread([&]()
+	auto thread1 = std::thread([&]()
 		{
 			for (size_t i = 0; i < IterationCount; i++)
 			{
@@ -128,7 +113,7 @@ TEST_F(test_concurrent, TestExclusiveAccessMultipleThreads)
 			}
 		});
 
-	auto thread2 = std::jthread([&]()
+	auto thread2 = std::thread([&]()
 		{
 			for (size_t i = 0; i < IterationCount; i++)
 			{
@@ -184,12 +169,12 @@ TEST_F(test_concurrent, TestConcurrentAccessScope)
 			},
 			std::out_of_range);
 
-		const int number = extensions::execute_on_container(container.concurrent().get(), 10, [&](const int& number)
+		const int result = extensions::execute_on_container(container.concurrent().get(), 10, [&](const int& number)
 			{
 				return number;
 			});
 
-		ASSERT_EQ(number, 10);
+		ASSERT_EQ(result, 10);
 
 	} // concurrent access ends, release all scopes
 
@@ -204,7 +189,7 @@ TEST_F(test_concurrent, TestConcurrentAccessMultipleThreads)
 {
 	auto&& container = _prepare_testing_data_perf_test();
 	ASSERT_EQ((int) container.concurrent(), 1);
-	auto thread1 = std::jthread([&]()
+	auto thread1 = std::thread([&]()
 		{
 			for (size_t i = 0; i < IterationCount; i++)
 			{
@@ -213,7 +198,7 @@ TEST_F(test_concurrent, TestConcurrentAccessMultipleThreads)
 			}
 		});
 
-	auto thread2 = std::jthread([&]()
+	auto thread2 = std::thread([&]()
 		{
 			for (size_t i = 0; i < IterationCount; i++)
 			{
@@ -299,7 +284,7 @@ TEST_F(test_concurrent, TestExclusiveAccessSynchroAsync)
 
 	// Wait for first thread to complete
 	future.wait();
-	
+
 	int i = 6;
 	for (auto&& item : container.exclusive())
 	{

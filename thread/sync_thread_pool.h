@@ -30,20 +30,21 @@ Purpose: header file of static thread pool class
 
 #pragma once
 
+#include "compatibility/compiler_support.h"
+
 #include <condition_variable>
 #include <functional>
 #include <future>
 #include <list>
+#include <mutex>
 #include <queue>
 #include <ranges>
 #include <thread>
-#include <mutex>
-#include <ranges>
 
 namespace janecekvit::thread
 {
 
-#ifdef __cpp_lib_jthread
+#if defined(HAS_JTHREAD)
 
 /// <summary>
 /// Fixed sized thread pool that executes the task from the queue.

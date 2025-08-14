@@ -14,6 +14,7 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 */
 
 #pragma once
+#include "compatibility/compiler_support.h"
 #include "extensions/constraints.h"
 #include "synchronization/signal.h"
 
@@ -30,6 +31,7 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 #include <source_location>
 #include <stack>
 #include <system_error>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -148,12 +150,14 @@ public:
 		return cv.wait_for(_unique_lock, rel_time, std::move(pred));
 	}
 
+#if defined(HAS_JTHREAD)
 	template <constraints::condition_variable_type _Condition, class _TRep, class _TPeriod, class _Predicate>
 	[[nodiscard]] decltype(auto) wait_for(_Condition& cv, std::stop_token stoken, const std::chrono::duration<_TRep, _TPeriod>& rel_time, _Predicate&& pred) const
 	{
 		_check_ownership();
 		return cv.wait_for(_unique_lock, std::move(stoken), rel_time, std::move(pred));
 	}
+#endif // HAS_JTHREAD
 
 	constexpr bool owns_lock() const noexcept
 	{
@@ -309,12 +313,14 @@ public:
 		return cv.wait_for(_shared_lock, rel_time, std::move(pred));
 	}
 
+#if defined(HAS_JTHREAD)
 	template <constraints::condition_variable_type _Condition, class _TRep, class _TPeriod, class _Predicate>
 	[[nodiscard]] decltype(auto) wait_for(_Condition& cv, std::stop_token stoken, const std::chrono::duration<_TRep, _TPeriod>& rel_time, _Predicate&& pred) const
 	{
 		_check_ownership();
 		return cv.wait_for(_shared_lock, std::move(stoken), rel_time, std::move(pred));
 	}
+#endif // HAS_JTHREAD
 
 	constexpr bool owns_lock() const noexcept
 	{
@@ -370,12 +376,12 @@ public:
 public:
 	virtual ~owner_lock_details() = default;
 
-	[[nodiscard]] constexpr exclusive_lock_details get_exclusive_lock_details() const noexcept
+	[[nodiscard]] exclusive_lock_details get_exclusive_lock_details() const noexcept
 	{
 		return _exclusive_lock_details;
 	}
 
-	[[nodiscard]] constexpr concurrent_lock_details get_concurrent_lock_details() const noexcept
+	[[nodiscard]] concurrent_lock_details get_concurrent_lock_details() const noexcept
 		requires(constraints::is_shared_mutex_type<_MutexType>)
 	{
 		return _concurrent_lock_details;

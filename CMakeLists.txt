@@ -41,7 +41,6 @@ endif()
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         add_compile_options(-g -O0)
-        # Force debug symbols for all targets
         set(CMAKE_CXX_FLAGS_DEBUG "-g -O0" CACHE STRING "" FORCE)
         message(STATUS "Debug build (Linux): enabled debug symbols and disabled optimizations")
     elseif(WIN32 AND MSVC)
@@ -51,38 +50,58 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     endif()
 endif()
 
-# Platform-specific settings
+# Platform-specific settings (basic compiler setup only)
 if(WIN32)
     add_compile_definitions(_WIN32_WINNT=0x0601)
-    add_compile_options(/utf-8 /permissive- /Zc:__cplusplus)
-    
-    # Enable parallel build
-    add_compile_options(/MP)
-    
-    # Set warning level
-    # add_compile_options(/W4 /WX) //TODO /WX
-	add_compile_options(/W4)
+    add_compile_options(/utf-8 /permissive- /Zc:__cplusplus /MP)
 elseif(UNIX)
-    # GCC/Clang options
-    add_compile_options(-Wall -Wextra -Wpedantic -Werror)
-    
-    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-        add_compile_options(-Wno-missing-field-initializers)
-      
-        if(ENABLE_COVERAGE)
-            add_compile_options(--coverage)
-            add_link_options(--coverage)
-        endif()
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        add_compile_options(-Wno-gnu-zero-variadic-macro-arguments)
-    endif()
-    
-    # Enable sanitizers
+    # Enable sanitizers globally if requested
     if(ENABLE_SANITIZERS)
         add_compile_options(-fsanitize=address,undefined)
         add_link_options(-fsanitize=address,undefined)
+        message(STATUS "Sanitizers enabled")
+    endif()
+    
+    # Enable coverage for GCC
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND ENABLE_COVERAGE)
+        add_compile_options(--coverage)
+        add_link_options(--coverage)
+        message(STATUS "Coverage enabled for GCC")
     endif()
 endif()
+
+# Define strict warnings for our code
+function(add_strict_warnings TARGET_NAME)
+    target_compile_options(${TARGET_NAME} PRIVATE
+        # MSVC warnings
+        $<$<CXX_COMPILER_ID:MSVC>:
+            /W4 /WX                                   # High warning level + warnings as errors
+            /we4189 /we4100 /we4101                   # Unused variables/parameters
+            /we4701 /we4703                           # Uninitialized variables
+            /we4456 /we4457 /we4458                   # Variable shadowing
+        >
+        
+        # GCC warnings
+        $<$<CXX_COMPILER_ID:GNU>:
+            -Wall -Wextra -Wpedantic -Werror         # Base warnings + errors
+            -Wunused-variable -Wunused-parameter     # Unused variables/parameters
+            -Wunused-but-set-variable                # GCC specific: set but not used
+            -Wuninitialized                          # Uninitialized variables
+            -Wshadow                                 # Variable shadowing
+            -Wno-missing-field-initializers          # Disable problematic warning
+        >
+        
+        # Clang warnings
+        $<$<CXX_COMPILER_ID:Clang>:
+            -Wall -Wextra -Wpedantic -Werror         # Base warnings + errors
+            -Wunused-lambda-capture                  # Unused lambda captures
+            -Wunused-const-variable                  # Unused const variables
+            -Wuninitialized                          # Uninitialized variables
+            -Wshadow                                 # Variable shadowing
+            -Wno-gnu-zero-variadic-macro-arguments   # Disable GNU extension warning
+        >
+    )
+endfunction()
 
 # Find packages
 find_package(Threads REQUIRED)
@@ -102,12 +121,14 @@ set(FRAMEWORK_HEADERS
     extensions/finally.h
     extensions/property.h
     extensions/lazy.h
+    extensions/not_null_ptr.h
     storage/heterogeneous_container.h
     storage/parameter_pack.h
     storage/resource_wrapper.h
     synchronization/signal.h
     synchronization/atomic_concurrent.h
     synchronization/concurrent.h
+    synchronization/lock_owner.h
     synchronization/wait_for_multiple_signals.h
     thread/async.h
     thread/sync_thread_pool.h
@@ -123,36 +144,34 @@ target_sources(framework INTERFACE
     BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
     FILES ${FRAMEWORK_HEADERS}
 )
+
 target_include_directories(framework 
     INTERFACE 
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<INSTALL_INTERFACE:include>
 )
+
 target_link_libraries(framework INTERFACE Threads::Threads)
 
-## Source files
+# Windows specific libraries
+if(WIN32)
+    target_link_libraries(framework INTERFACE 
+        bcrypt Iphlpapi Crypt32 Secur32 Cryptnet
+    )
+endif()
+
+## Source files for static analysis
 file(GLOB_RECURSE SOURCE_FILES 
-	${CMAKE_SOURCE_DIR}/*.cpp
-	${CMAKE_SOURCE_DIR}/*.h
-	${CMAKE_SOURCE_DIR}/*.hpp
-	${CMAKE_SOURCE_DIR}/*.inl
+    ${CMAKE_SOURCE_DIR}/*.cpp
+    ${CMAKE_SOURCE_DIR}/*.h
+    ${CMAKE_SOURCE_DIR}/*.hpp
+    ${CMAKE_SOURCE_DIR}/*.inl
 )
 
 # Exclude build directory and external dependencies
 list(FILTER SOURCE_FILES EXCLUDE REGEX "${CMAKE_BINARY_DIR}/.*")
 list(FILTER SOURCE_FILES EXCLUDE REGEX "build/.*")
 list(FILTER SOURCE_FILES EXCLUDE REGEX "_deps/.*")
-
-# Windows specific libraries
-if(WIN32)
-    target_link_libraries(framework INTERFACE 
-        bcrypt 
-        Iphlpapi 
-        Crypt32 
-        Secur32 
-        Cryptnet
-    )
-endif()
 
 # Testing
 if(BUILD_TESTING)
@@ -163,7 +182,7 @@ if(BUILD_TESTING)
     # Variables MUST be set BEFORE FetchContent_Declare
     cmake_policy(SET CMP0077 NEW)
     
-    # Nuclear option - disable everything gmock related
+    # Disable everything gmock related
     set(BUILD_GMOCK OFF)
     set(gmock_build_tests OFF)  
     set(gtest_build_tests OFF)
@@ -204,18 +223,25 @@ if(BUILD_TESTING)
         tests/test_resource_wrapper.cpp
         tests/test_trace.cpp
         tests/test_wait_for_multiple_signals.cpp
+        tests/test_not_null_ptr.cpp
+        tests/test_lock_owner.cpp
     )
     
     add_executable(framework_tests ${TEST_SOURCES})
+    
+    # Apply strict warnings only to our test code
+    add_strict_warnings(framework_tests)
+    
     target_link_libraries(framework_tests 
         PRIVATE 
             framework 
-             gtest
-			 gtest_main
+            gtest
+            gtest_main
     )
+    
     target_include_directories(framework_tests PRIVATE tests)
     
-    # Ensure debug symbols for tests
+    # Debug symbols for tests
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
             target_compile_options(framework_tests PRIVATE -g -O0)
@@ -228,6 +254,8 @@ if(BUILD_TESTING)
     # Add tests to CTest
     include(GoogleTest)
     gtest_discover_tests(framework_tests)
+    
+    message(STATUS "✅ Testing enabled with strict warnings")
 endif()
 
 # CppCheck
@@ -242,6 +270,7 @@ if(ENABLE_CPPCHECK)
             "--inline-suppr"
             "--suppress=missingInclude"
         )
+        message(STATUS "✅ CppCheck enabled")
     endif()
 endif()
 
@@ -249,7 +278,7 @@ endif()
 #     CUSTOM TARGETS
 # ======================
 
-# Clear target that works from any directory
+# Clear target
 add_custom_target(CLEAN_BUILD
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target clean
     COMMENT "Cleaning build artifacts..."
@@ -258,7 +287,6 @@ add_custom_target(CLEAN_BUILD
 
 # Framework target
 if(BUILD_TESTING)
-    # When testing enabled: build framework + tests
     add_custom_target(BUILD_FRAMEWORK
         DEPENDS framework framework_tests
         COMMENT "Building framework and tests"
@@ -266,7 +294,6 @@ if(BUILD_TESTING)
     )
     message(STATUS "✅ BUILD_FRAMEWORK target: builds framework + tests")
 else()
-    # When testing disabled: build framework only
     add_custom_target(BUILD_FRAMEWORK
         DEPENDS framework
         COMMENT "Building framework only"
@@ -280,13 +307,6 @@ if(ENABLE_CLANG_TIDY)
     find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
     if(CLANG_TIDY_EXE)
         message(STATUS "Found clang-tidy: ${CLANG_TIDY_EXE}")
-        
-        # Define clang-tidy command with config
-        set(CLANG_TIDY_COMMAND 
-            "${CLANG_TIDY_EXE}"
-            "--config-file=${CMAKE_SOURCE_DIR}/.clang-tidy"
-            "--header-filter=.*"
-        )
         
         # Manual clang-tidy check target
         add_custom_target(STATIC_ANALYSIS_CHECK
@@ -320,12 +340,13 @@ if(ENABLE_CLANG_TIDY)
             VERBATIM
         )
         
+        message(STATUS "✅ Static analysis targets enabled")
     else()
         message(WARNING "clang-tidy not found. Install it to use static analysis targets.")
     endif()
 endif()
 
-# Clang-Format #integration
+# Clang-Format integration
 if(ENABLE_CLANG_FORMAT)
     find_program(CLANG_FORMAT_EXE NAMES "clang-format")
     if(CLANG_FORMAT_EXE)
@@ -338,8 +359,8 @@ if(ENABLE_CLANG_FORMAT)
             COMMENT "Formatting code with clang-format"
             VERBATIM
         )
-		
-		# Show diff in console
+        
+        # Show diff in console
         add_custom_target(FORMAT_CHECK
             COMMAND ${CMAKE_COMMAND} 
                 -D CLANG_FORMAT_EXE=${CLANG_FORMAT_EXE}
@@ -351,6 +372,7 @@ if(ENABLE_CLANG_FORMAT)
             VERBATIM
         )
         
+        message(STATUS "✅ Code formatting targets enabled")
     else()
         message(WARNING "clang-format not found. Install it to use formatting targets.")
     endif()

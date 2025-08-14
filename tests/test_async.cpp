@@ -7,8 +7,6 @@
 
 using namespace janecekvit::thread;
 
-constexpr const size_t thread_size = 4;
-
 namespace framework_tests
 {
 

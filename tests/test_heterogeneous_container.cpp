@@ -100,12 +100,12 @@ public:
 
 	storage::heterogeneous_container<> InitializeHeterogeneousContainer()
 	{
-		std::function<void(int&)> fnCallbackInt = [this](int& i)
+		std::function<void(int&)> fnCallbackInt = [](int& i)
 		{
 			i += 10;
 		};
 
-		std::function<void(int&)> fnCallbackInt2 = [this](int& i)
+		std::function<void(int&)> fnCallbackInt2 = [](int& i)
 		{
 			i += 20;
 		};
@@ -385,7 +385,7 @@ TEST_F(test_heterogeneous_container, TestContainerInClass)
 	public:
 		TestHeterogeneousContainer()
 		{
-			std::function<void(int&)> fnCallbackInt = [this](int& i)
+			std::function<void(int&)> fnCallbackInt = [](int& i)
 			{
 				i += 10;
 			};

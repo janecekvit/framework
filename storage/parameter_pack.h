@@ -128,7 +128,7 @@ private:
 		{
 		}
 
-		constexpr const _T& get() const
+		const _T& get() const
 		{
 			return m_oValue;
 		}

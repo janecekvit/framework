@@ -34,6 +34,9 @@ namespace janecekvit::storage
 /// </code>
 /// </example>
 #ifdef __cpp_lib_concepts
+template <typename _Type>
+concept is_default_exception_callback = std::is_same_v<_Type, constraints::default_exception_callback>;
+
 template <class _Resource, class _ResourceDeleter = std::function<void(_Resource&)>, class _ExceptionCallback = constraints::default_exception_callback>
 #else
 template <class _Resource>
@@ -86,19 +89,19 @@ public:
 	constexpr resource_wrapper() = delete;
 
 	constexpr resource_wrapper(_ResourceDeleter&& deleter)
-		: _resource(_create_resource(_Resource{}, _ResourceDeleter(deleter), _ExceptionCallback(_exception_callback)))
+		: _resource(_create_resource(_Resource{}, _ResourceDeleter(deleter), _ExceptionCallback{}))
 		, _deleter(std::forward<_ResourceDeleter>(deleter))
 	{
 	}
 
 	constexpr resource_wrapper(_Resource&& resource, _ResourceDeleter&& deleter)
-		: _resource(_create_resource(std::forward<_Resource>(resource), _ResourceDeleter(deleter), _ExceptionCallback(_exception_callback)))
+		: _resource(_create_resource(std::forward<_Resource>(resource), _ResourceDeleter(deleter), _ExceptionCallback{}))
 		, _deleter(std::forward<_ResourceDeleter>(deleter))
 	{
 	}
 
 	constexpr resource_wrapper(const _Resource& resource, _ResourceDeleter&& deleter)
-		: _resource(_create_resource(resource, _ResourceDeleter(deleter), _ExceptionCallback(_exception_callback)))
+		: _resource(_create_resource(resource, _ResourceDeleter(deleter), _ExceptionCallback{}))
 		, _deleter(std::forward<_ResourceDeleter>(deleter))
 	{
 	}
@@ -283,36 +286,56 @@ public:
 protected:
 #ifdef __cpp_lib_concepts
 	[[nodiscard]] constexpr std::shared_ptr<_Resource> _create_resource(_Resource&& resource, _ResourceDeleter&& deleter, _ExceptionCallback&& exceptionCallback)
+		requires(!is_default_exception_callback<_ExceptionCallback>)
 	{
-		return std::shared_ptr<_Resource>(new _Resource(std::forward<_Resource>(resource)), [stored_deleter = std::move(deleter), stored_callback = std::move(exceptionCallback)](_Resource* resource)
+		return std::shared_ptr<_Resource>(new _Resource(std::forward<_Resource>(resource)), [stored_deleter = std::move(deleter), stored_callback = std::move(exceptionCallback)](_Resource* ptr)
 			{
 				// call inner resource deleter
 				try
 				{
 					if (stored_deleter)
-						stored_deleter(*resource);
+						stored_deleter(*ptr);
 				}
 				catch (const std::exception& ex)
 				{
-					if constexpr (!std::is_same_v<_ExceptionCallback, constraints::default_exception_callback>)
-						stored_callback(ex);
+					stored_callback(ex);
 				}
 
-				delete resource;
-				resource = nullptr;
+				delete ptr;
+				ptr = nullptr;
+			});
+	}
+
+	[[nodiscard]] constexpr std::shared_ptr<_Resource> _create_resource(_Resource&& resource, _ResourceDeleter&& deleter, _ExceptionCallback&&)
+		requires(is_default_exception_callback<_ExceptionCallback>)
+	{
+		return std::shared_ptr<_Resource>(new _Resource(std::forward<_Resource>(resource)), [stored_deleter = std::move(deleter)](_Resource* ptr)
+			{
+				// call inner resource deleter
+				try
+				{
+					if (stored_deleter)
+						stored_deleter(*ptr);
+				}
+				catch (const std::exception&)
+				{
+				}
+
+				delete ptr;
+				ptr = nullptr;
 			});
 	}
 #else
 	[[nodiscard]] constexpr std::shared_ptr<_Resource> _create_resource(_Resource&& resource, _ResourceDeleter&& deleter)
 	{
-		return std::shared_ptr<_Resource>(new _Resource(std::forward<_Resource>(resource)), [stored_deleter = std::move(deleter)](_Resource* resource)
+		return std::shared_ptr<_Resource>(new _Resource(std::forward<_Resource>(resource)), [stored_deleter = std::move(deleter)](_Resource* ptr)
 			{
 				// call inner resource deleter
 				if (stored_deleter)
-					stored_deleter(*resource);
+					stored_deleter(*ptr);
 
-				delete resource;
-				resource = nullptr;
+				delete ptr;
+				ptr = nullptr;
 			});
 	}
 #endif
