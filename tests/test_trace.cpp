@@ -54,7 +54,7 @@ TEST_F(test_trace, TestTrace)
 	ASSERT_EQ(std::hash<std::thread::id>()(id), std::hash<std::thread::id>()(std::this_thread::get_id()));
 #ifndef __APPLE__
 	ASSERT_STREQ(srcl.file_name(), defaultLocation.file_name());
-	ASSERT_STREQ(srcl.function_name(), srcl.function_name());
+	ASSERT_STREQ(srcl.function_name(), defaultLocation.function_name());
 	ASSERT_EQ(srcl.line(), static_cast<uint_least32_t>(33));
 #endif
 	ASSERT_EQ(data, L"ANO: true"s);
