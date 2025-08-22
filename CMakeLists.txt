@@ -114,26 +114,27 @@ endif()
 
 # Framework library
 set(FRAMEWORK_HEADERS
-    exception/exception.h
-    extensions/cloneable.h
-    extensions/constraints.h
-    extensions/extensions.h
-    extensions/finally.h
-    extensions/property.h
-    extensions/lazy.h
-    extensions/not_null_ptr.h
-    storage/heterogeneous_container.h
-    storage/parameter_pack.h
-    storage/resource_wrapper.h
-    synchronization/signal.h
-    synchronization/atomic_concurrent.h
-    synchronization/concurrent.h
-    synchronization/lock_owner.h
-    synchronization/wait_for_multiple_signals.h
-    thread/async.h
-    thread/sync_thread_pool.h
-    tracing/trace.h
-    utility/conversions.h
+    include/compatibility/compiler_support.h
+    include/exception/exception.h
+    include/extensions/cloneable.h
+    include/extensions/constraints.h
+    include/extensions/extensions.h
+    include/extensions/finally.h
+    include/extensions/property.h
+    include/extensions/lazy.h
+    include/extensions/not_null_ptr.h
+    include/storage/heterogeneous_container.h
+    include/storage/parameter_pack.h
+    include/storage/resource_wrapper.h
+    include/synchronization/signal.h
+    include/synchronization/atomic_concurrent.h
+    include/synchronization/concurrent.h
+    include/synchronization/lock_owner.h
+    include/synchronization/wait_for_multiple_signals.h
+    include/thread/async.h
+    include/thread/sync_thread_pool.h
+    include/tracing/trace.h
+    include/utility/conversions.h
 )
 
 add_library(framework INTERFACE)
@@ -152,6 +153,16 @@ target_include_directories(framework
 )
 
 target_link_libraries(framework INTERFACE Threads::Threads)
+
+# Create a custom target to show headers in IDEs
+add_custom_target(framework_headers SOURCES ${FRAMEWORK_HEADERS})
+
+# Organize headers in IDE project explorers (Visual Studio, Xcode, CLion, etc.)
+foreach(HEADER ${FRAMEWORK_HEADERS})
+    get_filename_component(HEADER_DIR ${HEADER} DIRECTORY)
+    string(REPLACE "/" "\\" GROUP_NAME ${HEADER_DIR})
+    source_group("${GROUP_NAME}" FILES ${HEADER})
+endforeach()
 
 # Windows specific libraries
 if(WIN32)
@@ -239,7 +250,12 @@ if(BUILD_TESTING)
             gtest_main
     )
     
-    target_include_directories(framework_tests PRIVATE tests)
+    target_include_directories(framework_tests PRIVATE tests include)
+    
+    # Organize test files in IDE project explorers
+    foreach(TEST_FILE ${TEST_SOURCES})
+        source_group("Tests" FILES ${TEST_FILE})
+    endforeach()
     
     # Debug symbols for tests
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -316,7 +332,7 @@ if(ENABLE_CLANG_TIDY)
                 ${SOURCE_FILES}
                 --
                 -std=c++${CMAKE_CXX_STANDARD}
-                -I${CMAKE_SOURCE_DIR}
+                -I${CMAKE_SOURCE_DIR}/include
                 $<$<PLATFORM_ID:Windows>:-D_WIN32_WINNT=0x0601>
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
             COMMENT "Running clang-tidy analysis"
@@ -333,7 +349,7 @@ if(ENABLE_CLANG_TIDY)
                 ${SOURCE_FILES}
                 --
                 -std=c++${CMAKE_CXX_STANDARD}
-                -I${CMAKE_SOURCE_DIR}
+                -I${CMAKE_SOURCE_DIR}/include
                 $<$<PLATFORM_ID:Windows>:-D_WIN32_WINNT=0x0601>
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
             COMMENT "Running clang-tidy with automatic fixes (USE WITH CAUTION!)"
