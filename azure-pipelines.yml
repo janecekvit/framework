@@ -114,6 +114,8 @@ stages:
           buildPlatform: 'x64'
           cmakeGenerator: 'Unix Makefiles'
           buildDir: '$(Build.SourcesDirectory)/build'
+          CC: 'clang'
+          CXX: 'clang++'
           
         # macOS Clang - C++20
         macOS_Clang_20:
@@ -123,6 +125,8 @@ stages:
           buildPlatform: 'x64'
           cmakeGenerator: 'Unix Makefiles'
           buildDir: '$(Build.SourcesDirectory)/build'
+          CC: 'clang'
+          CXX: 'clang++'
           
         # macOS Clang - C++23
         macOS_Clang_23:
@@ -132,6 +136,8 @@ stages:
           buildPlatform: 'x64'
           cmakeGenerator: 'Unix Makefiles'
           buildDir: '$(Build.SourcesDirectory)/build'
+          CC: 'clang'
+          CXX: 'clang++'
     
     pool:
       vmImage: $(vmImage)
@@ -208,7 +214,7 @@ stages:
         CC: $(CC)
         CXX: $(CXX)
 
-    # Build the framework and tests
+    # Build the framework and tests - Windows
     - script: |
         echo "Building framework and tests..."
         cd $(buildDir)
@@ -220,7 +226,23 @@ stages:
           exit /b %ERRORLEVEL%
         )
         echo "Build completed successfully"
-      displayName: "Build Framework and Tests"
+      displayName: "Build Framework and Tests (Windows)"
+      condition: eq(variables['Agent.OS'], 'Windows_NT')
+      
+    # Build the framework and tests - Unix
+    - bash: |
+        echo "Building framework and tests..."
+        cd $(buildDir)
+        
+        cmake --build . --config $(buildConfiguration) --parallel 4 --target framework_tests
+        
+        if [ $? -ne 0 ]; then
+          echo "Build failed!"
+          exit $?
+        fi
+        echo "Build completed successfully"
+      displayName: "Build Framework and Tests (Unix)"
+      condition: ne(variables['Agent.OS'], 'Windows_NT')
     
     # Run tests - Windows
     - script: |
