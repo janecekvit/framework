@@ -173,13 +173,12 @@ stages:
           cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration)
       displayName: "Cache CMake build directory"
       
-    # Configure CMake
+    # Configure CMake - Windows
     - task: CMake@1
       inputs:
         workingDirectory: '$(buildDir)'
         cmakeArgs: >-
-          -G "$(cmakeGenerator)"
-          ${{ if eq(variables['Agent.OS'], 'Windows_NT') }}-A x64${{ endif }}
+          -G "$(cmakeGenerator)" -A x64
           -DCMAKE_BUILD_TYPE=$(buildConfiguration)
           -DCMAKE_CXX_STANDARD=$(cxxStandard)              
           -DBUILD_TESTING=ON
@@ -187,7 +186,24 @@ stages:
           -DENABLE_CPPCHECK=OFF
           -DENABLE_CLANG_FORMAT=ON
           $(Build.SourcesDirectory)
-      displayName: "Configure with CMake"
+      displayName: "Configure with CMake (Windows)"
+      condition: eq(variables['Agent.OS'], 'Windows_NT')
+      
+    # Configure CMake - Unix
+    - task: CMake@1
+      inputs:
+        workingDirectory: '$(buildDir)'
+        cmakeArgs: >-
+          -G "$(cmakeGenerator)"
+          -DCMAKE_BUILD_TYPE=$(buildConfiguration)
+          -DCMAKE_CXX_STANDARD=$(cxxStandard)              
+          -DBUILD_TESTING=ON
+          -DENABLE_CLANG_TIDY=ON
+          -DENABLE_CPPCHECK=OFF
+          -DENABLE_CLANG_FORMAT=ON
+          $(Build.SourcesDirectory)
+      displayName: "Configure with CMake (Unix)"
+      condition: ne(variables['Agent.OS'], 'Windows_NT')
       env:
         CC: $(CC)
         CXX: $(CXX)
