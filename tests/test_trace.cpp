@@ -18,8 +18,6 @@ protected:
 	{
 	}
 };
-#ifdef __cpp_lib_concepts
-
 enum class test
 {
 	Warning,
@@ -55,7 +53,7 @@ TEST_F(test_trace, TestTrace)
 #ifndef __APPLE__
 	ASSERT_STREQ(srcl.file_name(), defaultLocation.file_name());
 	ASSERT_STREQ(srcl.function_name(), defaultLocation.function_name());
-	ASSERT_EQ(srcl.line(), static_cast<uint_least32_t>(33));
+	ASSERT_EQ(srcl.line(), static_cast<uint_least32_t>(31));
 #endif
 	ASSERT_EQ(data, L"ANO: true"s);
 
@@ -65,14 +63,9 @@ TEST_F(test_trace, TestTrace)
 	ASSERT_STREQ(t2.source_location().file_name(), defaultLocation.file_name());
 
 	ASSERT_STREQ(t2.source_location().function_name(), defaultLocation.function_name());
-	ASSERT_EQ(t2.source_location().line(), static_cast<uint_least32_t>(37));
+	ASSERT_EQ(t2.source_location().line(), static_cast<uint_least32_t>(35));
 #endif
 	ASSERT_EQ(t2.data(), L"NE: false"s);
 }
-#else
-TEST_F(TestTraceNotSupportedConcepts)
-{
-}
-#endif
 
 } // namespace framework_tests

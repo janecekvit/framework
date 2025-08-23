@@ -33,14 +33,10 @@ namespace janecekvit::storage
 ///	bool open = oWrapperFile->is_open();
 /// </code>
 /// </example>
-#ifdef __cpp_lib_concepts
 template <typename _Type>
 concept is_default_exception_callback = std::is_same_v<_Type, constraints::default_exception_callback>;
 
 template <class _Resource, class _ResourceDeleter = std::function<void(_Resource&)>, class _ExceptionCallback = constraints::default_exception_callback>
-#else
-template <class _Resource>
-#endif
 class resource_wrapper
 {
 public:
@@ -71,7 +67,6 @@ public:
 	virtual ~resource_wrapper() noexcept
 	{
 		_resource.reset();
-#ifdef __cpp_lib_concepts
 
 		try
 		{
@@ -82,8 +77,6 @@ public:
 			if constexpr (!std::is_same_v<_ExceptionCallback, constraints::default_exception_callback>)
 				_exception_callback(ex);
 		}
-
-#endif
 	}
 
 	constexpr resource_wrapper() = delete;
@@ -106,7 +99,6 @@ public:
 	{
 	}
 
-#ifdef __cpp_lib_concepts
 	constexpr resource_wrapper(_Resource&& resource, _ResourceDeleter&& deleter, _ExceptionCallback&& fnExceptionCallback)
 		requires(std::is_invocable_v<_ExceptionCallback, const std::exception&>)
 		: _resource(_create_resource(std::forward<_Resource>(resource), _ResourceDeleter(deleter), _ExceptionCallback(fnExceptionCallback)))
@@ -114,23 +106,18 @@ public:
 		, _exception_callback(std::forward<_ExceptionCallback>(fnExceptionCallback))
 	{
 	}
-#endif
 
 	constexpr resource_wrapper(const resource_wrapper& other)
-#ifdef __cpp_lib_concepts
 		requires(std::is_copy_constructible_v<_Resource>)
-#endif
 		: _resource(other._resource)
 		, _deleter(other._deleter)
 		, _exception_callback(other._exception_callback)
 	{
 	}
 
-#ifdef __cpp_lib_concepts
 	constexpr resource_wrapper(const resource_wrapper&)
 		requires(!std::is_copy_constructible_v<_Resource>)
 	= delete;
-#endif
 
 	constexpr resource_wrapper(resource_wrapper&& other) noexcept
 		: _resource(std::move(other._resource))
@@ -139,20 +126,16 @@ public:
 	}
 
 	constexpr resource_wrapper& operator=(const resource_wrapper& other)
-#ifdef __cpp_lib_concepts
 		requires(std::is_copy_constructible_v<_Resource>)
-#endif
 	{
 		_deleter = other._deleter;
 		_resource = other._resource;
 		return *this;
 	}
 
-#ifdef __cpp_lib_concepts
 	constexpr resource_wrapper& operator=(const resource_wrapper&)
 		requires(!std::is_copy_constructible_v<_Resource>)
 	= delete;
-#endif
 
 	constexpr resource_wrapper& operator=(resource_wrapper&& other) noexcept
 	{
@@ -164,33 +147,21 @@ public:
 	constexpr resource_wrapper& operator=(const _Resource& resource)
 	{
 		_check_deleter();
-#ifdef __cpp_lib_concepts
 		_resource = _create_resource(resource, _ResourceDeleter(_deleter), _ExceptionCallback(_exception_callback));
-#else
-		_resource = _create_resource(resource, _ResourceDeleter(_deleter));
-#endif
 		return *this;
 	}
 
 	constexpr resource_wrapper& operator=(_Resource&& resource)
 	{
 		_check_deleter();
-#ifdef __cpp_lib_concepts
 		_resource = _create_resource(std::move(resource), _ResourceDeleter(_deleter), _ExceptionCallback(_exception_callback));
-#else
-		_resource = _create_resource(std::move(resource), _ResourceDeleter(_deleter));
-#endif
 		return *this;
 	}
 
 	constexpr void reset()
 	{
 		_check_deleter();
-#ifdef __cpp_lib_concepts
 		_resource = _create_resource(nullptr, _ResourceDeleter(_deleter), _ExceptionCallback(_exception_callback));
-#else
-		_resource = _create_resource(nullptr, _ResourceDeleter(_deleter));
-#endif
 	}
 
 	constexpr void retrieve(const const_accessor& fnAccess) const
@@ -284,7 +255,6 @@ public:
 	}
 
 protected:
-#ifdef __cpp_lib_concepts
 	[[nodiscard]] constexpr std::shared_ptr<_Resource> _create_resource(_Resource&& resource, _ResourceDeleter&& deleter, _ExceptionCallback&& exceptionCallback)
 		requires(!is_default_exception_callback<_ExceptionCallback>)
 	{
@@ -325,20 +295,6 @@ protected:
 				ptr = nullptr;
 			});
 	}
-#else
-	[[nodiscard]] constexpr std::shared_ptr<_Resource> _create_resource(_Resource&& resource, _ResourceDeleter&& deleter)
-	{
-		return std::shared_ptr<_Resource>(new _Resource(std::forward<_Resource>(resource)), [stored_deleter = std::move(deleter)](_Resource* ptr)
-			{
-				// call inner resource deleter
-				if (stored_deleter)
-					stored_deleter(*ptr);
-
-				delete ptr;
-				ptr = nullptr;
-			});
-	}
-#endif
 
 protected:
 	void _check_deleter() const
@@ -353,7 +309,6 @@ protected:
 	const _ExceptionCallback _exception_callback{};
 };
 
-#ifdef __cpp_lib_concepts
 /// <summary>
 /// User defined deduction guide CTAD for final_action using default exception callback
 /// </summary>
@@ -367,7 +322,5 @@ resource_wrapper(_Resource&&, _ResourceDeleter&&)
 template <class _Resource, std::invocable _ResourceDeleter, std::invocable _ExceptionCallback>
 resource_wrapper(const _Resource&, _ResourceDeleter&&, _ExceptionCallback&&)
 	-> resource_wrapper<_Resource, std::function<void(_Resource&)>, _ExceptionCallback>;
-
-#endif
 
 } // namespace janecekvit::storage

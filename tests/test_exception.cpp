@@ -11,8 +11,6 @@ class test_exception : public ::testing::Test
 {
 };
 
-#ifdef __cpp_lib_concepts
-
 std::string GetStringLocation(const std::source_location& location, const std::thread::id& thread, const std::string& suffix)
 {
 	auto file_name = location.file_name();
@@ -167,9 +165,4 @@ TEST_F(test_exception, TestWideTextException)
 
 	ASSERT_TRUE(caught);
 }
-#else
-TEST_F(test_exception, TestExceptionNotSupportedConcepts)
-{
-}
-#endif
 } // namespace framework_tests

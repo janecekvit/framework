@@ -8,21 +8,37 @@ on:
 
 jobs:
   build:
-    name: ${{ matrix.os }} - ${{ matrix.compiler }}
+    name: ${{ matrix.os }} - ${{ matrix.compiler }} - C++${{ matrix.cxx_standard }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Windows MSVC
+          # Windows MSVC - C++20
+          - os: windows-latest
+            compiler: msvc
+            cmake_generator: "Visual Studio 17 2022"
+            vcpkg_triplet: x64-windows
+            cxx_standard: "20"
+            
+          # Windows MSVC - C++23
           - os: windows-latest
             compiler: msvc
             cmake_generator: "Visual Studio 17 2022"
             vcpkg_triplet: x64-windows
             cxx_standard: "23"
             
-          # Ubuntu GCC
+          # Ubuntu GCC - C++20
+          - os: ubuntu-latest
+            compiler: gcc
+            cmake_generator: "Unix Makefiles"
+            vcpkg_triplet: x64-linux
+            cc: gcc-14
+            cxx: g++-14
+            cxx_standard: "20"
+            
+          # Ubuntu GCC - C++23
           - os: ubuntu-latest
             compiler: gcc
             cmake_generator: "Unix Makefiles"
@@ -31,7 +47,16 @@ jobs:
             cxx: g++-14
             cxx_standard: "23"
             
-          # Ubuntu Clang
+          # Ubuntu Clang - C++20
+          - os: ubuntu-latest
+            compiler: clang
+            cmake_generator: "Unix Makefiles"
+            vcpkg_triplet: x64-linux
+            cc: clang-18
+            cxx: clang++-18
+            cxx_standard: "20"
+            
+          # Ubuntu Clang - C++23
           - os: ubuntu-latest
             compiler: clang
             cmake_generator: "Unix Makefiles"
@@ -40,7 +65,14 @@ jobs:
             cxx: clang++-18
             cxx_standard: "23"
             
-          # macOS Clang
+          # macOS Clang - C++20
+          - os: macos-latest
+            compiler: clang
+            cmake_generator: "Unix Makefiles"
+            vcpkg_triplet: x64-osx
+            cxx_standard: "20"
+            
+          # macOS Clang - C++23
           - os: macos-latest
             compiler: clang
             cmake_generator: "Unix Makefiles"
@@ -134,7 +166,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: test-results-${{ matrix.os }}-${{ matrix.compiler }}
+        name: test-results-${{ matrix.os }}-${{ matrix.compiler }}-cpp${{ matrix.cxx_standard }}
         path: |
           build/Testing/
           build/**/test-results.xml

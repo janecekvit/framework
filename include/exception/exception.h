@@ -10,8 +10,6 @@
 #include <string>
 #include <thread>
 
-#ifdef __cpp_lib_concepts
-
 namespace janecekvit::exception
 {
 class exception : public std::exception
@@ -136,5 +134,3 @@ template <janecekvit::constraints::format_view _Fmt, class... _Args>
 throw_exception(_Fmt&&, _Args&&...) -> throw_exception<exception, _Fmt, _Args...>;
 
 } // namespace janecekvit::exception
-
-#endif

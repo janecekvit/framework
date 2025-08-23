@@ -235,7 +235,6 @@ TEST_F(test_resource_wrapper, TestDeleterException)
 		FAIL();
 	}
 }
-#ifdef __cpp_lib_concepts
 TEST_F(test_resource_wrapper, TestDeleterExceptionCallback)
 {
 	bool callbackCalled = false;
@@ -257,5 +256,4 @@ TEST_F(test_resource_wrapper, TestDeleterExceptionCallback)
 	oWrappedInt.reset();
 	ASSERT_TRUE(callbackCalled);
 }
-#endif
 } // namespace framework_tests

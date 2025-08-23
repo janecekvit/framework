@@ -1,13 +1,8 @@
 trigger:
 - master
 
-pool:
-  vmImage: 'windows-latest'
-
 variables:
-  buildPlatform: 'x64'
   buildConfiguration: 'Release'
-  buildDir: '$(Build.SourcesDirectory)\build'
 
 stages:
 - stage: Build
@@ -15,12 +10,112 @@ stages:
   jobs:
   - job: BuildTest
     displayName: 'Build and Test Framework'
-    timeoutInMinutes: 20
+    timeoutInMinutes: 30
+    strategy:
+      matrix:
+        # Windows MSVC - C++20  
+        Windows_MSVC_20:
+          vmImage: 'windows-latest'
+          compiler: 'msvc'
+          cxxStandard: '20'
+          buildPlatform: 'x64'
+          cmakeGenerator: 'Visual Studio 17 2022'
+          buildDir: '$(Build.SourcesDirectory)\build'
+          
+        # Windows MSVC - C++23
+        Windows_MSVC_23:
+          vmImage: 'windows-latest'
+          compiler: 'msvc'
+          cxxStandard: '23'
+          buildPlatform: 'x64'
+          cmakeGenerator: 'Visual Studio 17 2022'
+          buildDir: '$(Build.SourcesDirectory)\build'
+          
+        # Ubuntu GCC - C++20
+        Ubuntu_GCC_20:
+          vmImage: 'ubuntu-latest'
+          compiler: 'gcc'
+          cxxStandard: '20'
+          buildPlatform: 'x64'
+          cmakeGenerator: 'Unix Makefiles'
+          buildDir: '$(Build.SourcesDirectory)/build'
+          CC: 'gcc-14'
+          CXX: 'g++-14'
+          
+        # Ubuntu GCC - C++23
+        Ubuntu_GCC_23:
+          vmImage: 'ubuntu-latest'
+          compiler: 'gcc'
+          cxxStandard: '23'
+          buildPlatform: 'x64'
+          cmakeGenerator: 'Unix Makefiles'
+          buildDir: '$(Build.SourcesDirectory)/build'
+          CC: 'gcc-14'
+          CXX: 'g++-14'
+          
+        # Ubuntu Clang - C++20
+        Ubuntu_Clang_20:
+          vmImage: 'ubuntu-latest'
+          compiler: 'clang'
+          cxxStandard: '20'
+          buildPlatform: 'x64'
+          cmakeGenerator: 'Unix Makefiles'
+          buildDir: '$(Build.SourcesDirectory)/build'
+          CC: 'clang-18'
+          CXX: 'clang++-18'
+          
+        # Ubuntu Clang - C++23
+        Ubuntu_Clang_23:
+          vmImage: 'ubuntu-latest'
+          compiler: 'clang'
+          cxxStandard: '23'
+          buildPlatform: 'x64'
+          cmakeGenerator: 'Unix Makefiles'
+          buildDir: '$(Build.SourcesDirectory)/build'
+          CC: 'clang-18'
+          CXX: 'clang++-18'
+          
+        # macOS Clang - C++20
+        macOS_Clang_20:
+          vmImage: 'macOS-latest'
+          compiler: 'clang'
+          cxxStandard: '20'
+          buildPlatform: 'x64'
+          cmakeGenerator: 'Unix Makefiles'
+          buildDir: '$(Build.SourcesDirectory)/build'
+          CC: 'clang'
+          CXX: 'clang++'
+          
+        # macOS Clang - C++23
+        macOS_Clang_23:
+          vmImage: 'macOS-latest'
+          compiler: 'clang'
+          cxxStandard: '23'
+          buildPlatform: 'x64'
+          cmakeGenerator: 'Unix Makefiles'
+          buildDir: '$(Build.SourcesDirectory)/build'
+          CC: 'clang'
+          CXX: 'clang++'
+    
+    pool:
+      vmImage: $(vmImage)
     
     steps:
     - checkout: self
       displayName: "Checkout repository"
 
+    # Setup Ubuntu dependencies
+    - bash: |
+        if [[ "$(compiler)" == "gcc" ]]; then
+          sudo apt-get update
+          sudo apt-get install -y gcc-14 g++-14
+        elif [[ "$(compiler)" == "clang" ]]; then
+          sudo apt-get update  
+          sudo apt-get install -y clang-18
+        fi
+      displayName: "Setup Ubuntu Dependencies"
+      condition: eq(variables['Agent.OS'], 'Linux')
+      
     # set date for cache key
     - task: PowerShell@2
       inputs:
@@ -34,29 +129,50 @@ stages:
     # Cache CMake build directory for faster builds
     - task: Cache@2
       inputs:
-        key: 'cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | CMakeLists.txt | tests'
+        key: 'cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | $(compiler) | $(cxxStandard) | CMakeLists.txt | tests'
         path: '$(buildDir)'
         restoreKeys: |
+          cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | $(compiler) | $(cxxStandard)
+          cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | $(compiler)
           cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration)
-          cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform)
       displayName: "Cache CMake build directory"
       
-    # cofigure cmake
+    # Configure CMake - Windows
     - task: CMake@1
       inputs:
         workingDirectory: '$(buildDir)'
         cmakeArgs: >-
-          -G "Visual Studio 17 2022" -A x64
+          -G "$(cmakeGenerator)" -A x64
           -DCMAKE_BUILD_TYPE=$(buildConfiguration)
-          -DCMAKE_CXX_STANDARD=23              
+          -DCMAKE_CXX_STANDARD=$(cxxStandard)              
           -DBUILD_TESTING=ON
           -DENABLE_CLANG_TIDY=ON
           -DENABLE_CPPCHECK=OFF
           -DENABLE_CLANG_FORMAT=ON
           $(Build.SourcesDirectory)
-      displayName: "Configure with CMake"
+      displayName: "Configure with CMake (Windows)"
+      condition: eq(variables['Agent.OS'], 'Windows_NT')
+      
+    # Configure CMake - Unix
+    - task: CMake@1
+      inputs:
+        workingDirectory: '$(buildDir)'
+        cmakeArgs: >-
+          -G "$(cmakeGenerator)"
+          -DCMAKE_BUILD_TYPE=$(buildConfiguration)
+          -DCMAKE_CXX_STANDARD=$(cxxStandard)              
+          -DBUILD_TESTING=ON
+          -DENABLE_CLANG_TIDY=ON
+          -DENABLE_CPPCHECK=OFF
+          -DENABLE_CLANG_FORMAT=ON
+          $(Build.SourcesDirectory)
+      displayName: "Configure with CMake (Unix)"
+      condition: ne(variables['Agent.OS'], 'Windows_NT')
+      env:
+        CC: $(CC)
+        CXX: $(CXX)
 
-    # Build the framework and tests
+    # Build the framework and tests - Windows
     - script: |
         echo "Building framework and tests..."
         cd $(buildDir)
@@ -68,16 +184,46 @@ stages:
           exit /b %ERRORLEVEL%
         )
         echo "Build completed successfully"
-      displayName: "Build Framework and Tests"
+      displayName: "Build Framework and Tests (Windows)"
+      condition: eq(variables['Agent.OS'], 'Windows_NT')
+      
+    # Build the framework and tests - Unix
+    - bash: |
+        echo "Building framework and tests..."
+        cd $(buildDir)
+        
+        cmake --build . --config $(buildConfiguration) --parallel 4 --target framework_tests
+        
+        if [ $? -ne 0 ]; then
+          echo "Build failed!"
+          exit $?
+        fi
+        echo "Build completed successfully"
+      displayName: "Build Framework and Tests (Unix)"
+      condition: ne(variables['Agent.OS'], 'Windows_NT')
     
-    # Run tests
+    # Run tests - Windows
     - script: |
-        echo "Running tests..."
+        echo "Running tests on Windows..."
         cd $(buildDir)
         chcp 65001
         .\bin\framework_tests.exe --gtest_output=xml:GoogleTestResults.xml --timeout=30
         echo "Running tests completed"
-      displayName: "Run Tests"
+      displayName: "Run Tests (Windows)"
+      condition: eq(variables['Agent.OS'], 'Windows_NT')
+      continueOnError: true
+      env:
+        LANG: 'en_US.UTF-8'
+        LC_ALL: 'en_US.UTF-8'
+        
+    # Run tests - Linux/macOS
+    - bash: |
+        echo "Running tests on Unix..."
+        cd $(buildDir)
+        ./bin/framework_tests --gtest_output=xml:GoogleTestResults.xml --timeout=30
+        echo "Running tests completed"
+      displayName: "Run Tests (Unix)"
+      condition: ne(variables['Agent.OS'], 'Windows_NT')
       continueOnError: true
       env:
         LANG: 'en_US.UTF-8'
@@ -88,7 +234,7 @@ stages:
       inputs:
         testResultsFormat: 'JUnit'
         testResultsFiles: '$(buildDir)/GoogleTestResults.xml'
-        testRunTitle: 'Framework Unit Tests'
+        testRunTitle: 'Framework Tests - $(compiler) C++$(cxxStandard)'
         mergeTestResults: true
         failTaskOnFailedTests: false
       displayName: "Publish Test Results"
@@ -98,14 +244,16 @@ stages:
     - task: PublishBuildArtifacts@1
       inputs:
         pathToPublish: '$(buildDir)/bin'
-        artifactName: 'framework-binaries-$(buildConfiguration)'
+        artifactName: 'framework-binaries-$(compiler)-cpp$(cxxStandard)-$(buildConfiguration)'
         publishLocation: 'Container'
       displayName: "Publish Build Artifacts"
       condition: always()
 
-    # Build summary
+    # Build summary - Windows
     - script: |
         echo "=== Build Summary ==="
+        echo "Compiler: $(compiler)"
+        echo "C++ Standard: $(cxxStandard)" 
         echo "Configuration: $(buildConfiguration)"
         echo "Platform: $(buildPlatform)"
         echo "Build Directory: $(buildDir)"
@@ -116,17 +264,41 @@ stages:
         
         echo "=== CMake targets ==="
         cmake --build . --target help | findstr "... "
-      displayName: "Build Summary"
-      condition: always()
+      displayName: "Build Summary (Windows)"
+      condition: eq(variables['Agent.OS'], 'Windows_NT')
+      
+    # Build summary - Linux/macOS
+    - bash: |
+        echo "=== Build Summary ==="
+        echo "Compiler: $(compiler)"
+        echo "C++ Standard: $(cxxStandard)"
+        echo "Configuration: $(buildConfiguration)"
+        echo "Platform: $(buildPlatform)"
+        echo "Build Directory: $(buildDir)"
+        
+        cd $(buildDir)
+        echo "=== Available executables ==="
+        ls -la bin/
+        
+        echo "=== CMake targets ==="
+        cmake --build . --target help | grep "... "
+      displayName: "Build Summary (Unix)"
+      condition: ne(variables['Agent.OS'], 'Windows_NT')
 
 - stage: StaticAnalysis
   displayName: 'Static Analysis'
   dependsOn: Build
   condition: and(succeeded(), eq(variables['System.PullRequest.TargetBranch'], 'refs/heads/master'))
+  variables:
+    buildPlatform: 'x64'
+    buildConfiguration: 'Release'
+    buildDir: '$(Build.SourcesDirectory)\build'
   jobs:
   - job: StaticAnalysis
-    displayName: 'Run Static Analysis'
+    displayName: 'Run Static Analysis (Windows C++23)'
     timeoutInMinutes: 20
+    pool:
+      vmImage: 'windows-latest'
     
     steps:
     - checkout: self
@@ -145,11 +317,11 @@ stages:
     # Restore CMake build cache
     - task: Cache@2
       inputs:
-        key: 'cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | CMakeLists.txt | tests'
+        key: 'cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | msvc | 23 | CMakeLists.txt | tests'
         path: '$(buildDir)'
       displayName: "Restore CMake build cache"
 
-    # cofigure cmake
+    # Configure CMake
     - task: CMake@1
       inputs:
         workingDirectory: '$(buildDir)'

@@ -18,7 +18,6 @@ protected:
 	}
 };
 
-#ifdef __cpp_lib_concepts
 TEST_F(test_finally, TestFinallyAction)
 {
 	int result = 0;
@@ -102,5 +101,4 @@ TEST_F(test_finally, TestFinallyMethodWithException)
 	ASSERT_EQ(result, 5); // value still on 5
 	ASSERT_TRUE(bExceptionThrow);
 }
-#endif
 } // namespace framework_tests

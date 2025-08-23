@@ -37,7 +37,7 @@ This project provides a set of modern C++ utilities, including custom exception 
 
 The library offers:
 
-- **Exception Handling**: A custom exception mechanism that extends `std::exception`, providing detailed error messages with source `std::location_location`.
+- **Exception Handling**: A custom exception mechanism that extends `std::exception`, providing detailed error messages with source `std::source_location`.
 - **RAII Extensions**: Various extensions for better work with RAII patterns, deferred actions or properties.
 - **Storages**: A collection of storage classes and utilities for managing resources, including a `heterogeneous_container`, `parameter_pack` and a `resource_wrapper`.
 - **Synchronization primitives**: A collection of thread-safe concurrent containers and synchronization primitives for efficient and safe multi-threaded programming.
@@ -45,8 +45,8 @@ The library offers:
 - **Tracing and logging**: A collection of utilities for tracing and logging, including a `trace`.
 
 ## Requirements
-- Minimal supported C++ standard: C++17
-- Recommended C++ standard: C++20
+- Minimal supported C++ standard: C++20
+- Recommended C++ standard: C++23
 - C++20 compliant compiler (e.g., GCC 10+, Clang 10+, MSVC 2019+)
 - Standard library support for concepts, formatting, source locations, and synchronization primitives
 
@@ -68,9 +68,12 @@ The `throw_exception` template class simplifies throwing exceptions with formatt
 - **Formatted error messages**: Supports formatting error messages using std::format and std::vformat.
 - **Unicode Support**: Handles both narrow and wide string formats for error messages.
 
-Minimal supported version: `C++20`
 ```cpp
+#include "exception/exception.h"
+#include <iostream>
+
 using namespace janecekvit;
+
 try
 {
 	throw exception::exception("Error code {}: {}", std::make_tuple(404, "Not Found"));
@@ -84,7 +87,11 @@ catch (const std::exception& ex)
 \
 Using `throw_exception` helper
 ```cpp
+#include "exception/exception.h"
+#include <iostream>
+
 using namespace janecekvit;
+
 try
 {
 	exception::throw_exception("Error code {}: {}", 404, "Not Found");
@@ -107,8 +114,11 @@ It allows objects to be cloned, creating a deep copy wrapped in a smart pointer.
 - **Smart Pointers**: Uses `std::unique_ptr` to manage the lifetime of the cloned objects, ensuring proper resource management.
 
 
-Minimal supported version: `C++17`
 ```cpp
+#include "extensions/cloneable.h"
+#include <iostream>
+#include <memory>
+
 using namespace janecekvit;
 
 struct test_class : public extensions::cloneable<test_class>
@@ -143,8 +153,11 @@ It includes utilities for container operations, type casting, tuple manipulation
 - **Numeric Computations**: Includes a compile-time factorial computation.
 - **Hash Computations**: Provides methods for combining hashes of multiple values.
 
-Minimal supported version: `C++17`
 ```cpp
+#include "extensions/extensions.h"
+#include <unordered_map>
+#include <iostream>
+
 using namespace janecekvit;
 
 // Container operation
@@ -195,8 +208,11 @@ This is similar to the "finally" block in other programming languages and is use
 - **Exception Handling**: Optionally allows handling exceptions in the callback function via a custom exception callback.
 - **Type Safety**: Uses C++ concepts and type traits to ensure that the callback function is invocable.
 
-Minimal supported version: `C++20`
 ```cpp
+#include "extensions/finally.h"
+#include <fstream>
+#include <iostream>
+
 std::fstream file("test.txt", std::ios::out);
 auto cleanup = janecekvit::extensions::finally([&]
 	{
@@ -210,6 +226,11 @@ std::cout << "Function body." << std::endl;
 \
 Using a custom exception callback:
 ```cpp
+#include "extensions/finally.h"
+#include <fstream>
+#include <iostream>
+#include <stdexcept>
+
 std::fstream file("test.txt", std::ios::out);
 auto cleanup = janecekvit::extensions::finally([&]
 	{
@@ -237,9 +258,12 @@ The `lazy_action` class template and the `lazy` function template provide a mech
 - **Lazy Evaluation**: Stores a callable function and its arguments, and evaluates the function only when needed.
 - **Flexible Invocation**: Allows invoking the stored function with the original arguments or with new arguments.
 
-Minimal supported version: `C++17`
 ```cpp
+#include "extensions/lazy.h"
+#include <iostream>
+
 using namespace janecekvit;
+
 auto multiply = [](int a, int b)
 {
 	return a * b;
@@ -266,9 +290,13 @@ It includes optimizations to ensure minimal performance impact and supports all 
 - **In-Place Allocation**: Supports in-place memory allocation using `make_not_null_ptr`.
 - **Raw pointer deallocation**: Supports raw pointer deallocation though custom deleter via constructor.
 
-Minimal supported version: `C++20`
 ```cpp
+#include "extensions/not_null_ptr.h"
+#include <memory>
+#include <iostream>
+
 using namespace janecekvit;
+
 auto intPtr = std::make_shared<int>(5);
 extensions::not_null_ptr<std::shared_ptr<int>> ptr(intPtr);
 std::cout << "Pointer value: " << *ptr << std::endl;
@@ -289,8 +317,10 @@ The visibility of the getter and setter methods can be modified using access con
 - **Type Safety**: Ensures that the getter and setter functions are invocable with the provided arguments.
 - **Flexible Initialization**: Supports various ways to initialize the property, including direct value assignment and lambda functions for custom getter and setter logic.
 
-Minimal supported version: `C++17`
 ```cpp
+#include "extensions/property.h"
+#include <iostream>
+
 using namespace janecekvit;
 
 int hiddenValue = 10;
@@ -307,6 +337,8 @@ std::cout << "Updated value: " << static_cast<int>(property) << std::endl;
 \
 Property visibility control in parent class
 ```cpp
+#include "extensions/property.h"
+
 using namespace janecekvit;
 
 struct private_property
@@ -359,8 +391,12 @@ The container supports type-safe access to the stored objects and provides vario
 - **Unknown types**: Unknown types rest of types and there are internally stored in std::any.
 - **User defined types**: Extended known types e.g. `storage::heterogeneous_container<my_custom_type>` to improve performance impact.
 
-Minimal supported version: `C++20`
 ```cpp
+#include "storage/heterogeneous_container.h"
+#include <iostream>
+#include <string>
+#include <functional>
+
 using namespace janecekvit;
 
 storage::heterogeneous_container<> container;
@@ -395,14 +431,17 @@ It could be used in virtual interface functions or in functions that require a v
 - **Type-Safe Retrieval**: Allows retrieving packed parameters by type.
 - **Exception Handling**: Throws `std::invalid_argument` when the number of arguments received in `get` methods is incorrect.
 
-Minimal supported version: `C++17`
 ```cpp
+#include "storage/parameter_pack.h"
+#include <iostream>
+#include <string>
+
 using namespace janecekvit;
 
 // Create a parameter pack
 storage::parameter_pack pack(42, std::string("Hello"), 3.14);
 
-// Retrieve parameters as a tuple (C++17 and above)
+// Retrieve parameters as a tuple (C++20 and above)
 auto [intValue, strValue, doubleValue] = pack.get_pack<int, std::string, double>();
 
 // Print the retrieved values
@@ -419,8 +458,11 @@ This header file, `storage/resource_wrapper.h` provides a way to manage resource
 - **Custom Deleters**: Allows specifying custom deleter functions to manage resources that require special cleanup procedures.
 - **Exception Handling in Destructors**: Optionally allows handling exceptions in destructors via a custom exception callback, while being cautious of the risks involved.
 
-Minimal supported version: `C++17`
 ```cpp
+#include "storage/resource_wrapper.h"
+#include <fstream>
+#include <iostream>
+
 using namespace janecekvit;
 
 auto fileWrapper = storage::resource_wrapper(
@@ -442,8 +484,13 @@ fileWrapper.update([](std::fstream& file)
 	});
 ```
 \
-Minimal supported version: `C++20` for using a custom exception callback:
+Using a custom exception callback:
 ```cpp
+#include "storage/resource_wrapper.h"
+#include <fstream>
+#include <iostream>
+#include <stdexcept>
+
 using namespace janecekvit;
 
 auto fileWrapperWithExceptionHandling = storage::resource_wrapper(
@@ -482,8 +529,11 @@ It provides the following key components:
 - **`concurrent_resource_holder`**: Grants concurrent (read) access to the resource, allowing multiple threads to read the resource simultaneously.
 - **Debugging Support**: In debug configuration or when `CONCURRENT_DBG_TOOLS` define is set, the library includes additional checks and lock detail tracking to help diagnose synchronization issues.
 
-Minimal supported version: `C++20`
 ```cpp
+#include "synchronization/concurrent.h"
+#include <unordered_map>
+#include <iostream>
+
 using namespace janecekvit::synchronization;
 
 concurrent::resource_owner<std::unordered_map<int, int>> resourceMap;
@@ -505,6 +555,9 @@ concurrent::unordered_map<int, int> resourceMapAlias;
 \
 Example for getting information about the locks in debug mode
 ```cpp
+#include "synchronization/concurrent.h"
+#include <unordered_map>
+
 using namespace janecekvit::synchronization;
 
 // Release version of the resource owner that does not contain information about the locks
@@ -531,8 +584,9 @@ It provides the following key components:
 - **`concurrent_lock_owner`**: A class that provides concurrent ownership of a lock, allowing multiple threads to hold the lock simultaneously.
 - **Debugging Support**: In debug configuration or when `CONCURRENT_DBG_TOOLS` define is set, the library includes additional checks and lock detail tracking to help diagnose synchronization issues.
 
-Minimal supported version: `C++20`
 ```cpp
+#include "synchronization/lock_owner.h"
+
 using namespace janecekvit::synchronization;
 
 synchronization::lock_owner<> lock;
@@ -553,6 +607,8 @@ bool nonThreadSafeLogic = false;
 \
 Example for getting information about the locks in debug mode
 ```cpp
+#include "synchronization/lock_owner.h"
+
 using namespace janecekvit::synchronization;
 
 // Release version of the resource owner that does not contain information about the locks
@@ -582,8 +638,15 @@ Manual reset works only with `std::condition_variable_any`, `std::condition_vari
 - **Flexible Synchronization Primitives**: Can be used with std::condition_variable_any, std::condition_variable, and std::binary_semaphore.
 - **Predicate Support**: Allows waiting with a predicate to customize the wake-up condition.
 
-Minimal supported version: `C++17` using `std::condition_variable_any` and `std::condition_variable`
+Using `std::condition_variable_any` and `std::condition_variable`
 ```cpp
+#include "synchronization/signal.h"
+#include <condition_variable>
+#include <mutex>
+#include <thread>
+#include <chrono>
+#include <iostream>
+
 using namespace janecekvit;
 
 synchronization::signal<std::condition_variable, true> s; // manual reset = true
@@ -602,8 +665,14 @@ s.signalize();
 t.join();
 ```
 \
-Minimal supported version: `C++20` using `std::binary_semaphore`
+Using `std::binary_semaphore`
 ```cpp
+#include "synchronization/signal.h"
+#include <semaphore>
+#include <thread>
+#include <chrono>
+#include <iostream>
+
 using namespace janecekvit;
 
 synchronization::signal<std::binary_semaphore, true> s; // manual reset = true
@@ -630,8 +699,15 @@ It supported synchronization primitives are, `std::condition_variable_any`, `std
 - **Predicate Support**: Allows waiting with a predicate to customize the wake-up condition.
 - **Timeout Support**: Supports waiting with timeouts using wait_for and wait_until methods.
 
-Minimal supported version: `C++17` using `std::condition_variable_any` and `std::condition_variable`
+Using `std::condition_variable_any` and `std::condition_variable`
 ```cpp
+#include "synchronization/wait_for_multiple_signals.h"
+#include <condition_variable>
+#include <mutex>
+#include <thread>
+#include <chrono>
+#include <iostream>
+
 using namespace janecekvit;
 
 enum class signal_state
@@ -656,8 +732,14 @@ wfms.signalize(signal_state::signal1);
 t.join();
 ```
 \
-Minimal supported version: `C++20` using `std::binary_semaphore`
+Using `std::binary_semaphore`
 ```cpp
+#include "synchronization/wait_for_multiple_signals.h"
+#include <semaphore>
+#include <thread>
+#include <chrono>
+#include <iostream>
+
 using namespace janecekvit;
 
 enum class signal_state
@@ -686,8 +768,10 @@ This header file, `thread/async.h` provides a utility for creating asynchronous 
 
 It simplifies the creation of asynchronous tasks and returns a `std::future` object representing the result of the task.
 
-Minimal supported version: `C++17`
 ```cpp
+#include "thread/async.h"
+#include <iostream>
+
 using namespace janecekvit::thread;
 
 auto future = async::create([](int a, int b)
@@ -712,8 +796,10 @@ The class uses various synchronization primitives to manage the task queue and w
 - **Waitable Tasks**: Allows adding tasks that return a future, enabling synchronization with task completion.
 - **Move semantics**: Uses move semantics for tasks, ensuring efficient task management.
 
-Minimal supported version: `C++20`
 ```cpp
+#include "thread/sync_thread_pool.h"
+#include <iostream>
+
 using namespace janecekvit;
 
 // Create a thread pool with 4 worker threads
@@ -748,8 +834,11 @@ The `trace` class manages a collection of trace events, allowing for adding, ret
 - **Thread Identification**: Captures the thread ID where the trace event was created.
 - **Concurrent Access**: Uses thread-safe containers to manage trace events.
 
-Minimal supported version: `C++20`
 ```cpp
+#include "tracing/trace.h"
+#include <string>
+#include <iostream>
+
 using namespace janecekvit;
 
 enum class LogLevel

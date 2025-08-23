@@ -309,8 +309,6 @@ constexpr bool is_explicitly_convertible_v = is_explicitly_convertible<_T, _U>::
 template <class _T, class _U>
 constexpr bool is_convertible_v = std::is_convertible_v<std::decay_t<_T>, _U> && !std::is_same_v<std::decay_t<_T>, _U>;
 
-#ifdef __cpp_lib_concepts
-
 template <class _Condition, class _Lock>
 concept condition_variable_notify = requires(_Condition& cv, _Lock& lock) {
 	{
@@ -352,15 +350,11 @@ concept string_type = std::is_same_v<_String, std::string> || std::is_same_v<_St
 template <class _Condition>
 concept condition_variable_type = std::is_same_v<std::condition_variable, _Condition> || std::is_same_v<std::condition_variable_any, _Condition>;
 
-#ifdef __cpp_lib_semaphore
 template <class _Semaphore, ptrdiff_t _LeastMaxValue = std::numeric_limits<ptrdiff_t>::max()>
 concept semaphore_type = std::is_same_v<std::binary_semaphore, _Semaphore> || std::is_same_v<std::counting_semaphore<_LeastMaxValue>, _Semaphore>;
-#endif // __cpp_lib_semaphore
 
-#ifdef __cpp_lib_semaphore
 template <class _Semaphore>
 concept binary_semaphore_type = std::is_same_v<std::binary_semaphore, _Semaphore>;
-#endif // __cpp_lib_semaphore
 
 template <typename _Type>
 concept pointer_type = is_any_pointer_v<_Type> ||
@@ -381,7 +375,5 @@ concept is_mutex_type = std::is_same_v<std::mutex, _Type> || std::is_same_v<std:
 
 template <typename _Type>
 concept is_recursive_mutex_type = std::is_same_v<std::recursive_mutex, _Type> || std::is_same_v<std::recursive_timed_mutex, _Type>;
-
-#endif
 
 } // namespace janecekvit::constraints
