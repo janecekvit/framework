@@ -6,7 +6,6 @@
 namespace janecekvit::extensions
 {
 
-#ifdef __cpp_lib_concepts
 /// <summary>
 /// final_action implements finally semantics in C++.
 /// Use it to release correctly resource when scope ends.
@@ -77,45 +76,5 @@ template <std::invocable _F, class _E, class... _Args>
 {
 	return final_action<_F, _E>{ std::forward<_F>(callback), std::forward<_E>(exception_callback) };
 }
-
-#else
-/// <summary>
-/// final_action implements finally semantics in C++.
-/// Use it to release correctly resource when scope ends.
-/// </summary>
-template <class _F>
-class final_action
-{
-public:
-	template <std::enable_if_t<std::is_invocable_v<_F>, int> = 0>
-	final_action(_F&& callback)
-		: _callback(std::forward<_F>(callback))
-	{
-	}
-
-	virtual ~final_action()
-	{
-		try
-		{
-			_callback();
-		}
-		catch (const std::exception&)
-		{
-		} // check double exception serious error
-	}
-
-private:
-	const _F _callback{};
-};
-
-/// <summary>
-/// finally call wraps final_action to easily call it
-/// </summary>
-template <class _F, class... _Args, std::enable_if_t<std::is_invocable_v<_F>, int> = 0>
-[[nodiscard]] decltype(auto) finally(_F&& callback)
-{
-	return final_action<_F>{ std::forward<_F>(callback) };
-}
-#endif
 
 } // namespace janecekvit::extensions

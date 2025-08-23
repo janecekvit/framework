@@ -22,27 +22,21 @@ class signal
 {
 public:
 	signal()
-#ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
-#endif
 	{
 	}
 
-#ifdef __cpp_lib_semaphore
 	signal()
 		requires constraints::semaphore_type<_SyncPrimitive>
 		: _primitive(_SyncPrimitive{ 0 })
 	{
 	}
-#endif
 
 	virtual ~signal() = default;
 
 	template <class _TLock>
 	void wait(_TLock& lock) const
-#ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
-#endif
 	{
 		const auto initial_version = _get_initial_version();
 
@@ -54,9 +48,7 @@ public:
 
 	template <class _TLock, class _PredicateType>
 	void wait(_TLock& lock, _PredicateType&& pred) const
-#ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive> && std::predicate<_PredicateType>
-#endif
 	{
 		const auto initial_version = _get_initial_version();
 
@@ -66,7 +58,6 @@ public:
 			});
 	}
 
-#ifdef __cpp_lib_semaphore
 	void wait() const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
@@ -85,13 +76,10 @@ public:
 		while (!(pred() || _check_signal(initial_version)))
 			_primitive.acquire();
 	}
-#endif
 
 	template <class _TLock, class TRep, class TPeriod>
 	[[nodiscard]] bool wait_for(_TLock& lock, const std::chrono::duration<TRep, TPeriod>& rel_time) const
-#ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
-#endif
 	{
 		const auto deadline = std::chrono::steady_clock::now() + rel_time;
 		const auto initial_version = _get_initial_version();
@@ -104,9 +92,7 @@ public:
 
 	template <class _TLock, class TRep, class TPeriod, class _PredicateType>
 	[[nodiscard]] bool wait_for(_TLock& lock, const std::chrono::duration<TRep, TPeriod>& rel_time, _PredicateType&& pred) const
-#ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive> && std::predicate<_PredicateType>
-#endif
 	{
 		const auto deadline = std::chrono::steady_clock::now() + rel_time;
 		const auto initial_version = _get_initial_version();
@@ -117,7 +103,6 @@ public:
 			});
 	}
 
-#ifdef __cpp_lib_semaphore
 	template <class TRep, class TPeriod>
 	[[nodiscard]] bool wait_for(const std::chrono::duration<TRep, TPeriod>& rel_time) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
@@ -149,13 +134,10 @@ public:
 		}
 		return true;
 	}
-#endif
 
 	template <class _TLock, class _TClock, class _TDuration>
 	[[nodiscard]] bool wait_until(_TLock& lock, const std::chrono::time_point<_TClock, _TDuration>& abs_time) const
-#ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
-#endif
 	{
 		const auto initial_version = _get_initial_version();
 
@@ -167,9 +149,7 @@ public:
 
 	template <class _TLock, class _TClock, class _TDuration, class _PredicateType>
 	[[nodiscard]] bool wait_until(_TLock& lock, const std::chrono::time_point<_TClock, _TDuration>& abs_time, _PredicateType&& pred) const
-#ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive> && std::predicate<_PredicateType>
-#endif
 	{
 		const auto initial_version = _get_initial_version();
 
@@ -179,7 +159,6 @@ public:
 			});
 	}
 
-#ifdef __cpp_lib_semaphore
 	template <class _TClock, class _TDuration>
 	[[nodiscard]] bool wait_until(const std::chrono::time_point<_TClock, _TDuration>& abs_time) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
@@ -212,12 +191,9 @@ public:
 		}
 		return true;
 	}
-#endif
 
 	void signalize() noexcept
-#ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
-#endif
 	{
 		{
 			std::lock_guard lock(_state.state_mutex);
@@ -232,9 +208,7 @@ public:
 	}
 
 	void signalize_all() noexcept
-#ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_SyncPrimitive>
-#endif
 	{
 		{
 			std::lock_guard lock(_state.state_mutex);
@@ -248,7 +222,6 @@ public:
 		_primitive.notify_all();
 	}
 
-#ifdef __cpp_lib_semaphore
 	void signalize() noexcept
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
@@ -256,12 +229,9 @@ public:
 		_state.signal_version.fetch_add(1, std::memory_order_acq_rel);
 		_primitive.release();
 	}
-#endif
 
 	void reset() noexcept
-#ifdef __cpp_lib_concepts
 		requires _ManualReset
-#endif
 	{
 		{
 			std::lock_guard lock(_state.state_mutex);
@@ -346,9 +316,7 @@ private:
 	mutable signal_state _state;
 };
 
-#ifdef __cpp_lib_concepts
 template <class _Type, class _InnerType = std::binary_semaphore>
 concept signal_type = std::is_same_v<_Type, janecekvit::synchronization::signal<_InnerType>>;
-#endif
 
 } // namespace janecekvit::synchronization

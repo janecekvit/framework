@@ -325,36 +325,24 @@ public:
 		_visit<_T, true>(std::forward<_Callable>(callback));
 	}
 
-#ifdef __cpp_lib_concepts
 	template <class _Func, class... _Args>
 		requires std::is_invocable_r_v<std::invoke_result_t<_Func, _Args...>, _Func, _Args...>
-#else
-	template <class _Func, class... _Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<_Func, _Args...>, _Func, _Args...>, int> = 0>
-#endif // __cpp_lib_concepts
 	constexpr decltype(auto) call_first(_Args&&... args) const
 	{
 		auto&& oFunc = first<_Func>();
 		return std::invoke(oFunc, std::forward<_Args>(args)...);
 	}
 
-#ifdef __cpp_lib_concepts
 	template <class _Func, class... _Args>
 		requires std::is_invocable_r_v<std::invoke_result_t<_Func, _Args...>, _Func, _Args...>
-#else
-	template <class _Func, class... _Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<_Func, _Args...>, _Func, _Args...>, int> = 0>
-#endif // __cpp_lib_concepts
 	constexpr decltype(auto) call(size_t position, _Args&&... args) const
 	{
 		auto&& oFunc = get<_Func>(position);
 		return std::invoke(oFunc, std::forward<_Args>(args)...);
 	}
 
-#ifdef __cpp_lib_concepts
 	template <class _Func, class... _Args>
 		requires std::is_invocable_r_v<std::invoke_result_t<_Func, _Args...>, _Func, _Args...>
-#else
-	template <class _Func, class... _Args, std::enable_if_t<std::is_invocable_r_v<std::invoke_result_t<_Func, _Args...>, _Func, _Args...>, int> = 0>
-#endif // __cpp_lib_concepts
 	constexpr decltype(auto) call_all(_Args&&... args) const
 	{
 		using RetType = std::invoke_result_t<_Func, _Args...>;

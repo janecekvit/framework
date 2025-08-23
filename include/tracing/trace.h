@@ -7,8 +7,6 @@
 #include <source_location>
 #include <thread>
 
-#ifdef __cpp_lib_concepts
-
 namespace janecekvit::tracing
 {
 
@@ -221,5 +219,3 @@ protected:
 };
 
 } // namespace janecekvit::tracing
-
-#endif

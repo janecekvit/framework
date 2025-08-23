@@ -117,9 +117,7 @@ public:
 	}
 
 	template <class _Condition, class _Predicate>
-#ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_Condition>
-#endif
 	constexpr decltype(auto) wait(_Condition& cv, _Predicate&& pred) const
 	{
 		_check_ownership();
@@ -127,9 +125,7 @@ public:
 	}
 
 	template <class _Condition>
-#ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_Condition>
-#endif
 	constexpr decltype(auto) wait(_Condition& cv) const
 	{
 		_check_ownership();
@@ -270,9 +266,7 @@ public:
 	}
 
 	template <class _Condition, class _Predicate>
-#ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_Condition>
-#endif
 	constexpr decltype(auto) wait(_Condition& cv, _Predicate&& pred) const
 	{
 		_check_ownership();
@@ -280,9 +274,7 @@ public:
 	}
 
 	template <class _Condition>
-#ifdef __cpp_lib_concepts
 		requires constraints::condition_variable_type<_Condition>
-#endif
 	constexpr decltype(auto) wait(_Condition& cv) const
 	{
 		_check_ownership();
@@ -290,9 +282,7 @@ public:
 	}
 
 	template <class _Signal>
-#ifdef __cpp_lib_concepts
 		requires synchronization::signal_type<_Signal>
-#endif
 	constexpr decltype(auto) wait(_Signal& cv) const
 	{
 		_check_ownership();

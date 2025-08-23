@@ -80,7 +80,6 @@ inline std::wstring to_wstring(const std::string& str)
 #endif
 }
 
-#ifdef __cpp_lib_concepts
 template <constraints::string_type _String, class _Container>
 	requires constraints::is_container_v<_Container>
 _String to_string(const _Container& container)
@@ -97,6 +96,5 @@ _String to_string(const _Container& container)
 {
 	return to_string(container.concurrent().get());
 }
-#endif
 
 } // namespace janecekvit::conversions
