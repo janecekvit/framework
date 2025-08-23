@@ -9,6 +9,13 @@
 #include <tuple>
 #include <type_traits>
 
+// Conditional constexpr for C++23 features
+#if __cplusplus >= 202302L
+#define CONSTEXPR_CPP23 constexpr
+#else
+#define CONSTEXPR_CPP23
+#endif
+
 namespace janecekvit::storage
 {
 
@@ -35,7 +42,7 @@ public:
 	}
 
 	template <class... _Args>
-	[[nodiscard]] constexpr std::tuple<_Args...> get_pack() const
+	[[nodiscard]] CONSTEXPR_CPP23 std::tuple<_Args...> get_pack() const
 	{
 		if (_arguments.size() != sizeof...(_Args))
 			throw std::invalid_argument("Bad number of input arguments!");
@@ -51,7 +58,7 @@ public:
 
 protected:
 	template <class... _Args>
-	constexpr void _insert(_Args&&... args)
+	CONSTEXPR_CPP23 void _insert(_Args&&... args)
 	{
 		auto process = [&](auto&& value)
 		{
@@ -79,7 +86,7 @@ protected:
 	}
 
 	template <class _T, class... _Rest>
-	[[nodiscard]] constexpr std::tuple<_T, _Rest...> _deserialize(typename parameters::const_iterator& it) const
+	[[nodiscard]] CONSTEXPR_CPP23 std::tuple<_T, _Rest...> _deserialize(typename parameters::const_iterator& it) const
 	{
 		try
 		{
@@ -152,7 +159,7 @@ public:
 
 public:
 	template <class... _Args>
-	constexpr void get_pack(
+	CONSTEXPR_CPP23 void get_pack(
 		_Args&... args) const
 	{
 		if (_arguments.size() != sizeof...(_Args))
@@ -164,7 +171,7 @@ public:
 
 protected:
 	template <class _T>
-	constexpr void _serialize(
+	CONSTEXPR_CPP23 void _serialize(
 		const _T& first)
 	{
 		static_assert(std::is_copy_constructible<_T>::value, "Cannot assign <_T> type, because isn't CopyConstructible!");
@@ -172,7 +179,7 @@ protected:
 	}
 
 	template <class _T, class... _Rest>
-	constexpr void _serialize(
+	CONSTEXPR_CPP23 void _serialize(
 		const _T& first,
 		const _Rest&... rest)
 	{
@@ -181,7 +188,7 @@ protected:
 	}
 
 	template <class _T>
-	constexpr void _deserialize(
+	CONSTEXPR_CPP23 void _deserialize(
 		Parameters& args,
 		_T& first) const
 	{
@@ -191,7 +198,7 @@ protected:
 	}
 
 	template <class _T, class... _Rest>
-	constexpr void _deserialize(
+	CONSTEXPR_CPP23 void _deserialize(
 		Parameters& args,
 		_T& first,
 		_Rest&... rest) const
@@ -215,5 +222,7 @@ const _T& storage::parameter_pack_legacy::parameter_base::get() const
 }
 
 #endif // __cpp_lib_any
+
+#undef CONSTEXPR_CPP23
 
 } // namespace janecekvit::storage
