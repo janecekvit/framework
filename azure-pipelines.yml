@@ -13,15 +13,6 @@ stages:
     timeoutInMinutes: 30
     strategy:
       matrix:
-        # Windows MSVC - C++17
-        Windows_MSVC_17:
-          vmImage: 'windows-latest'
-          compiler: 'msvc'
-          cxxStandard: '17'
-          buildPlatform: 'x64'
-          cmakeGenerator: 'Visual Studio 17 2022'
-          buildDir: '$(Build.SourcesDirectory)\build'
-          
         # Windows MSVC - C++20  
         Windows_MSVC_20:
           vmImage: 'windows-latest'
@@ -39,17 +30,6 @@ stages:
           buildPlatform: 'x64'
           cmakeGenerator: 'Visual Studio 17 2022'
           buildDir: '$(Build.SourcesDirectory)\build'
-          
-        # Ubuntu GCC - C++17
-        Ubuntu_GCC_17:
-          vmImage: 'ubuntu-latest'
-          compiler: 'gcc'
-          cxxStandard: '17'
-          buildPlatform: 'x64'
-          cmakeGenerator: 'Unix Makefiles'
-          buildDir: '$(Build.SourcesDirectory)/build'
-          CC: 'gcc-14'
-          CXX: 'g++-14'
           
         # Ubuntu GCC - C++20
         Ubuntu_GCC_20:
@@ -73,17 +53,6 @@ stages:
           CC: 'gcc-14'
           CXX: 'g++-14'
           
-        # Ubuntu Clang - C++17
-        Ubuntu_Clang_17:
-          vmImage: 'ubuntu-latest'
-          compiler: 'clang'
-          cxxStandard: '17'
-          buildPlatform: 'x64'
-          cmakeGenerator: 'Unix Makefiles'
-          buildDir: '$(Build.SourcesDirectory)/build'
-          CC: 'clang-18'
-          CXX: 'clang++-18'
-          
         # Ubuntu Clang - C++20
         Ubuntu_Clang_20:
           vmImage: 'ubuntu-latest'
@@ -105,17 +74,6 @@ stages:
           buildDir: '$(Build.SourcesDirectory)/build'
           CC: 'clang-18'
           CXX: 'clang++-18'
-          
-        # macOS Clang - C++17
-        macOS_Clang_17:
-          vmImage: 'macOS-latest'
-          compiler: 'clang'
-          cxxStandard: '17'
-          buildPlatform: 'x64'
-          cmakeGenerator: 'Unix Makefiles'
-          buildDir: '$(Build.SourcesDirectory)/build'
-          CC: 'clang'
-          CXX: 'clang++'
           
         # macOS Clang - C++20
         macOS_Clang_20:

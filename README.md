@@ -45,8 +45,8 @@ The library offers:
 - **Tracing and logging**: A collection of utilities for tracing and logging, including a `trace`.
 
 ## Requirements
-- Minimal supported C++ standard: C++17
-- Recommended C++ standard: C++20
+- Minimal supported C++ standard: C++20
+- Recommended C++ standard: C++23
 - C++20 compliant compiler (e.g., GCC 10+, Clang 10+, MSVC 2019+)
 - Standard library support for concepts, formatting, source locations, and synchronization primitives
 
@@ -107,7 +107,7 @@ It allows objects to be cloned, creating a deep copy wrapped in a smart pointer.
 - **Smart Pointers**: Uses `std::unique_ptr` to manage the lifetime of the cloned objects, ensuring proper resource management.
 
 
-Minimal supported version: `C++17`
+Minimal supported version: `C++20`
 ```cpp
 using namespace janecekvit;
 
@@ -143,7 +143,7 @@ It includes utilities for container operations, type casting, tuple manipulation
 - **Numeric Computations**: Includes a compile-time factorial computation.
 - **Hash Computations**: Provides methods for combining hashes of multiple values.
 
-Minimal supported version: `C++17`
+Minimal supported version: `C++20`
 ```cpp
 using namespace janecekvit;
 
@@ -237,7 +237,7 @@ The `lazy_action` class template and the `lazy` function template provide a mech
 - **Lazy Evaluation**: Stores a callable function and its arguments, and evaluates the function only when needed.
 - **Flexible Invocation**: Allows invoking the stored function with the original arguments or with new arguments.
 
-Minimal supported version: `C++17`
+Minimal supported version: `C++20`
 ```cpp
 using namespace janecekvit;
 auto multiply = [](int a, int b)
@@ -289,7 +289,7 @@ The visibility of the getter and setter methods can be modified using access con
 - **Type Safety**: Ensures that the getter and setter functions are invocable with the provided arguments.
 - **Flexible Initialization**: Supports various ways to initialize the property, including direct value assignment and lambda functions for custom getter and setter logic.
 
-Minimal supported version: `C++17`
+Minimal supported version: `C++20`
 ```cpp
 using namespace janecekvit;
 
@@ -395,14 +395,14 @@ It could be used in virtual interface functions or in functions that require a v
 - **Type-Safe Retrieval**: Allows retrieving packed parameters by type.
 - **Exception Handling**: Throws `std::invalid_argument` when the number of arguments received in `get` methods is incorrect.
 
-Minimal supported version: `C++17`
+Minimal supported version: `C++20`
 ```cpp
 using namespace janecekvit;
 
 // Create a parameter pack
 storage::parameter_pack pack(42, std::string("Hello"), 3.14);
 
-// Retrieve parameters as a tuple (C++17 and above)
+// Retrieve parameters as a tuple (C++20 and above)
 auto [intValue, strValue, doubleValue] = pack.get_pack<int, std::string, double>();
 
 // Print the retrieved values
@@ -419,7 +419,7 @@ This header file, `storage/resource_wrapper.h` provides a way to manage resource
 - **Custom Deleters**: Allows specifying custom deleter functions to manage resources that require special cleanup procedures.
 - **Exception Handling in Destructors**: Optionally allows handling exceptions in destructors via a custom exception callback, while being cautious of the risks involved.
 
-Minimal supported version: `C++17`
+Minimal supported version: `C++20`
 ```cpp
 using namespace janecekvit;
 
@@ -582,7 +582,7 @@ Manual reset works only with `std::condition_variable_any`, `std::condition_vari
 - **Flexible Synchronization Primitives**: Can be used with std::condition_variable_any, std::condition_variable, and std::binary_semaphore.
 - **Predicate Support**: Allows waiting with a predicate to customize the wake-up condition.
 
-Minimal supported version: `C++17` using `std::condition_variable_any` and `std::condition_variable`
+Minimal supported version: `C++20` using `std::condition_variable_any` and `std::condition_variable`
 ```cpp
 using namespace janecekvit;
 
@@ -630,7 +630,7 @@ It supported synchronization primitives are, `std::condition_variable_any`, `std
 - **Predicate Support**: Allows waiting with a predicate to customize the wake-up condition.
 - **Timeout Support**: Supports waiting with timeouts using wait_for and wait_until methods.
 
-Minimal supported version: `C++17` using `std::condition_variable_any` and `std::condition_variable`
+Minimal supported version: `C++20` using `std::condition_variable_any` and `std::condition_variable`
 ```cpp
 using namespace janecekvit;
 
@@ -686,7 +686,7 @@ This header file, `thread/async.h` provides a utility for creating asynchronous 
 
 It simplifies the creation of asynchronous tasks and returns a `std::future` object representing the result of the task.
 
-Minimal supported version: `C++17`
+Minimal supported version: `C++20`
 ```cpp
 using namespace janecekvit::thread;
 

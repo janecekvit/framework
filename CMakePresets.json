@@ -39,26 +39,6 @@
             "displayName": "C++20 Release",
             "generator": "Visual Studio 17 2022",
             "name": "cpp20-release"
-        },
-        {
-            "architecture": "x64",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_CXX_STANDARD": "17"
-            },
-            "displayName": "C++17 Debug",
-            "generator": "Visual Studio 17 2022",
-            "name": "cpp17-debug"
-        },
-        {
-            "architecture": "x64",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_CXX_STANDARD": "17"
-            },
-            "displayName": "C++17 Release",
-            "generator": "Visual Studio 17 2022",
-            "name": "cpp17-release"
         }
     ],
     "version": 3

@@ -15,13 +15,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Windows MSVC - C++17
-          - os: windows-latest
-            compiler: msvc
-            cmake_generator: "Visual Studio 17 2022"
-            vcpkg_triplet: x64-windows
-            cxx_standard: "17"
-            
           # Windows MSVC - C++20
           - os: windows-latest
             compiler: msvc
@@ -35,15 +28,6 @@ jobs:
             cmake_generator: "Visual Studio 17 2022"
             vcpkg_triplet: x64-windows
             cxx_standard: "23"
-            
-          # Ubuntu GCC - C++17
-          - os: ubuntu-latest
-            compiler: gcc
-            cmake_generator: "Unix Makefiles"
-            vcpkg_triplet: x64-linux
-            cc: gcc-14
-            cxx: g++-14
-            cxx_standard: "17"
             
           # Ubuntu GCC - C++20
           - os: ubuntu-latest
@@ -63,15 +47,6 @@ jobs:
             cxx: g++-14
             cxx_standard: "23"
             
-          # Ubuntu Clang - C++17
-          - os: ubuntu-latest
-            compiler: clang
-            cmake_generator: "Unix Makefiles"
-            vcpkg_triplet: x64-linux
-            cc: clang-18
-            cxx: clang++-18
-            cxx_standard: "17"
-            
           # Ubuntu Clang - C++20
           - os: ubuntu-latest
             compiler: clang
@@ -89,13 +64,6 @@ jobs:
             cc: clang-18
             cxx: clang++-18
             cxx_standard: "23"
-            
-          # macOS Clang - C++17
-          - os: macos-latest
-            compiler: clang
-            cmake_generator: "Unix Makefiles"
-            vcpkg_triplet: x64-osx
-            cxx_standard: "17"
             
           # macOS Clang - C++20
           - os: macos-latest

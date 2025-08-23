@@ -16,12 +16,8 @@ namespace janecekvit::synchronization
 /// It could be used with std::condition_variable_any, std::condition_variable, or std::binary_semaphore.
 /// Manual reset works only with std::condition_variable_any, std::condition_variable.
 /// </summary>
-#if defined(__cpp_lib_concepts) && defined(__cpp_lib_semaphore)
 template <typename _SyncPrimitive = std::binary_semaphore, bool _ManualReset = false>
 	requires(constraints::semaphore_type<_SyncPrimitive, 1> || constraints::condition_variable_type<_SyncPrimitive>) && (!(constraints::semaphore_type<_SyncPrimitive> && _ManualReset))
-#else
-template <class _Condition = std::condition_variable_any>
-#endif
 class signal
 {
 public:
