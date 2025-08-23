@@ -1,6 +1,6 @@
 ﻿/.vs
 /.vscode
-/.claude
+/.claude/
 **/Debug/
 **Release/
 /build
