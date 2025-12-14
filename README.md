@@ -560,18 +560,62 @@ Example for getting information about the locks in debug mode
 
 using namespace janecekvit::synchronization;
 
-// Release version of the resource owner that does not contain information about the locks
+// Release version - no lock tracking
 concurrent::resource_owner_release<std::unordered_map<int, int>> resourceMapRelease;
 
-// Debug version of the resource owner that contains information about the locks
-concurrent::resource_owner_release<std::unordered_map<int, int>> resourceMapDebug;
+// Debug version - compile-time enabled lock tracking
+concurrent::resource_owner_debug<std::unordered_map<int, int>> resourceMapDebug;
 
-// Alias for the resource owner that contains information about the locks in debug mode when NDEBUG is not defined or CONCURRENT_DBG_TOOLS is defined
+// Runtime version - runtime-configurable lock tracking with custom callbacks
+concurrent::resource_owner_runtime<std::unordered_map<int, int>> resourceMapRuntime;
+
+// Build-dependent alias
+// debug tracking when NDEBUG is not defined (debug build)
+// no tracking when NDEBUG is defined (release build) or SYNCHRONIZATION_NO_TRACKING is defined
+// runtime tracking when SYNCHRONIZATION_RUNTIME_TRACKING is defined
 concurrent::unordered_map<int, int> resourceMapAlias;
 
-// Get the lock details for the resource owner
-auto exclusiveDetails = resourceMapAlias.get_exclusive_lock_details();
-auto concurrentDetails = resourceMapAlias.get_concurrent_lock_details();
+// Get the lock details for tracked resource owners
+auto exclusiveDetails = resourceMapDebug.get_exclusive_lock_details();
+auto concurrentDetails = resourceMapDebug.get_concurrent_lock_details();
+```
+\
+Example for runtime policy with custom callbacks
+```cpp
+#include "synchronization/concurrent.h"
+#include <unordered_map>
+#include <iostream>
+
+using namespace janecekvit::synchronization;
+
+// Enable tracking via callback
+lock_tracking_runtime::set_callback([]()
+{
+    return true;
+});
+
+// Register static logging callback for lock events
+lock_tracking_runtime::set_logging_callback(
+    [](const lock_information& info, const void* mutex_ptr)
+    {
+        std::cout << "Lock acquired at: "
+		  		  << info.Location.file_name() << ":"
+		  		  << info.Location.line() << " for mutex: "
+		  		  << mutex_ptr << std::endl;
+    });
+
+// Create runtime policy resource owner
+concurrent::resource_owner_runtime<std::unordered_map<int, int>> resourceMap;
+
+// Lock operations will now trigger the logging callback
+{
+    auto exclusive = resourceMap.exclusive();
+    exclusive->emplace(1, 42);
+}
+
+// Disable tracking
+lock_tracking_runtime::clear_callback();
+lock_tracking_runtime::clear_logging_callback();
 ```
 
 #### Lock-owner Mechanisms
@@ -611,18 +655,63 @@ Example for getting information about the locks in debug mode
 
 using namespace janecekvit::synchronization;
 
-// Release version of the resource owner that does not contain information about the locks
-synchronization::lock_owner_release<> resourceMapRelease;
+// Release version - no lock tracking
+synchronization::lock_owner_release<> lockRelease;
 
-// Debug version of the resource owner that contains information about the locks
-synchronization::lock_owner_debug<> resourceMapDebug;
+// Debug version - compile-time enabled lock tracking
+synchronization::lock_owner_debug<> lockDebug;
 
-// Alias for the resource owner that contains information about the locks in debug mode when NDEBUG is not defined or CONCURRENT_DBG_TOOLS is defined
-synchronization::lock_owner<> resourceMapAlias;
+// Runtime version - runtime-configurable lock tracking with custom callbacks
+synchronization::lock_owner_runtime<> lockRuntime;
 
-// Get the lock details for the resource owner
-auto exclusiveDetails = resourceMapAlias.get_exclusive_lock_details();
-auto concurrentDetails = resourceMapAlias.get_concurrent_lock_details();
+// Build-dependent alias
+// debug tracking when NDEBUG is not defined (debug build)
+// no tracking when NDEBUG is defined (release build) or SYNCHRONIZATION_NO_TRACKING is defined
+// runtime tracking when SYNCHRONIZATION_RUNTIME_TRACKING is defined
+synchronization::lock_owner<> lockAlias;
+
+// Get the lock details for tracked lock owners
+auto exclusiveDetails = lockDebug.get_exclusive_lock_details();
+auto concurrentDetails = lockDebug.get_concurrent_lock_details();
+```
+\
+Example for runtime policy with custom callbacks
+```cpp
+#include "synchronization/lock_owner.h"
+#include <iostream>
+
+using namespace janecekvit::synchronization;
+
+// Enable tracking via callback
+lock_tracking_runtime::set_callback([]()
+{
+    return true;
+});
+
+// Register static logging callback for lock events
+lock_tracking_runtime::set_logging_callback(
+    [](const lock_information& info, const void* mutex_ptr)
+    {
+        std::cout << "Lock acquired at: "
+		  		  << info.Location.file_name() << ":"
+		  		  << info.Location.line() << " for mutex: "
+		  		  << mutex_ptr << std::endl;
+    });
+
+// Create runtime policy lock owner
+synchronization::lock_owner_runtime<> lock;
+
+bool nonThreadSafeLogic = false;
+
+// Lock operations will now trigger the logging callback
+{
+    auto exclusive = lock.exclusive();
+    nonThreadSafeLogic = true;
+}
+
+// Disable tracking
+lock_tracking_runtime::clear_callback();
+lock_tracking_runtime::clear_logging_callback();
 ```
 
 

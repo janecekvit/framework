@@ -722,4 +722,217 @@ TEST_F(test_concurrent, TestDebugLocksInformation)
 		ASSERT_FALSE(container.get_concurrent_lock_details().empty());
 	}
 }
+
+TEST_F(test_concurrent, TestDebugConcurrentLoggingCallback)
+{
+	using namespace synchronization;
+
+	concurrent::resource_owner_debug<std::vector<int>> container;
+
+	int callback_count = 0;
+	std::vector<uint_least32_t> logged_lines;
+
+	lock_tracking_enabled::set_logging_callback(
+		[&callback_count, &logged_lines](const lock_information& info, const void* mutex_ptr)
+		{
+			callback_count++;
+			logged_lines.push_back(info.Location.line());
+			(void) mutex_ptr;
+		});
+
+	{
+		auto scope = container.exclusive();
+		scope->push_back(42);
+	}
+
+	ASSERT_EQ(1, callback_count);
+	ASSERT_EQ(1, logged_lines.size());
+
+	lock_tracking_enabled::clear_logging_callback();
+}
+
+TEST_F(test_concurrent, TestDebugConcurrentLoggingCallbackConcurrentAccess)
+{
+	using namespace synchronization;
+
+	concurrent::resource_owner_debug<int> container;
+
+	int callback_count = 0;
+
+	lock_tracking_enabled::set_logging_callback(
+		[&callback_count](const lock_information& info, const void* mutex_ptr)
+		{
+			callback_count++;
+			(void) info;
+			(void) mutex_ptr;
+		});
+
+	{
+		auto scope1 = container.concurrent();
+		auto scope2 = container.concurrent();
+		(void) scope1;
+		(void) scope2;
+	}
+
+	ASSERT_EQ(2, callback_count);
+
+	lock_tracking_enabled::clear_logging_callback();
+}
+
+TEST_F(test_concurrent, TestDebugConcurrentLoggingCallbackWithConvenienceAlias)
+{
+	using namespace synchronization;
+
+#if !defined(NDEBUG) && !defined(SYNCHRONIZATION_NO_TRACKING)
+	concurrent::deque<int> container;
+
+	int callback_count = 0;
+
+	lock_tracking_enabled::set_logging_callback(
+		[&callback_count](const lock_information& info, const void* mutex_ptr)
+		{
+			callback_count++;
+			(void) info;
+			(void) mutex_ptr;
+		});
+
+	{
+		auto scope = container.exclusive();
+		scope->push_back(1);
+		scope->push_back(2);
+	}
+
+	ASSERT_EQ(1, callback_count);
+
+	lock_tracking_enabled::clear_logging_callback();
+#endif
+}
+
+TEST_F(test_concurrent, TestConcurrentLoggingCallbackMixed)
+{
+	using namespace synchronization;
+
+	concurrent::resource_owner_debug<std::map<int, int>> container;
+
+	int exclusive_count = 0;
+	int concurrent_count = 0;
+
+	lock_tracking_enabled::set_logging_callback(
+		[&exclusive_count, &concurrent_count](const lock_information& info, const void* mutex_ptr)
+		{
+			(void) info;
+			(void) mutex_ptr;
+
+			exclusive_count++;
+		});
+
+	{
+		auto exclusive_scope = container.exclusive();
+		exclusive_scope->emplace(1, 100);
+	}
+
+	ASSERT_EQ(1, exclusive_count);
+
+	{
+		auto concurrent_scope = container.concurrent();
+		(void) concurrent_scope;
+	}
+
+	ASSERT_EQ(2, exclusive_count);
+	lock_tracking_enabled::clear_logging_callback();
+}
+
+TEST_F(test_concurrent, TestResourceTypeTracking)
+{
+	using namespace synchronization;
+
+	concurrent::resource_owner_debug<std::unordered_map<int, std::string>> container;
+
+	std::optional<lock_information> captured_exclusive_info;
+	std::optional<lock_information> captured_concurrent_info;
+
+	lock_tracking_enabled::set_logging_callback(
+		[&captured_exclusive_info, &captured_concurrent_info](const lock_information& info, const void*)
+		{
+			// Capture first exclusive and first concurrent
+			if (info.MutexType == typeid(std::shared_mutex))
+			{
+				if (!captured_exclusive_info.has_value())
+				{
+					captured_exclusive_info = info;
+				}
+				else if (!captured_concurrent_info.has_value())
+				{
+					captured_concurrent_info = info;
+				}
+			}
+		});
+
+	{
+		auto scope = container.exclusive();
+		scope->emplace(1, "test");
+	}
+
+	{
+		auto scope = container.concurrent();
+		auto it = scope->find(1);
+		(void) it;
+	}
+
+	ASSERT_TRUE(captured_exclusive_info.has_value());
+	ASSERT_TRUE(captured_exclusive_info->ResourceType.has_value());
+	ASSERT_STREQ(
+		captured_exclusive_info->ResourceType->name(),
+		typeid(std::unordered_map<int, std::string>).name());
+
+	ASSERT_TRUE(captured_concurrent_info.has_value());
+	ASSERT_TRUE(captured_concurrent_info->ResourceType.has_value());
+	ASSERT_STREQ(
+		captured_concurrent_info->ResourceType->name(),
+		typeid(std::unordered_map<int, std::string>).name());
+
+	ASSERT_STREQ(
+		captured_exclusive_info->MutexType.name(),
+		typeid(std::shared_mutex).name());
+
+	lock_tracking_enabled::clear_logging_callback();
+}
+
+TEST_F(test_concurrent, TestResourceTypeTrackingRuntime)
+{
+	using namespace synchronization;
+
+	lock_tracking_runtime::set_callback([]()
+		{
+			return true;
+		});
+
+	concurrent::resource_owner_runtime<std::vector<int>> container;
+
+	std::optional<lock_information> captured_info;
+
+	lock_tracking_runtime::set_logging_callback(
+		[&captured_info](const lock_information& info, const void*)
+		{
+			if (!captured_info.has_value())
+			{
+				captured_info = info;
+			}
+		});
+
+	{
+		auto scope = container.exclusive();
+		scope->push_back(42);
+	}
+
+	ASSERT_TRUE(captured_info.has_value());
+	ASSERT_TRUE(captured_info->ResourceType.has_value());
+	ASSERT_STREQ(
+		captured_info->ResourceType->name(),
+		typeid(std::vector<int>).name());
+
+	lock_tracking_runtime::clear_logging_callback();
+	lock_tracking_runtime::clear_callback();
+}
+
 } // namespace framework_tests

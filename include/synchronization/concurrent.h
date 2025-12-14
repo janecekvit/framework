@@ -19,46 +19,47 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 #include "synchronization/signal.h"
 
 #include <array>
-#include <cerrno>
 #include <deque>
-#include <exception>
+#include <functional>
 #include <list>
 #include <map>
+#include <memory>
 #include <queue>
 #include <set>
 #include <shared_mutex>
 #include <source_location>
 #include <stack>
-#include <system_error>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 /// Namespace owns set of thread-safe concurrent containers and methods that implemented over basic stl containers
 ///  and thread-safe methods for every possible concurrent object
 namespace janecekvit::synchronization::concurrent
 {
-template <class _Type, bool = true>
+template <class _Type, lock_tracking_policy _Policy = lock_tracking_disabled>
 class resource_owner;
 
 /// <summary>
 /// Class implements wrapper for exclusive use of input resource.
 /// Input resource is locked for exclusive use, can be modified by one accessors.
 /// </summary>
-template <class _Type, bool _Release>
-class [[nodiscard]] exclusive_resource_holder : public exclusive_lock_holder<std::shared_mutex, _Release>
+template <class _Type, lock_tracking_policy _Policy>
+class [[nodiscard]] exclusive_resource_holder : public exclusive_lock_holder<std::shared_mutex, _Policy>
 {
-	using base_type = exclusive_lock_holder<std::shared_mutex, _Release>;
+	using base_type = exclusive_lock_holder<std::shared_mutex, _Policy>;
 
 public:
-	constexpr exclusive_resource_holder(resource_owner<_Type, _Release>& owner) noexcept
+	constexpr exclusive_resource_holder(resource_owner<_Type, _Policy>& owner) noexcept
 		: base_type(owner)
 		, _owner(&owner)
 	{
 	}
 
-	constexpr exclusive_resource_holder(resource_owner<_Type, _Release>& owner, std::source_location&& srcl) noexcept
-		: base_type(owner, std::move(srcl))
+	constexpr exclusive_resource_holder(resource_owner<_Type, _Policy>& owner, std::source_location&& srcl) noexcept
+		: base_type(owner, std::move(srcl), typeid(_Type))
 		, _owner(&owner)
 	{
 	}
@@ -162,27 +163,27 @@ public:
 	}
 
 private:
-	resource_owner<_Type, _Release>* _owner;
+	resource_owner<_Type, _Policy>* _owner;
 };
 
 /// <summary>
 /// Class implements wrapper for concurrent use of input resource.
 /// Input resource is locked for concurrent use only. cannot be modified, but more accessors can read input resource.
 /// </summary>
-template <class _Type, bool _Release>
-class [[nodiscard]] concurrent_resource_holder : public concurrent_lock_holder<std::shared_mutex, _Release>
+template <class _Type, lock_tracking_policy _Policy>
+class [[nodiscard]] concurrent_resource_holder : public concurrent_lock_holder<std::shared_mutex, _Policy>
 {
-	using base_type = concurrent_lock_holder<std::shared_mutex, _Release>;
+	using base_type = concurrent_lock_holder<std::shared_mutex, _Policy>;
 
 public:
-	constexpr concurrent_resource_holder(resource_owner<_Type, _Release>& owner) noexcept
+	constexpr concurrent_resource_holder(resource_owner<_Type, _Policy>& owner) noexcept
 		: base_type(owner)
 		, _owner(&owner)
 	{
 	}
 
-	constexpr concurrent_resource_holder(resource_owner<_Type, _Release>& owner, std::source_location&& srcl) noexcept
-		: base_type(owner, std::move(srcl))
+	constexpr concurrent_resource_holder(resource_owner<_Type, _Policy>& owner, std::source_location&& srcl) noexcept
+		: base_type(owner, std::move(srcl), typeid(_Type))
 		, _owner(&owner)
 	{
 	}
@@ -259,7 +260,7 @@ public:
 	}
 
 private:
-	resource_owner<_Type, _Release>* _owner;
+	resource_owner<_Type, _Policy>* _owner;
 };
 
 /// <summary>
@@ -288,17 +289,17 @@ private:
 /// </code>
 /// </example>
 
-template <class _Type, bool _Release>
-class [[nodiscard]] resource_owner : public lock_owner_base<std::shared_mutex, _Release>
+template <class _Type, lock_tracking_policy _Policy>
+class [[nodiscard]] resource_owner : public lock_owner_base<std::shared_mutex, _Policy>
 {
-	friend exclusive_resource_holder<_Type, _Release>;
-	friend concurrent_resource_holder<_Type, _Release>;
+	friend exclusive_resource_holder<_Type, _Policy>;
+	friend concurrent_resource_holder<_Type, _Policy>;
 
-	using base_type = lock_owner_base<std::shared_mutex, _Release>;
+	using base_type = lock_owner_base<std::shared_mutex, _Policy>;
 
 public:
-	using exclusive_holder_type = exclusive_resource_holder<_Type, _Release>;
-	using concurrent_holder_type = concurrent_resource_holder<_Type, _Release>;
+	using exclusive_holder_type = exclusive_resource_holder<_Type, _Policy>;
+	using concurrent_holder_type = concurrent_resource_holder<_Type, _Policy>;
 
 public:
 	constexpr resource_owner() = default;
@@ -310,28 +311,54 @@ public:
 	{
 	}
 
-	[[nodiscard]] constexpr exclusive_resource_holder<_Type, true> exclusive() noexcept
-		requires(_Release)
+	// For compile-time disabled tracking
+	[[nodiscard]] constexpr auto exclusive() noexcept
+		requires(_Policy::is_compile_time && !_Policy::should_track())
 	{
-		return exclusive_resource_holder<_Type, true>(*this);
+		return exclusive_resource_holder<_Type, _Policy>(*this);
 	}
 
-	[[nodiscard]] constexpr concurrent_resource_holder<_Type, true> concurrent() const noexcept
-		requires(_Release)
+	// For compile-time enabled tracking
+	[[nodiscard]] constexpr auto exclusive(std::source_location srcl = std::source_location::current()) noexcept
+		requires(_Policy::is_compile_time && _Policy::should_track())
 	{
-		return concurrent_resource_holder<_Type, true>(const_cast<resource_owner<_Type, _Release>&>(*this));
+		return exclusive_resource_holder<_Type, _Policy>(*this, std::move(srcl));
 	}
 
-	[[nodiscard]] constexpr exclusive_resource_holder<_Type, false> exclusive(std::source_location srcl = std::source_location::current()) noexcept
-		requires(!_Release)
+	// For runtime tracking
+	[[nodiscard]] auto exclusive(std::source_location srcl = std::source_location::current()) noexcept
+		requires(!_Policy::is_compile_time)
 	{
-		return exclusive_resource_holder<_Type, false>(*this, std::move(srcl));
+		if (_Policy::should_track())
+		{
+			return exclusive_resource_holder<_Type, _Policy>(*this, std::move(srcl));
+		}
+		return exclusive_resource_holder<_Type, _Policy>(*this);
 	}
 
-	[[nodiscard]] constexpr concurrent_resource_holder<_Type, false> concurrent(std::source_location srcl = std::source_location::current()) const noexcept
-		requires(!_Release)
+	// For compile-time disabled tracking
+	[[nodiscard]] constexpr auto concurrent() const noexcept
+		requires(_Policy::is_compile_time && !_Policy::should_track())
 	{
-		return concurrent_resource_holder<_Type, false>(const_cast<resource_owner<_Type, _Release>&>(*this), std::move(srcl));
+		return concurrent_resource_holder<_Type, _Policy>(const_cast<resource_owner<_Type, _Policy>&>(*this));
+	}
+
+	// For compile-time enabled tracking
+	[[nodiscard]] constexpr auto concurrent(std::source_location srcl = std::source_location::current()) const noexcept
+		requires(_Policy::is_compile_time && _Policy::should_track())
+	{
+		return concurrent_resource_holder<_Type, _Policy>(const_cast<resource_owner<_Type, _Policy>&>(*this), std::move(srcl));
+	}
+
+	// For runtime tracking
+	[[nodiscard]] auto concurrent(std::source_location srcl = std::source_location::current()) const noexcept
+		requires(!_Policy::is_compile_time)
+	{
+		if (_Policy::should_track())
+		{
+			return concurrent_resource_holder<_Type, _Policy>(const_cast<resource_owner<_Type, _Policy>&>(*this), std::move(srcl));
+		}
+		return concurrent_resource_holder<_Type, _Policy>(const_cast<resource_owner<_Type, _Policy>&>(*this));
 	}
 
 private:
@@ -363,14 +390,30 @@ private:
 	std::shared_ptr<_Type> _resource = std::make_shared<_Type>();
 };
 
+/// <summary>
+/// Compile-time aliases for resource owner tracking
+/// </summary>
 template <class _Type>
-using resource_owner_release = resource_owner<_Type, true>;
-template <class _Type>
-using resource_owner_debug = resource_owner<_Type, false>;
+using resource_owner_release = resource_owner<_Type, lock_tracking_disabled>;
 
-#if defined(NDEBUG) || defined(CONCURRENT_DBG_TOOLS)
+template <class _Type>
+using resource_owner_debug = resource_owner<_Type, lock_tracking_enabled>;
+
+/// <summary>
+/// Runtime alias for lock tracking
+/// </summary>
+template <class _Type>
+using resource_owner_runtime = resource_owner<_Type, lock_tracking_runtime>;
+
+/// <summary>
+/// Build configuration alias
+/// </summary>
+#if defined(NDEBUG) || defined(SYNCHRONIZATION_NO_TRACKING)
 template <class _Type>
 using result_resource_owner = resource_owner_release<_Type>;
+#elif defined(SYNCHRONIZATION_RUNTIME_TRACKING)
+template <class _Type>
+using result_resource_owner = resource_owner_runtime<_Type>;
 #else
 template <class _Type>
 using result_resource_owner = resource_owner_debug<_Type>;

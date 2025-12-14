@@ -1,11 +1,11 @@
 #include "synchronization/lock_owner.h"
 
-#include <fstream>
-#include <future>
+#include <chrono>
+#include <condition_variable>
 #include <gtest/gtest.h>
-#include <iostream>
-#include <string>
-#include <thread>
+#include <mutex>
+#include <system_error>
+#include <utility>
 
 using namespace janecekvit;
 using namespace janecekvit::synchronization;
@@ -337,6 +337,451 @@ TEST_F(test_lock_owner, TestConcurrentAccessDoubleUnlock)
 			lock.unlock();
 		},
 		std::system_error);
+}
+
+TEST_F(test_lock_owner, TestRuntimePolicyCustomCallback)
+{
+	bool should_track = true;
+	synchronization::lock_tracking_runtime::set_callback(
+		[&should_track]()
+		{
+			return should_track;
+		});
+
+	synchronization::lock_owner_runtime<> owner;
+
+	{
+		auto&& lock = owner.exclusive();
+		(void) lock;
+		ASSERT_TRUE(owner.get_exclusive_lock_details().has_value());
+	}
+
+	{
+		auto&& lock = owner.concurrent();
+		(void) lock;
+		ASSERT_EQ(1, owner.get_concurrent_lock_details().size());
+	}
+
+	// Disable tracking by changing the callback result
+	should_track = false;
+
+	{
+		auto&& lock = owner.exclusive();
+		(void) lock;
+		ASSERT_FALSE(owner.get_exclusive_lock_details().has_value());
+	}
+
+	{
+		auto&& lock = owner.concurrent();
+		(void) lock;
+		ASSERT_EQ(0, owner.get_concurrent_lock_details().size());
+	}
+
+	synchronization::lock_tracking_runtime::clear_callback();
+}
+
+TEST_F(test_lock_owner, TestPolicyMixing)
+{
+	synchronization::lock_owner_debug<> debug_owner;
+	synchronization::lock_owner_release<> release_owner;
+	synchronization::lock_owner_runtime<> runtime_owner;
+
+	{
+		auto debug_lock = debug_owner.exclusive();
+		auto release_lock = release_owner.exclusive();
+		auto runtime_lock = runtime_owner.exclusive();
+
+		// Debug always tracks
+		ASSERT_TRUE(debug_owner.get_exclusive_lock_details().has_value());
+
+		// runtime tracks depending on configuration (default: disabled)
+		ASSERT_FALSE(runtime_owner.get_exclusive_lock_details().has_value());
+	}
+
+	{
+		auto debug_lock = debug_owner.concurrent();
+		auto release_lock = release_owner.concurrent();
+		auto runtime_lock = runtime_owner.concurrent();
+
+		// Debug always tracks
+		ASSERT_EQ(1, debug_owner.get_concurrent_lock_details().size());
+
+		// Runtime depends on configuration (default: disabled)
+		ASSERT_EQ(0, runtime_owner.get_concurrent_lock_details().size());
+	}
+}
+
+TEST_F(test_lock_owner, TestRuntimePolicyDefault)
+{
+	synchronization::lock_tracking_runtime::clear_callback();
+
+	synchronization::lock_owner_runtime<> owner;
+
+	{
+		auto&& lock = owner.exclusive();
+		(void) lock;
+		ASSERT_FALSE(owner.get_exclusive_lock_details().has_value());
+	}
+
+	{
+		auto&& lock = owner.concurrent();
+		(void) lock;
+		ASSERT_EQ(0, owner.get_concurrent_lock_details().size());
+	}
+}
+
+TEST_F(test_lock_owner, TestLoggingCallback)
+{
+	synchronization::lock_tracking_runtime::set_callback([]()
+		{
+			return true;
+		});
+
+	std::vector<std::tuple<std::string, const void*>> logged_events;
+
+	synchronization::lock_tracking_runtime::set_logging_callback(
+		[&logged_events](const lock_information& info, const void* mutex_ptr)
+		{
+			logged_events.emplace_back(std::string(info.Location.file_name()), mutex_ptr);
+		});
+
+	synchronization::lock_owner_runtime<> owner;
+
+	{
+		auto&& lock = owner.exclusive();
+		(void) lock;
+	}
+
+	ASSERT_EQ(1, logged_events.size());
+	ASSERT_EQ(owner.get_mutex().get(), std::get<1>(logged_events[0]));
+
+	synchronization::lock_tracking_runtime::clear_logging_callback();
+	synchronization::lock_tracking_runtime::clear_callback();
+}
+
+TEST_F(test_lock_owner, TestLoggingCallbackConcurrent)
+{
+	synchronization::lock_tracking_runtime::set_callback([]()
+		{
+			return true;
+		});
+
+	int event_count = 0;
+	synchronization::lock_tracking_runtime::set_logging_callback(
+		[&event_count](const lock_information&, const void*)
+		{
+			event_count++;
+		});
+
+	synchronization::lock_owner_runtime<> owner;
+
+	{
+		auto&& lock1 = owner.concurrent();
+		auto&& lock2 = owner.concurrent();
+		(void) lock1;
+		(void) lock2;
+	}
+
+	ASSERT_EQ(2, event_count);
+
+	synchronization::lock_tracking_runtime::clear_logging_callback();
+	synchronization::lock_tracking_runtime::clear_callback();
+}
+
+TEST_F(test_lock_owner, TestLoggingCallbackTryLock)
+{
+	synchronization::lock_tracking_runtime::set_callback([]()
+		{
+			return true;
+		});
+
+	int event_count = 0;
+
+	synchronization::lock_tracking_runtime::set_logging_callback(
+		[&event_count](const lock_information&, const void*)
+		{
+			event_count++;
+		});
+
+	synchronization::lock_owner_runtime<> owner;
+
+	{
+		auto&& lock = owner.exclusive();
+		ASSERT_TRUE(lock.owns_lock());
+		lock.unlock();
+		ASSERT_TRUE(lock.try_lock());
+
+		lock.unlock();
+		auto&& lock2 = owner.exclusive();
+		ASSERT_TRUE(lock2.owns_lock());
+
+		ASSERT_FALSE(lock.try_lock());
+
+		(void) lock;
+		(void) lock2;
+	}
+	ASSERT_EQ(3, event_count);
+
+	synchronization::lock_tracking_runtime::clear_logging_callback();
+	synchronization::lock_tracking_runtime::clear_callback();
+}
+
+TEST_F(test_lock_owner, TestLoggingCallbackLockInformation)
+{
+	synchronization::lock_tracking_runtime::set_callback([]()
+		{
+			return true;
+		});
+
+	std::optional<lock_information> captured_info;
+
+	synchronization::lock_tracking_runtime::set_logging_callback(
+		[&captured_info](const lock_information& info, const void*)
+		{
+			if (!captured_info.has_value())
+			{
+				captured_info = info;
+			}
+		});
+
+	synchronization::lock_owner_runtime<> owner;
+	int test_line = 0;
+
+	{
+		test_line = __LINE__ + 1;
+		auto&& lock = owner.exclusive();
+		(void) lock;
+	}
+
+	ASSERT_TRUE(captured_info.has_value());
+	ASSERT_STREQ(captured_info->Location.file_name(), __FILE__);
+	ASSERT_EQ(captured_info->Location.line(), static_cast<uint_least32_t>(test_line));
+	ASSERT_EQ(std::hash<std::thread::id>()(captured_info->ThreadId), std::hash<std::thread::id>()(std::this_thread::get_id()));
+	ASSERT_STREQ(captured_info->MutexType.name(), typeid(*owner.get_mutex()).name());
+	ASSERT_FALSE(captured_info->ResourceType.has_value());
+
+	synchronization::lock_tracking_runtime::clear_logging_callback();
+	synchronization::lock_tracking_runtime::clear_callback();
+}
+
+TEST_F(test_lock_owner, TestLoggingCallbackMultipleMutexes)
+{
+	synchronization::lock_tracking_runtime::set_callback([]()
+		{
+			return true;
+		});
+
+	std::vector<const void*> logged_mutexes;
+
+	synchronization::lock_tracking_runtime::set_logging_callback(
+		[&logged_mutexes](const lock_information&, const void* mutex_ptr)
+		{
+			logged_mutexes.push_back(mutex_ptr);
+		});
+
+	synchronization::lock_owner_runtime<> owner1;
+	synchronization::lock_owner_runtime<> owner2;
+
+	{
+		auto&& lock1 = owner1.exclusive();
+		auto&& lock2 = owner2.exclusive();
+		(void) lock1;
+		(void) lock2;
+	}
+
+	ASSERT_EQ(2, logged_mutexes.size());
+	ASSERT_EQ(owner1.get_mutex().get(), logged_mutexes[0]);
+	ASSERT_EQ(owner2.get_mutex().get(), logged_mutexes[1]);
+	ASSERT_NE(logged_mutexes[0], logged_mutexes[1]);
+
+	synchronization::lock_tracking_runtime::clear_logging_callback();
+	synchronization::lock_tracking_runtime::clear_callback();
+}
+
+TEST_F(test_lock_owner, TestLoggingCallbackDisabledWhenNoTracking)
+{
+	using namespace synchronization;
+
+	synchronization::lock_tracking_runtime::clear_callback();
+
+	int callback_count = 0;
+
+	synchronization::lock_tracking_runtime::set_logging_callback(
+		[&callback_count](const lock_information&, const void*)
+		{
+			callback_count++;
+		});
+
+	synchronization::lock_owner_runtime<> owner;
+
+	{
+		auto&& lock = owner.exclusive();
+		(void) lock;
+	}
+
+	ASSERT_EQ(0, callback_count);
+
+	synchronization::lock_tracking_runtime::clear_logging_callback();
+}
+
+TEST_F(test_lock_owner, TestLoggingCallbackExceptionSafety)
+{
+	synchronization::lock_tracking_runtime::set_callback([]()
+		{
+			return true;
+		});
+
+	synchronization::lock_tracking_runtime::set_logging_callback(
+		[](const lock_information&, const void*)
+		{
+			throw std::runtime_error("Callback exception");
+		});
+
+	synchronization::lock_owner_runtime<> owner;
+
+	ASSERT_NO_THROW({
+		auto&& lock = owner.exclusive();
+		(void) lock;
+	});
+
+	{
+		auto&& lock = owner.exclusive();
+		(void) lock;
+		ASSERT_TRUE(owner.get_exclusive_lock_details().has_value());
+	}
+
+	synchronization::lock_tracking_runtime::clear_logging_callback();
+	synchronization::lock_tracking_runtime::clear_callback();
+}
+
+TEST_F(test_lock_owner, TestLoggingCallbackCompileTimeEnabled)
+{
+	synchronization::lock_owner_debug<> owner;
+
+	int callback_count = 0;
+	std::vector<uint_least32_t> logged_lines;
+
+	synchronization::lock_tracking_enabled::set_logging_callback(
+		[&callback_count, &logged_lines](const lock_information& info, const void* mutex_ptr)
+		{
+			callback_count++;
+			logged_lines.push_back(info.Location.line());
+			(void) mutex_ptr;
+		});
+
+	{
+		auto lock = owner.exclusive();
+		(void) lock;
+	}
+
+	ASSERT_EQ(1, callback_count);
+	ASSERT_EQ(1, logged_lines.size());
+
+	synchronization::lock_tracking_enabled::clear_logging_callback();
+}
+
+TEST_F(test_lock_owner, TestLoggingCallbackSharedBetweenPolicies)
+{
+	int callback_count = 0;
+	synchronization::lock_owner_debug<> enabled_owner;
+	synchronization::lock_owner_runtime<> runtime_owner;
+
+	synchronization::lock_tracking_runtime::set_callback([]()
+		{
+			return true;
+		});
+
+	synchronization::lock_tracking_enabled::set_logging_callback(
+		[&callback_count](const lock_information& info, const void* mutex_ptr)
+		{
+			callback_count++;
+			(void) info;
+			(void) mutex_ptr;
+		});
+
+	{
+		auto lock1 = enabled_owner.exclusive();
+		(void) lock1;
+	}
+
+	{
+		auto lock2 = runtime_owner.exclusive();
+		(void) lock2;
+	}
+
+	ASSERT_EQ(2, callback_count);
+
+	synchronization::lock_tracking_enabled::clear_logging_callback();
+	synchronization::lock_tracking_runtime::clear_callback();
+}
+
+TEST_F(test_lock_owner, TestLoggingCallbackCompileTimeEnabledConcurrent)
+{
+	int callback_count = 0;
+	synchronization::lock_owner_debug<> owner;
+
+	synchronization::lock_tracking_enabled::set_logging_callback(
+		[&callback_count](const lock_information& info, const void* mutex_ptr)
+		{
+			callback_count++;
+			(void) info;
+			(void) mutex_ptr;
+		});
+
+	{
+		auto lock1 = owner.concurrent();
+		auto lock2 = owner.concurrent();
+		(void) lock1;
+		(void) lock2;
+	}
+
+	ASSERT_EQ(2, callback_count);
+
+	synchronization::lock_tracking_enabled::clear_logging_callback();
+}
+
+TEST_F(test_lock_owner, TestLoggingCallbackCompileTimeEnabledDefaultLogging)
+{
+	lock_owner_debug<> owner;
+	lock_tracking_enabled::clear_logging_callback();
+
+	ASSERT_NO_THROW({
+		auto lock = owner.exclusive();
+		(void) lock;
+		ASSERT_TRUE(owner.get_exclusive_lock_details().has_value());
+	});
+}
+
+TEST_F(test_lock_owner, TestLoggingCallbackCompileTimeEnabledTryLock)
+{
+	int callback_count = 0;
+	synchronization::lock_owner_debug<> owner;
+
+	synchronization::lock_tracking_enabled::set_logging_callback(
+		[&callback_count](const lock_information& info, const void* mutex_ptr)
+		{
+			callback_count++;
+			(void) info;
+			(void) mutex_ptr;
+		});
+
+	{
+		auto lock = owner.exclusive();
+		lock.unlock();
+
+		ASSERT_TRUE(lock.try_lock());
+
+		lock.unlock();
+
+		auto lock2 = owner.exclusive();
+		(void) lock2;
+
+		ASSERT_FALSE(lock.try_lock());
+	}
+
+	ASSERT_EQ(3, callback_count);
+
+	synchronization::lock_tracking_enabled::clear_logging_callback();
 }
 
 } // namespace framework_tests
