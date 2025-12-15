@@ -913,15 +913,16 @@ std::cout << "Task result: " << result << std::endl;
 
 #### Tracing and Logging
 
-This header file, `tracing/trace.h`, provides a utility for creating and managing trace events. 
+This header file, `tracing/trace.h`, provides a thread-safe utility for creating and managing trace events with support for blocking wait operations.
 
 The `trace_event` class captures details about a trace event, including its priority, formatted message, `std::source_location` and `std::thread::id`.
-The `trace` class manages a collection of trace events, allowing for adding, retrieving, and flushing events.
+The `trace` class manages a collection of trace events in a thread-safe queue, allowing for adding, retrieving, and flushing events with optional blocking wait functionality.
 
-- **Formatted Trace Messages**: Supports formatted trace messages using using `std::format`.
+- **Formatted Trace Messages**: Supports formatted trace messages using `std::format`.
 - **Source Location Information**: Captures `std::source_location` details such as file name, line number, and function name.
 - **Thread Identification**: Captures the thread ID where the trace event was created.
-- **Concurrent Access**: Uses thread-safe containers to manage trace events.
+- **Blocking Wait Operations**: Supports blocking wait for events with optional timeout using `std::condition_variable_any`.
+- **Producer-Consumer Pattern**: Ideal for multi-threaded logging and event processing scenarios.
 
 ```cpp
 #include "tracing/trace.h"
@@ -941,8 +942,23 @@ tracing::trace<std::string, LogLevel> tracer;
 
 tracer.create(tracing::trace_event{ LogLevel::Info, "This is a trace message with value: {}", 42 });
 
-auto event = tracer.next_trace();
+// Non-blocking call
+auto event_opt = tracer.get_next_trace();
+if (event_opt) {
+	std::cout << "Trace event data: " << event_opt->data() << std::endl;
+}
+
+// Blocking call
+auto event = tracer.get_next_trace_wait();
 std::cout << "Trace event data: " << event.data() << std::endl;
+
+// Blocking call with timeout
+auto event_timeout = tracer.get_next_trace_wait_for(std::chrono::seconds(5));
+if (event_timeout) {
+	std::cout << "Trace event data: " << event_timeout->data() << std::endl;
+} else {
+	std::cout << "Timeout waiting for event" << std::endl;
+}
 
 tracer.flush();
 ```

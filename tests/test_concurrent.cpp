@@ -814,16 +814,15 @@ TEST_F(test_concurrent, TestConcurrentLoggingCallbackMixed)
 
 	concurrent::resource_owner_debug<std::map<int, int>> container;
 
-	int exclusive_count = 0;
-	int concurrent_count = 0;
+	int count = 0;
 
 	lock_tracking_enabled::set_logging_callback(
-		[&exclusive_count, &concurrent_count](const lock_information& info, const void* mutex_ptr)
+		[&count](const lock_information& info, const void* mutex_ptr)
 		{
 			(void) info;
 			(void) mutex_ptr;
 
-			exclusive_count++;
+			count++;
 		});
 
 	{
@@ -831,14 +830,14 @@ TEST_F(test_concurrent, TestConcurrentLoggingCallbackMixed)
 		exclusive_scope->emplace(1, 100);
 	}
 
-	ASSERT_EQ(1, exclusive_count);
+	ASSERT_EQ(1, count);
 
 	{
 		auto concurrent_scope = container.concurrent();
 		(void) concurrent_scope;
 	}
 
-	ASSERT_EQ(2, exclusive_count);
+	ASSERT_EQ(2, count);
 	lock_tracking_enabled::clear_logging_callback();
 }
 

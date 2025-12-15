@@ -35,9 +35,15 @@ TEST_F(test_trace, TestTrace)
 	trace.create(tracing::trace_event{ test::Verbose, L"NE: {}", false });
 
 	ASSERT_EQ(trace.size(), static_cast<size_t>(2));
-	auto&& t1 = trace.next_trace();
-	auto&& t2 = trace.next_trace();
+	auto t1_opt = trace.get_next_trace();
+	auto t2_opt = trace.get_next_trace();
 	ASSERT_EQ(trace.size(), static_cast<size_t>(0));
+
+	ASSERT_TRUE(t1_opt.has_value());
+	ASSERT_TRUE(t2_opt.has_value());
+
+	auto& t1 = *t1_opt;
+	auto& t2 = *t2_opt;
 
 	// implicit conversion
 	test t = t1;
@@ -66,6 +72,43 @@ TEST_F(test_trace, TestTrace)
 	ASSERT_EQ(t2.source_location().line(), static_cast<uint_least32_t>(35));
 #endif
 	ASSERT_EQ(t2.data(), L"NE: false"s);
+
+	auto t3_opt = trace.get_next_trace();
+	ASSERT_FALSE(t3_opt.has_value());
+}
+
+TEST_F(test_trace, TestTraceWait)
+{
+	tracing::trace<std::wstring, test> trace;
+
+	std::thread producer([&trace]()
+		{
+			trace.create(tracing::trace_event{ test::Warning, L"Delayed event: {}", 42 });
+		});
+
+	auto evt = trace.get_next_trace_wait();
+
+	producer.join();
+
+	ASSERT_EQ(evt.data(), L"Delayed event: 42"s);
+	ASSERT_EQ(static_cast<size_t>(evt.priority()), static_cast<size_t>(test::Warning));
+}
+
+TEST_F(test_trace, TestTraceWaitFor)
+{
+	tracing::trace<std::wstring, test> trace;
+
+	auto evt_timeout = trace.get_next_trace_wait_for(std::chrono::milliseconds(0));
+
+	ASSERT_FALSE(evt_timeout.has_value());
+
+	trace.create(tracing::trace_event{ test::Verbose, L"Timed event: {}", true });
+
+	auto evt = trace.get_next_trace_wait_for(std::chrono::milliseconds(200));
+
+	ASSERT_TRUE(evt.has_value());
+	ASSERT_EQ(evt->data(), L"Timed event: true"s);
+	ASSERT_EQ(static_cast<size_t>(evt->priority()), static_cast<size_t>(test::Verbose));
 }
 
 } // namespace framework_tests

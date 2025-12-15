@@ -3,7 +3,9 @@
 #include "synchronization/concurrent.h"
 #include "utility/conversions.h"
 
+#include <chrono>
 #include <format>
+#include <optional>
 #include <source_location>
 #include <thread>
 
@@ -14,18 +16,18 @@ template <constraints::format_outout _FmtOutput, constraints::enum_type _Enum, c
 class trace_event
 {
 public:
-	trace_event(_Enum priority, _Fmt&& format, _Args&&... args, std::source_location&& srcl = std::source_location::current(), std::thread::id&& thread = std::this_thread::get_id())
-		: _priority(std::move(priority))
-		, _thread(std::move(thread))
-		, _srcl(std::move(srcl))
+	trace_event(_Enum priority, _Fmt&& format, _Args&&... args, std::source_location srcl = std::source_location::current(), std::thread::id thread = std::this_thread::get_id())
+		: _priority(priority)
+		, _thread(thread)
+		, _srcl(srcl)
 
 	{
 		try
 		{
 			if constexpr (constraints::format_wstring_view<_FmtOutput>)
-				_data = std::vformat(std::move(format), std::make_wformat_args(args...));
+				_data = std::vformat(format, std::make_wformat_args(args...));
 			else
-				_data = std::vformat(std::move(format), std::make_format_args(args...));
+				_data = std::vformat(format, std::make_format_args(args...));
 		}
 		catch (const std::exception& ex)
 		{
@@ -35,48 +37,54 @@ public:
 
 			if constexpr (constraints::format_wstring_view<_FmtOutput>)
 			{
-				_data += L"Unexpected exception: "s + conversions::to_wstring(ex.what()) + L"\n"s + conversions::to_wstring(indexSerialized);
+				_data += L"Unexpected exception: ";
+				_data += conversions::to_wstring(ex.what());
+				_data += L"\nType arguments: ";
+				_data += conversions::to_wstring(indexSerialized);
 			}
 			else
 			{
-				_data += "Unexpected exception: "s + ex.what() + "\n"s + indexSerialized;
+				_data += "Unexpected exception: ";
+				_data += ex.what();
+				_data += "\nType arguments: ";
+				_data += indexSerialized;
 			}
 		}
 	}
 
 	virtual ~trace_event() = default;
 
-	constexpr operator _Enum() const
+	constexpr operator _Enum() const noexcept
 	{
 		return _priority;
 	}
 
-	operator const std::thread::id&() const&
+	operator const std::thread::id&() const& noexcept
 	{
 		return _thread;
 	}
 
-	operator std::thread::id() &&
+	operator std::thread::id() && noexcept
 	{
 		return _thread;
 	}
 
-	operator const std::source_location&() const&
+	operator const std::source_location&() const& noexcept
 	{
 		return _srcl;
 	}
 
-	operator std::source_location() &&
+	operator std::source_location() && noexcept
 	{
 		return _srcl;
 	}
 
-	constexpr operator const _FmtOutput&() const&
+	constexpr operator const _FmtOutput&() const& noexcept
 	{
 		return _data;
 	}
 
-	constexpr operator _FmtOutput&&() &&
+	constexpr operator _FmtOutput&&() && noexcept
 	{
 		return std::move(_data);
 	}
@@ -119,57 +127,57 @@ class trace
 		{
 		}
 
-		constexpr _Enum priority() const
+		constexpr _Enum priority() const noexcept
 		{
 			return _priority;
 		}
 
-		const std::thread::id& thread_id() const&
+		const std::thread::id& thread_id() const& noexcept
 		{
 			return _thread;
 		}
 
-		const std::source_location& source_location() const&
+		const std::source_location& source_location() const& noexcept
 		{
 			return _srcl;
 		}
 
-		const _Data& data() const&
+		const _Data& data() const& noexcept
 		{
 			return _data;
 		}
 
-		constexpr operator _Enum() const
+		constexpr operator _Enum() const noexcept
 		{
 			return _priority;
 		}
 
-		operator const std::thread::id&() const&
+		operator const std::thread::id&() const& noexcept
 		{
 			return _thread;
 		}
 
-		operator std::thread::id&&() &&
+		operator std::thread::id&&() && noexcept
 		{
 			return std::move(_thread);
 		}
 
-		operator const std::source_location&() const&
+		operator const std::source_location&() const& noexcept
 		{
 			return _srcl;
 		}
 
-		operator std::source_location&&() &&
+		operator std::source_location&&() && noexcept
 		{
 			return std::move(_srcl);
 		}
 
-		operator const _Data&() const&
+		operator const _Data&() const& noexcept
 		{
 			return _data;
 		}
 
-		operator _Data&&() &&
+		operator _Data&&() && noexcept
 		{
 			return std::move(_data);
 		}
@@ -190,17 +198,49 @@ public:
 		_process(event(std::move(value)));
 	}
 
-	virtual event next_trace()
+	[[nodiscard]] virtual std::optional<event> get_next_trace()
 	{
 		auto&& scope = _traceQueue.exclusive();
-		auto e = scope->front();
+		if (scope->empty())
+			return std::nullopt;
+
+		auto e = std::move(scope->front());
 		scope->pop_front();
 		return e;
 	}
 
-	virtual size_t size()
+	[[nodiscard]] virtual event get_next_trace_wait()
 	{
-		return _traceQueue.concurrent()->size();
+		auto&& scope = _traceQueue.exclusive();
+		scope.wait(_event, [&]
+			{
+				return !scope->empty();
+			});
+
+		auto e = std::move(scope->front());
+		scope->pop_front();
+		return e;
+	}
+
+	template <class _Rep, class _Period>
+	[[nodiscard]] std::optional<event> get_next_trace_wait_for(const std::chrono::duration<_Rep, _Period>& timeout)
+	{
+		auto&& scope = _traceQueue.exclusive();
+
+		if (!scope.wait_for(_event, timeout, [&]
+				{
+					return !scope->empty();
+				}))
+			return std::nullopt;
+
+		auto e = std::move(scope->front());
+		scope->pop_front();
+		return e;
+	}
+
+	[[nodiscard]] virtual size_t size() const
+	{
+		return _traceQueue.exclusive()->size();
 	}
 
 	virtual void flush()
@@ -212,10 +252,12 @@ protected:
 	virtual void _process(event&& e)
 	{
 		_traceQueue.exclusive()->emplace_back(std::move(e));
+		_event.notify_one();
 	}
 
 protected:
-	synchronization::concurrent::deque<event> _traceQueue;
+	std::condition_variable_any _event;
+	mutable synchronization::concurrent::deque<event> _traceQueue;
 };
 
 } // namespace janecekvit::tracing

@@ -176,9 +176,9 @@ stages:
     - script: |
         echo "Building framework and tests..."
         cd $(buildDir)
-        
+
         cmake --build . --config $(buildConfiguration) --parallel 4 --target framework_tests
-        
+
         if %ERRORLEVEL% neq 0 (
           echo "Build failed!"
           exit /b %ERRORLEVEL%
@@ -186,21 +186,20 @@ stages:
         echo "Build completed successfully"
       displayName: "Build Framework and Tests (Windows)"
       condition: eq(variables['Agent.OS'], 'Windows_NT')
+      failOnStderr: false
       
     # Build the framework and tests - Unix
     - bash: |
+        set -e  # Exit immediately if any command fails
         echo "Building framework and tests..."
         cd $(buildDir)
-        
+
         cmake --build . --config $(buildConfiguration) --parallel 4 --target framework_tests
-        
-        if [ $? -ne 0 ]; then
-          echo "Build failed!"
-          exit $?
-        fi
+
         echo "Build completed successfully"
       displayName: "Build Framework and Tests (Unix)"
       condition: ne(variables['Agent.OS'], 'Windows_NT')
+      failOnStderr: false
     
     # Run tests - Windows
     - script: |

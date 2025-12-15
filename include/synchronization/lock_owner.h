@@ -186,13 +186,21 @@ struct lock_tracking_runtime : lock_logging_support
 	{
 		auto shared_callback = std::make_shared<std::function<bool()>>(std::move(callback));
 
+#ifdef __APPLE__
+		std::atomic_store_explicit(&_custom_callback(), shared_callback, std::memory_order_release);
+#else
 		_custom_callback().store(shared_callback, std::memory_order_release);
+#endif
 		_has_custom_callback().store(true, std::memory_order_release);
 	}
 
 	static void clear_callback() noexcept
 	{
+#ifdef __APPLE__
+		std::atomic_store_explicit(&_custom_callback(), std::shared_ptr<std::function<bool()>>(nullptr), std::memory_order_release);
+#else
 		_custom_callback().store(nullptr, std::memory_order_release);
+#endif
 		_has_custom_callback().store(false, std::memory_order_release);
 	}
 
@@ -202,18 +210,30 @@ private:
 		if (!_has_custom_callback().load(std::memory_order_acquire))
 			return false;
 
+#ifdef __APPLE__
+		auto callback = std::atomic_load_explicit(&_custom_callback(), std::memory_order_acquire);
+#else
 		auto callback = _custom_callback().load(std::memory_order_acquire);
+#endif
 		if (callback && *callback)
 			return (*callback)();
 
 		return false;
 	}
 
+#ifdef __APPLE__
+	static std::shared_ptr<std::function<bool()>>& _custom_callback()
+	{
+		static std::shared_ptr<std::function<bool()>> callback;
+		return callback;
+	}
+#else
 	static std::atomic<std::shared_ptr<std::function<bool()>>>& _custom_callback()
 	{
 		static std::atomic<std::shared_ptr<std::function<bool()>>> callback;
 		return callback;
 	}
+#endif
 
 	static std::atomic<bool>& _has_custom_callback()
 	{
