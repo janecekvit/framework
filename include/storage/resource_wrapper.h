@@ -88,7 +88,7 @@ public:
 	}
 
 	constexpr resource_wrapper(_Resource&& resource, _ResourceDeleter&& deleter)
-		: _resource(_create_resource(std::forward<_Resource>(resource), _ResourceDeleter(deleter), _ExceptionCallback{}))
+		: _resource(_create_resource(std::move(resource), _ResourceDeleter(deleter), _ExceptionCallback{}))
 		, _deleter(std::forward<_ResourceDeleter>(deleter))
 	{
 	}
@@ -101,9 +101,17 @@ public:
 
 	constexpr resource_wrapper(_Resource&& resource, _ResourceDeleter&& deleter, _ExceptionCallback&& fnExceptionCallback)
 		requires(std::is_invocable_v<_ExceptionCallback, const std::exception&>)
-		: _resource(_create_resource(std::forward<_Resource>(resource), _ResourceDeleter(deleter), _ExceptionCallback(fnExceptionCallback)))
+		: _resource(_create_resource(std::move(resource), _ResourceDeleter(deleter), _ExceptionCallback(fnExceptionCallback)))
 		, _deleter(std::forward<_ResourceDeleter>(deleter))
 		, _exception_callback(std::forward<_ExceptionCallback>(fnExceptionCallback))
+	{
+	}
+
+	constexpr resource_wrapper(const _Resource& resource, _ResourceDeleter&& deleter, _ExceptionCallback&& fnExceptionCallback)
+	requires(std::is_invocable_v<_ExceptionCallback, const std::exception&>)
+	: _resource(_create_resource(resource, _ResourceDeleter(deleter), _ExceptionCallback(fnExceptionCallback)))
+	, _deleter(std::forward<_ResourceDeleter>(deleter))
+	, _exception_callback(std::forward<_ExceptionCallback>(fnExceptionCallback))
 	{
 	}
 
@@ -255,12 +263,12 @@ public:
 	}
 
 protected:
-	[[nodiscard]] constexpr std::shared_ptr<_Resource> _create_resource(_Resource&& resource, _ResourceDeleter&& deleter, _ExceptionCallback&& exceptionCallback)
-		requires(!is_default_exception_callback<_ExceptionCallback>)
+	template <typename _FwdType>
+	[[nodiscard]] constexpr std::shared_ptr<_Resource> _create_resource(_FwdType&& resource, _ResourceDeleter&& deleter, _ExceptionCallback&& exceptionCallback)
 	{
-		return std::shared_ptr<_Resource>(new _Resource(std::forward<_Resource>(resource)), [stored_deleter = std::move(deleter), stored_callback = std::move(exceptionCallback)](_Resource* ptr)
+		return std::shared_ptr<_Resource>(
+			new _Resource(std::forward<_FwdType>(resource)), [stored_deleter = std::move(deleter), stored_callback =  std::forward<_ExceptionCallback>(exceptionCallback)](_Resource* ptr)
 			{
-				// call inner resource deleter
 				try
 				{
 					if (stored_deleter)
@@ -268,29 +276,15 @@ protected:
 				}
 				catch (const std::exception& ex)
 				{
-					stored_callback(ex);
+					if constexpr (!is_default_exception_callback<std::remove_cvref_t<decltype(stored_callback)>>)
+					{
+						stored_callback(ex);
+					}
+					else
+					{
+						std::ignore = stored_callback; // avoid unused variable warning
+					}
 				}
-
-				delete ptr;
-				ptr = nullptr;
-			});
-	}
-
-	[[nodiscard]] constexpr std::shared_ptr<_Resource> _create_resource(_Resource&& resource, _ResourceDeleter&& deleter, _ExceptionCallback&&)
-		requires(is_default_exception_callback<_ExceptionCallback>)
-	{
-		return std::shared_ptr<_Resource>(new _Resource(std::forward<_Resource>(resource)), [stored_deleter = std::move(deleter)](_Resource* ptr)
-			{
-				// call inner resource deleter
-				try
-				{
-					if (stored_deleter)
-						stored_deleter(*ptr);
-				}
-				catch (const std::exception&)
-				{
-				}
-
 				delete ptr;
 				ptr = nullptr;
 			});
@@ -310,14 +304,14 @@ protected:
 };
 
 /// <summary>
-/// User defined deduction guide CTAD for final_action using default exception callback
+/// User defined deduction guide CTAD using forwarding reference
 /// </summary>
 template <class _Resource, std::invocable _ResourceDeleter>
 resource_wrapper(_Resource&&, _ResourceDeleter&&)
 	-> resource_wrapper<_Resource, _ResourceDeleter, constraints::default_exception_callback>;
 
 /// <summary>
-/// User-defined deduction guide CTAD for final_action using custom exception callback
+/// User-defined deduction guide CTAD with exception callback using forwarding reference
 /// </summary>
 template <class _Resource, std::invocable _ResourceDeleter, std::invocable _ExceptionCallback>
 resource_wrapper(const _Resource&, _ResourceDeleter&&, _ExceptionCallback&&)

@@ -65,6 +65,30 @@ TEST_F(test_resource_wrapper, TestUserConversion)
 	}
 }
 
+
+TEST_F(test_resource_wrapper, TestDeduction_LValue)
+{
+	int* ptr = new int(42);
+	auto wrapper = storage::resource_wrapper(ptr, [](int*& p)
+		{
+			delete p;
+			p = nullptr;
+		});
+
+	ASSERT_EQ(*wrapper, 42);
+}
+
+TEST_F(test_resource_wrapper, TestDeduction_ConstLvalue)
+{
+	const int value = 100;
+	auto wrapper = storage::resource_wrapper(value, [](int& v)
+		{
+			v = 0;
+		});
+
+	ASSERT_EQ(static_cast<int>(wrapper), 100);
+}
+
 TEST_F(test_resource_wrapper, TestReset)
 {
 	int* iValueChecker = nullptr;
@@ -235,6 +259,7 @@ TEST_F(test_resource_wrapper, TestDeleterException)
 		FAIL();
 	}
 }
+
 TEST_F(test_resource_wrapper, TestDeleterExceptionCallback)
 {
 	bool callbackCalled = false;
@@ -255,5 +280,162 @@ TEST_F(test_resource_wrapper, TestDeleterExceptionCallback)
 	ASSERT_FALSE(callbackCalled);
 	oWrappedInt.reset();
 	ASSERT_TRUE(callbackCalled);
+}
+
+
+TEST_F(test_resource_wrapper, TestDeleterExceptionCallbackLvalue)
+{
+	int* ptr = new int(50);
+	bool exceptionHandled = false;
+
+	{
+		auto wrapper = storage::resource_wrapper(
+			ptr,
+			[](int*& p)
+			{
+				delete p;
+				p = nullptr;
+				throw std::runtime_error("Test exception");
+			},
+			[&exceptionHandled](const std::exception&)
+			{
+				exceptionHandled = true;
+			});
+
+		ASSERT_EQ(*wrapper, 50);
+		wrapper.reset();
+	}
+
+	ASSERT_TRUE(exceptionHandled);
+}
+
+
+
+TEST_F(test_resource_wrapper, TestSimpleStruct)
+{
+	struct SimpleStruct
+	{
+		int* value = nullptr;
+	};
+
+	int* valueChecker = new int(5);
+	SimpleStruct structValue = { valueChecker };
+
+	{
+		auto oWrapperStruct = storage::resource_wrapper<SimpleStruct>(structValue, [&valueChecker](SimpleStruct& s)
+			{
+				if (valueChecker == s.value)
+					valueChecker = nullptr;
+				delete s.value;
+				s.value = nullptr;
+			});
+		ASSERT_NE(nullptr, valueChecker);
+		ASSERT_EQ(*(oWrapperStruct->value), 5);
+
+	}
+
+	ASSERT_EQ(nullptr, valueChecker);
+}
+
+
+TEST_F(test_resource_wrapper, TestNonCopyableResource)
+{
+	struct NonCopyable
+	{
+		int value;
+		NonCopyable(int v) : value(v) {}
+		NonCopyable(const NonCopyable&) = delete;
+		NonCopyable(NonCopyable&&) = default;
+	};
+
+	bool deleterCalled = false;
+	{
+		auto wrapper = storage::resource_wrapper<NonCopyable>(
+			NonCopyable{ 77 },
+			[&deleterCalled](NonCopyable& nc)
+			{
+				deleterCalled = true;
+				nc.value = 0;
+			});
+
+		ASSERT_EQ(wrapper->value, 77);
+	}
+	ASSERT_TRUE(deleterCalled);
+}
+
+
+
+TEST_F(test_resource_wrapper, TestPerfectForwardingPreservation)
+{
+	struct TrackableCopyMove
+	{
+		int* copyCount;
+		int* moveCount;
+
+		TrackableCopyMove(int* cc, int* mc) : copyCount(cc), moveCount(mc) {}
+
+		TrackableCopyMove(const TrackableCopyMove& other)
+			: copyCount(other.copyCount), moveCount(other.moveCount)
+		{
+			(*copyCount)++;
+		}
+
+		TrackableCopyMove(TrackableCopyMove&& other) noexcept
+			: copyCount(other.copyCount), moveCount(other.moveCount)
+		{
+			(*moveCount)++;
+		}
+	};
+
+	int copyCount = 0;
+	int moveCount = 0;
+
+	{
+		// Rvalue → should use move
+		auto wrapper1 = storage::resource_wrapper<TrackableCopyMove>(
+			TrackableCopyMove{ &copyCount, &moveCount },
+			[](TrackableCopyMove&) {});
+
+		ASSERT_EQ(copyCount, 0);
+		ASSERT_GE(moveCount, 1);
+	}
+
+	copyCount = 0;
+	moveCount = 0;
+
+	{
+		// Lvalue → should use copy
+		TrackableCopyMove obj{ &copyCount, &moveCount };
+		auto wrapper2 = storage::resource_wrapper<TrackableCopyMove>(
+			obj,
+			[](TrackableCopyMove&) {});
+
+		ASSERT_GE(copyCount, 1);
+	}
+}
+
+TEST_F(test_resource_wrapper, TestFileHandle)
+{
+	const char* filename = "test_wrapper_file.txt";
+	bool fileWasClosed = false;
+
+	{
+		auto fileWrapper = storage::resource_wrapper<std::ofstream>(
+			std::ofstream(filename),
+			[&fileWasClosed](std::ofstream& file)
+			{
+				if (file.is_open())
+				{
+					file.close();
+					fileWasClosed = true;
+				}
+			});
+
+		ASSERT_TRUE(fileWrapper->is_open());
+		fileWrapper->write("Test data\n", 10);
+	}
+
+	ASSERT_TRUE(fileWasClosed);
+	std::remove(filename);
 }
 } // namespace framework_tests
