@@ -7,6 +7,7 @@
 #include <system_error>
 #include <utility>
 
+
 using namespace janecekvit;
 using namespace janecekvit::synchronization;
 
@@ -782,6 +783,82 @@ TEST_F(test_lock_owner, TestLoggingCallbackCompileTimeEnabledTryLock)
 	ASSERT_EQ(3, callback_count);
 
 	synchronization::lock_tracking_enabled::clear_logging_callback();
+}
+
+TEST_F(test_lock_owner, TestDefaultLockOwnerAlias)
+{
+	synchronization::lock_owner<> owner;
+
+	auto lock = owner.exclusive();
+	ASSERT_TRUE(lock.owns_lock());
+#if defined(SYNCHRONIZATION_RUNTIME_TRACKING)
+	ASSERT_FALSE(owner.get_exclusive_lock_details().has_value());
+#elif !defined(SYNCHRONIZATION_NO_TRACKING) && !defined(NDEBUG)
+	ASSERT_TRUE(owner.get_exclusive_lock_details().has_value());
+#endif
+}
+
+TEST_F(test_lock_owner, TestDefaultLockOwnerAliasWithMutex)
+{
+	synchronization::lock_owner<std::mutex> owner;
+
+	auto lock = owner.exclusive();
+	ASSERT_TRUE(lock.owns_lock());
+
+
+#if defined(SYNCHRONIZATION_RUNTIME_TRACKING)
+	ASSERT_FALSE(owner.get_exclusive_lock_details().has_value());
+#elif !defined(SYNCHRONIZATION_NO_TRACKING) && !defined(NDEBUG)
+	ASSERT_TRUE(owner.get_exclusive_lock_details().has_value());
+#endif
+}
+
+TEST_F(test_lock_owner, TestLockOwnerAliasTypeTraits)
+{
+	using DefaultOwner = synchronization::lock_owner<>;
+	using MutexOwner = synchronization::lock_owner<std::mutex>;
+
+#if defined(NDEBUG) || defined(SYNCHRONIZATION_NO_TRACKING)
+	static_assert(std::is_same_v<DefaultOwner, synchronization::lock_owner_release<>>);
+	static_assert(std::is_same_v<MutexOwner, synchronization::lock_owner_release<std::mutex>>);
+#elif defined(SYNCHRONIZATION_RUNTIME_TRACKING)
+	static_assert(std::is_same_v<DefaultOwner, synchronization::lock_owner_runtime<>>);
+	static_assert(std::is_same_v<MutexOwner, synchronization::lock_owner_runtime<std::mutex>>);
+#else
+	static_assert(std::is_same_v<DefaultOwner, synchronization::lock_owner_debug<>>);
+	static_assert(std::is_same_v<MutexOwner, synchronization::lock_owner_debug<std::mutex>>);
+#endif
+
+	SUCCEED(); 
+}
+
+TEST_F(test_lock_owner, TestDefaultLockOwnerAliasConcurrent)
+{
+	synchronization::lock_owner<> owner;
+
+	auto lock1 = owner.concurrent();
+	auto lock2 = owner.concurrent();
+
+	ASSERT_TRUE(lock1.owns_lock());
+	ASSERT_TRUE(lock2.owns_lock());
+
+
+#if defined(SYNCHRONIZATION_RUNTIME_TRACKING)
+	ASSERT_EQ(0, owner.get_concurrent_lock_details().size());
+#elif !defined(SYNCHRONIZATION_NO_TRACKING) && !defined(NDEBUG)
+	ASSERT_EQ(2, owner.get_concurrent_lock_details().size());
+#endif
+}
+
+TEST_F(test_lock_owner, TestDefaultLockOwnerAliasDeduction)
+{
+	synchronization::lock_owner<> owner1;
+	auto lock1 = owner1.exclusive();
+	ASSERT_TRUE(lock1.owns_lock());
+
+	synchronization::lock_owner<std::mutex> owner2;
+	auto lock2 = owner2.exclusive();
+	ASSERT_TRUE(lock2.owns_lock());
 }
 
 } // namespace framework_tests
