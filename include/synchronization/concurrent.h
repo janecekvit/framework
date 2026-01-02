@@ -40,7 +40,7 @@ Purpose:	header file contains set of thread-safe concurrent containers,
 namespace janecekvit::synchronization::concurrent
 {
 template <class _Type, lock_tracking_policy _Policy = lock_tracking_disabled>
-class resource_owner;
+class resource_owner_base;
 
 /// <summary>
 /// Class implements wrapper for exclusive use of input resource.
@@ -52,13 +52,13 @@ class [[nodiscard]] exclusive_resource_holder : public exclusive_lock_holder<std
 	using base_type = exclusive_lock_holder<std::shared_mutex, _Policy>;
 
 public:
-	constexpr exclusive_resource_holder(resource_owner<_Type, _Policy>& owner) noexcept
+	constexpr exclusive_resource_holder(resource_owner_base<_Type, _Policy>& owner) noexcept
 		: base_type(owner)
 		, _owner(&owner)
 	{
 	}
 
-	constexpr exclusive_resource_holder(resource_owner<_Type, _Policy>& owner, std::source_location&& srcl) noexcept
+	constexpr exclusive_resource_holder(resource_owner_base<_Type, _Policy>& owner, std::source_location&& srcl) noexcept
 		: base_type(owner, std::move(srcl), typeid(_Type))
 		, _owner(&owner)
 	{
@@ -163,7 +163,7 @@ public:
 	}
 
 private:
-	resource_owner<_Type, _Policy>* _owner;
+	resource_owner_base<_Type, _Policy>* _owner;
 };
 
 /// <summary>
@@ -176,13 +176,13 @@ class [[nodiscard]] concurrent_resource_holder : public concurrent_lock_holder<s
 	using base_type = concurrent_lock_holder<std::shared_mutex, _Policy>;
 
 public:
-	constexpr concurrent_resource_holder(resource_owner<_Type, _Policy>& owner) noexcept
+	constexpr concurrent_resource_holder(resource_owner_base<_Type, _Policy>& owner) noexcept
 		: base_type(owner)
 		, _owner(&owner)
 	{
 	}
 
-	constexpr concurrent_resource_holder(resource_owner<_Type, _Policy>& owner, std::source_location&& srcl) noexcept
+	constexpr concurrent_resource_holder(resource_owner_base<_Type, _Policy>& owner, std::source_location&& srcl) noexcept
 		: base_type(owner, std::move(srcl), typeid(_Type))
 		, _owner(&owner)
 	{
@@ -260,7 +260,7 @@ public:
 	}
 
 private:
-	resource_owner<_Type, _Policy>* _owner;
+	resource_owner_base<_Type, _Policy>* _owner;
 };
 
 /// <summary>
@@ -290,7 +290,7 @@ private:
 /// </example>
 
 template <class _Type, lock_tracking_policy _Policy>
-class [[nodiscard]] resource_owner : public lock_owner_base<std::shared_mutex, _Policy>
+class [[nodiscard]] resource_owner_base : public lock_owner_base<std::shared_mutex, _Policy>
 {
 	friend exclusive_resource_holder<_Type, _Policy>;
 	friend concurrent_resource_holder<_Type, _Policy>;
@@ -302,10 +302,10 @@ public:
 	using concurrent_holder_type = concurrent_resource_holder<_Type, _Policy>;
 
 public:
-	constexpr resource_owner() = default;
-	constexpr ~resource_owner() = default;
+	constexpr resource_owner_base() = default;
+	constexpr ~resource_owner_base() = default;
 
-	constexpr resource_owner(_Type&& object) noexcept
+	constexpr resource_owner_base(_Type&& object) noexcept
 		: base_type()
 		, _resource(std::make_shared<_Type>(std::forward<_Type>(object)))
 	{
@@ -340,14 +340,14 @@ public:
 	[[nodiscard]] constexpr auto concurrent() const noexcept
 		requires(_Policy::is_compile_time && !_Policy::should_track())
 	{
-		return concurrent_resource_holder<_Type, _Policy>(const_cast<resource_owner<_Type, _Policy>&>(*this));
+		return concurrent_resource_holder<_Type, _Policy>(const_cast<resource_owner_base<_Type, _Policy>&>(*this));
 	}
 
 	// For compile-time enabled tracking
 	[[nodiscard]] constexpr auto concurrent(std::source_location srcl = std::source_location::current()) const noexcept
 		requires(_Policy::is_compile_time && _Policy::should_track())
 	{
-		return concurrent_resource_holder<_Type, _Policy>(const_cast<resource_owner<_Type, _Policy>&>(*this), std::move(srcl));
+		return concurrent_resource_holder<_Type, _Policy>(const_cast<resource_owner_base<_Type, _Policy>&>(*this), std::move(srcl));
 	}
 
 	// For runtime tracking
@@ -356,9 +356,9 @@ public:
 	{
 		if (_Policy::should_track())
 		{
-			return concurrent_resource_holder<_Type, _Policy>(const_cast<resource_owner<_Type, _Policy>&>(*this), std::move(srcl));
+			return concurrent_resource_holder<_Type, _Policy>(const_cast<resource_owner_base<_Type, _Policy>&>(*this), std::move(srcl));
 		}
-		return concurrent_resource_holder<_Type, _Policy>(const_cast<resource_owner<_Type, _Policy>&>(*this));
+		return concurrent_resource_holder<_Type, _Policy>(const_cast<resource_owner_base<_Type, _Policy>&>(*this));
 	}
 
 private:
@@ -394,73 +394,73 @@ private:
 /// Compile-time aliases for resource owner tracking
 /// </summary>
 template <class _Type>
-using resource_owner_release = resource_owner<_Type, lock_tracking_disabled>;
+using resource_owner_release = resource_owner_base<_Type, lock_tracking_disabled>;
 
 template <class _Type>
-using resource_owner_debug = resource_owner<_Type, lock_tracking_enabled>;
+using resource_owner_debug = resource_owner_base<_Type, lock_tracking_enabled>;
 
 /// <summary>
 /// Runtime alias for lock tracking
 /// </summary>
 template <class _Type>
-using resource_owner_runtime = resource_owner<_Type, lock_tracking_runtime>;
+using resource_owner_runtime = resource_owner_base<_Type, lock_tracking_runtime>;
 
 /// <summary>
 /// Build configuration alias
 /// </summary>
 #if defined(NDEBUG) || defined(SYNCHRONIZATION_NO_TRACKING)
 template <class _Type>
-using result_resource_owner = resource_owner_release<_Type>;
+using resource_owner = resource_owner_release<_Type>;
 #elif defined(SYNCHRONIZATION_RUNTIME_TRACKING)
 template <class _Type>
-using result_resource_owner = resource_owner_runtime<_Type>;
+using resource_owner = resource_owner_runtime<_Type>;
 #else
 template <class _Type>
-using result_resource_owner = resource_owner_debug<_Type>;
+using resource_owner = resource_owner_debug<_Type>;
 #endif // _DEBUG
 
 /// Pre-defined conversions ///
 template <class... _Args>
-using list = result_resource_owner<std::list<_Args...>>;
+using list = resource_owner<std::list<_Args...>>;
 
 template <class... _Args>
-using deque = result_resource_owner<std::deque<_Args...>>;
+using deque = resource_owner<std::deque<_Args...>>;
 
 template <class... _Args>
-using queue = result_resource_owner<std::queue<_Args...>>;
+using queue = resource_owner<std::queue<_Args...>>;
 
 template <class... _Args>
-using stack = result_resource_owner<std::stack<_Args...>>;
+using stack = resource_owner<std::stack<_Args...>>;
 
 template <class... _Args>
-using array = result_resource_owner<std::array<_Args...>>;
+using array = resource_owner<std::array<_Args...>>;
 
 template <class... _Args>
-using vector = result_resource_owner<std::vector<_Args...>>;
+using vector = resource_owner<std::vector<_Args...>>;
 
 template <class... _Args>
-using set = result_resource_owner<std::set<_Args...>>;
+using set = resource_owner<std::set<_Args...>>;
 
 template <class... _Args>
-using map = result_resource_owner<std::map<_Args...>>;
+using map = resource_owner<std::map<_Args...>>;
 
 template <class... _Args>
-using multiset = result_resource_owner<std::multiset<_Args...>>;
+using multiset = resource_owner<std::multiset<_Args...>>;
 
 template <class... _Args>
-using multimap = result_resource_owner<std::multimap<_Args...>>;
+using multimap = resource_owner<std::multimap<_Args...>>;
 
 template <class... _Args>
-using unordered_set = result_resource_owner<std::unordered_set<_Args...>>;
+using unordered_set = resource_owner<std::unordered_set<_Args...>>;
 
 template <class... _Args>
-using unordered_map = result_resource_owner<std::unordered_map<_Args...>>;
+using unordered_map = resource_owner<std::unordered_map<_Args...>>;
 
 template <class... _Args>
-using unordered_multiset = result_resource_owner<std::unordered_multiset<_Args...>>;
+using unordered_multiset = resource_owner<std::unordered_multiset<_Args...>>;
 
 template <class... _Args>
-using unordered_multimap = result_resource_owner<std::unordered_multimap<_Args...>>;
+using unordered_multimap = resource_owner<std::unordered_multimap<_Args...>>;
 
 template <class _Arg>
 using functor = resource_owner<std::function<_Arg>>;

@@ -176,7 +176,7 @@ TEST_F(test_heterogeneous_container, TestSize)
 	ASSERT_EQ(size_t(2), container.size<std::string>());
 	ASSERT_EQ(size_t(0), container.size<float>());
 
-	ASSERT_EQ(size_t(7), container.size());
+	ASSERT_EQ(size_t(13), container.size());
 }
 
 TEST_F(test_heterogeneous_container, TestEmpty)
@@ -505,11 +505,126 @@ TEST_F(test_heterogeneous_container, PerformanceAnyCast)
 TEST_F(test_heterogeneous_container, PerformanceHeterogenousContainer)
 {
 	storage::heterogeneous_container value(5, std::string("ANO"));
+	auto int_refs = value.get<int>();
+	auto str_refs = value.get<std::string>();
+	auto& int_ref = int_refs.front().get();
+	auto& str_ref = str_refs.front().get();
+
 	for (size_t i = 0; i < N; i++)
 	{
-		[[maybe_unused]] auto& result = value.first<int>();
-		[[maybe_unused]] auto& result2 = value.first<std::string>();
+		[[maybe_unused]] auto& result = int_ref;
+		[[maybe_unused]] auto& result2 = str_ref;
 	}
+}
+
+TEST_F(test_heterogeneous_container, TestEmptyContainerEdgeCases)
+{
+	storage::heterogeneous_container<> container;
+	ASSERT_TRUE(container.empty());
+	ASSERT_EQ(container.size(), 0);
+	ASSERT_EQ(container.begin(), container.end());
+}
+
+TEST_F(test_heterogeneous_container, TestContainerEdgeCases)
+{
+	storage::heterogeneous_container<> container;
+	ASSERT_THROW(std::ignore = container.first<int>(), storage::heterogeneous_container<>::bad_access);
+	ASSERT_THROW(std::ignore = container.get<int>(0), storage::heterogeneous_container<>::bad_access);
+	ASSERT_FALSE(container.contains<int>());
+}
+
+TEST_F(test_heterogeneous_container, TestMoveSemantics)
+{
+	auto c1 = InitializeHeterogeneousContainer();
+	ASSERT_EQ(c1.size<int>(), 2);
+
+	// Move constructor
+	auto c2 = std::move(c1);
+	ASSERT_EQ(c2.size<int>(), 2);
+	ASSERT_EQ(ToList(c2.get<int>()), (std::list<int>{ 25, 331 }));
+	ASSERT_EQ(c1.size<int>(), 0);
+
+	// Move assignment
+	storage::heterogeneous_container<> c3;
+	c3 = std::move(c2);
+	ASSERT_EQ(c3.size<int>(), 2);
+	ASSERT_EQ(c2.size<int>(), 0);
+}
+
+TEST_F(test_heterogeneous_container, TestConstIterators)
+{
+	const auto container = InitializeHeterogeneousContainer();
+
+	int count = 0;
+	for (const auto& item : container)
+	{
+		if (item.is_type<int>())
+		{
+			[[maybe_unused]] const auto& value = item.get<int>();
+		}
+		count++;
+	}
+
+	ASSERT_EQ(count, 13);
+	ASSERT_EQ(ToList(container.get<int>()), (std::list<int>{ 25, 331 }));
+}
+
+TEST_F(test_heterogeneous_container, TestIteratorIncrementEdgeCases)
+{
+	storage::heterogeneous_container<> container(1, 2, 3);
+
+	auto it = container.begin();
+	int count = 0;
+	while (it != container.end())
+	{
+		++it;
+		count++;
+	}
+	ASSERT_EQ(count, 3);
+}
+
+TEST_F(test_heterogeneous_container, TestLargeDatasetPerformance)
+{
+	storage::heterogeneous_container<> container;
+
+	for (int i = 0; i < 10000; ++i)
+	{
+		container.emplace(i, std::string("str") + std::to_string(i), double(i) * 1.5);
+	}
+
+	ASSERT_EQ(container.size<int>(), 10000);
+	ASSERT_EQ(container.size<std::string>(), 10000);
+	ASSERT_EQ(container.size<double>(), 10000);
+
+	int count = 0;
+	for ([[maybe_unused]] const auto& item : container)
+	{
+		count++;
+	}
+	ASSERT_EQ(count, 30000);
+}
+
+TEST_F(test_heterogeneous_container, TestTypeKeyStability)
+{
+	storage::heterogeneous_container<> c1, c2;
+
+	c1.emplace(42);
+	c2.emplace(99);
+
+	ASSERT_TRUE(c1.contains<int>());
+	ASSERT_TRUE(c2.contains<int>());
+	ASSERT_EQ(c1.first<int>(), 42);
+	ASSERT_EQ(c2.first<int>(), 99);
+}
+
+TEST_F(test_heterogeneous_container, TestTypeReserve)
+{
+	storage::heterogeneous_container<> c1;
+
+	c1.reserve<int>(5);
+	c1.emplace(42);
+	ASSERT_TRUE(c1.contains<int>());
+	ASSERT_EQ(c1.first<int>(), 42);
 }
 
 } // namespace framework_tests
