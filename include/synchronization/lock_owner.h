@@ -825,12 +825,12 @@ using lock_owner_runtime = lock_owner_base<_Type, lock_tracking_runtime>;
 /// <summary>
 /// Build configuration alias
 /// </summary>
-#if defined(NDEBUG) || defined(SYNCHRONIZATION_NO_TRACKING)
-template <class _Type = std::shared_mutex>
-using lock_owner = lock_owner_release<_Type>;
-#elif defined(SYNCHRONIZATION_RUNTIME_TRACKING)
+#if defined(SYNCHRONIZATION_RUNTIME_TRACKING)
 template <class _Type = std::shared_mutex>
 using lock_owner = lock_owner_runtime<_Type>;
+#elif defined(NDEBUG) || defined(SYNCHRONIZATION_NO_TRACKING)
+template <class _Type = std::shared_mutex>
+using lock_owner = lock_owner_release<_Type>;
 #else
 template <class _Type = std::shared_mutex>
 using lock_owner = lock_owner_debug<_Type>;

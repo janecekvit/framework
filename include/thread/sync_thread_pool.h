@@ -53,7 +53,7 @@ class sync_thread_pool
 {
 public:
 #ifdef __cpp_lib_move_only_function
-	using task = typename std::move_only_function<void()>;
+	using task = std::move_only_function<void()>;
 #else
 
 	class move_only_function
@@ -121,7 +121,7 @@ public:
 		std::unique_ptr<callable_base> _function;
 	};
 
-	using task = typename move_only_function;
+	using task = move_only_function;
 #endif // __cpp_lib_move_only_function
 
 public:

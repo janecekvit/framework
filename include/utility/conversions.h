@@ -2,8 +2,6 @@
 #include "extensions/constraints.h"
 
 #include <algorithm>
-#include <codecvt>
-#include <locale>
 #include <numeric>
 
 namespace janecekvit::conversions

@@ -96,7 +96,19 @@ stages:
           buildDir: '$(Build.SourcesDirectory)/build'
           CC: 'clang'
           CXX: 'clang++'
-    
+
+        # macOS Clang - C++23 with Deployment Target 12.0
+        macOS_Clang_23_Deploy12:
+          vmImage: 'macOS-latest'
+          compiler: 'clang'
+          cxxStandard: '23'
+          buildPlatform: 'x64'
+          cmakeGenerator: 'Unix Makefiles'
+          buildDir: '$(Build.SourcesDirectory)/build'
+          CC: 'clang'
+          CXX: 'clang++'
+          osxDeploymentTarget: '12.0'
+
     pool:
       vmImage: $(vmImage)
     
@@ -153,6 +165,18 @@ stages:
       displayName: "Configure with CMake (Windows)"
       condition: eq(variables['Agent.OS'], 'Windows_NT')
       
+    # Prepare CMake deployment target argument if needed
+    - bash: |
+        if [ -n "$(osxDeploymentTarget)" ]; then
+          echo "##vso[task.setvariable variable=cmakeDeploymentTargetArg]-DCMAKE_OSX_DEPLOYMENT_TARGET=$(osxDeploymentTarget)"
+          echo "Setting macOS deployment target: $(osxDeploymentTarget)"
+        else
+          echo "##vso[task.setvariable variable=cmakeDeploymentTargetArg]"
+          echo "No macOS deployment target specified"
+        fi
+      displayName: "Prepare CMake Arguments"
+      condition: ne(variables['Agent.OS'], 'Windows_NT')
+
     # Configure CMake - Unix
     - task: CMake@1
       inputs:
@@ -160,7 +184,8 @@ stages:
         cmakeArgs: >-
           -G "$(cmakeGenerator)"
           -DCMAKE_BUILD_TYPE=$(buildConfiguration)
-          -DCMAKE_CXX_STANDARD=$(cxxStandard)              
+          -DCMAKE_CXX_STANDARD=$(cxxStandard)
+          $(cmakeDeploymentTargetArg)
           -DBUILD_TESTING=ON
           -DENABLE_CLANG_TIDY=ON
           -DENABLE_CPPCHECK=OFF
@@ -274,11 +299,14 @@ stages:
         echo "Configuration: $(buildConfiguration)"
         echo "Platform: $(buildPlatform)"
         echo "Build Directory: $(buildDir)"
-        
+        if [ -n "$(osxDeploymentTarget)" ]; then
+          echo "macOS Deployment Target: $(osxDeploymentTarget)"
+        fi
+
         cd $(buildDir)
         echo "=== Available executables ==="
         ls -la bin/
-        
+
         echo "=== CMake targets ==="
         cmake --build . --target help | grep "... "
       displayName: "Build Summary (Unix)"

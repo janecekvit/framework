@@ -44,13 +44,21 @@ public:
 	{
 	public:
 		bad_access(const std::type_info& type_info, const std::string& error, std::source_location&& srcl = std::source_location::current(), std::thread::id&& thread = std::this_thread::get_id())
+#if defined(HAS_STD_FORMAT)
 			: exception::exception(std::move(srcl), std::move(thread), "heterogeneous_container: {} with type: {}", error, type_info.name())
+#else
+			: exception::exception("heterogeneous_container: " + error + " with type: " + type_info.name(), std::move(srcl), std::move(thread))
+#endif
 			, _type_info(type_info)
 		{
 		}
 
 		bad_access(const std::type_info& type_info, const std::exception& ex, std::source_location&& srcl = std::source_location::current(), std::thread::id&& thread = std::this_thread::get_id())
+#if defined(HAS_STD_FORMAT)
 			: exception::exception(std::move(srcl), std::move(thread), "heterogeneous_container: {} with type: {}", std::string(ex.what()), type_info.name())
+#else
+			: exception::exception("heterogeneous_container: " + std::string(ex.what()) + " with type: " + type_info.name(), std::move(srcl), std::move(thread))
+#endif
 			, _type_info(type_info)
 		{
 		}

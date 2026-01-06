@@ -1,9 +1,13 @@
-#include "tracing/trace.h"
-
 #include <gtest/gtest.h>
+#include "compatibility/compiler_support.h"
+
+#if defined(HAS_STD_FORMAT)
+
+#include "tracing/trace.h"
 
 using namespace janecekvit;
 using namespace std::string_literals;
+
 
 namespace framework_tests
 {
@@ -59,7 +63,7 @@ TEST_F(test_trace, TestTrace)
 #ifndef __APPLE__
 	ASSERT_STREQ(srcl.file_name(), defaultLocation.file_name());
 	ASSERT_STREQ(srcl.function_name(), defaultLocation.function_name());
-	ASSERT_EQ(srcl.line(), static_cast<uint_least32_t>(31));
+	ASSERT_EQ(srcl.line(), static_cast<uint_least32_t>(35));
 #endif
 	ASSERT_EQ(data, L"ANO: true"s);
 
@@ -69,7 +73,7 @@ TEST_F(test_trace, TestTrace)
 	ASSERT_STREQ(t2.source_location().file_name(), defaultLocation.file_name());
 
 	ASSERT_STREQ(t2.source_location().function_name(), defaultLocation.function_name());
-	ASSERT_EQ(t2.source_location().line(), static_cast<uint_least32_t>(35));
+	ASSERT_EQ(t2.source_location().line(), static_cast<uint_least32_t>(39));
 #endif
 	ASSERT_EQ(t2.data(), L"NE: false"s);
 
@@ -112,3 +116,5 @@ TEST_F(test_trace, TestTraceWaitFor)
 }
 
 } // namespace framework_tests
+
+#endif

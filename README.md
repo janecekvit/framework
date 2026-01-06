@@ -74,6 +74,8 @@ The `throw_exception` template class simplifies throwing exceptions with formatt
 
 using namespace janecekvit;
 
+// With std::format support (C++20, requires macOS 13.3+ or Linux/Windows)
+#if defined(HAS_STD_FORMAT)
 try
 {
 	throw exception::exception("Error code {}: {}", std::make_tuple(404, "Not Found"));
@@ -83,6 +85,18 @@ catch (const std::exception& ex)
 {
 	std::cerr << ex.what() << std::endl;
 }
+#else
+// Without std::format support (macOS < 13.3) - use pre-formatted messages
+try
+{
+	throw exception::exception("Error code 404: Not Found");
+	throw exception::exception("Error code 404: Not Found", std::source_location::current(), std::this_thread::get_id());
+}
+catch (const std::exception& ex)
+{
+	std::cerr << ex.what() << std::endl;
+}
+#endif
 ```
 \
 Using `throw_exception` helper
@@ -92,6 +106,8 @@ Using `throw_exception` helper
 
 using namespace janecekvit;
 
+// With std::format support (C++20)
+#if defined(HAS_STD_FORMAT)
 try
 {
 	exception::throw_exception("Error code {}: {}", 404, "Not Found");
@@ -100,7 +116,24 @@ catch (const std::exception& ex)
 {
 	std::cerr << ex.what() << std::endl;
 }
+#else
+// Without std::format support - use pre-formatted message
+try
+{
+	exception::throw_exception("Error code 404: Not Found");
+}
+catch (const std::exception& ex)
+{
+	std::cerr << ex.what() << std::endl;
+}
+#endif
 ```
+
+**Note:** Format string support requires `std::format` (C++20) with full floating-point support, which is available on:
+- ✅ Linux with GCC 14+ or Clang 18+
+- ✅ Windows with MSVC 2022+
+- ✅ macOS 13.3 (Ventura) or later
+- ❌ macOS < 13.3 - use pre-formatted strings instead
 
 ### Extensions
 

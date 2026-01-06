@@ -1,7 +1,11 @@
 #pragma once
+
+#include "compatibility/compiler_support.h"
 #include "extensions/constraints.h"
 #include "synchronization/concurrent.h"
 #include "utility/conversions.h"
+
+#if defined(HAS_STD_FORMAT)
 
 #include <chrono>
 #include <format>
@@ -261,3 +265,7 @@ protected:
 };
 
 } // namespace janecekvit::tracing
+
+#else
+#warning "Tracing module requires std::format support (macOS 13.3+, GCC 14+, MSVC 2022+)"
+#endif
