@@ -79,6 +79,14 @@ jobs:
             vcpkg_triplet: x64-osx
             cxx_standard: "23"
 
+          # macOS Clang - C++23 with Deployment Target 12.0
+          - os: macos-latest
+            compiler: clang
+            cmake_generator: "Unix Makefiles"
+            vcpkg_triplet: x64-osx
+            cxx_standard: "23"
+            osx_deployment_target: "12.0"
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -142,10 +150,16 @@ jobs:
     - name: Configure CMake
       shell: pwsh
       run: |
+        $deploymentTargetArg = ""
+        if ("${{ matrix.osx_deployment_target }}" -ne "") {
+          $deploymentTargetArg = "-DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.osx_deployment_target }}"
+        }
+
         cmake -S . -B build `
           -G "${{ matrix.cmake_generator }}" `
           -DCMAKE_BUILD_TYPE=Release `
           -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} `
+          $deploymentTargetArg `
           -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" `
           -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }}
 

@@ -35,6 +35,11 @@ public:
 	parameter_pack() = default;
 	virtual ~parameter_pack() = default;
 
+	parameter_pack(const parameter_pack&) = default;
+	parameter_pack(parameter_pack&&) = default;
+	parameter_pack& operator=(const parameter_pack&) = default;
+	parameter_pack& operator=(parameter_pack&&) = default;
+
 	template <class... _Args>
 	constexpr parameter_pack(_Args&&... args)
 	{
@@ -63,13 +68,18 @@ protected:
 		auto process = [&](auto&& value)
 		{
 			using type = std::decay_t<decltype(value)>;
-			if constexpr (constraints::is_tuple_v<type>)
+			if constexpr (std::is_same_v<type, parameter_pack>)
+			{
+				for (const auto& item : value._arguments)
+					_arguments.emplace_back(item);
+			}
+			else if constexpr (constraints::is_tuple_v<type>)
 			{
 				std::apply([&](auto&&... tuple_args)
 					{
 						_insert(std::forward<decltype(tuple_args)>(tuple_args)...);
 					},
-					value);
+					std::forward<decltype(value)>(value));
 			}
 			else if constexpr (constraints::is_initializer_list_v<type>)
 			{
