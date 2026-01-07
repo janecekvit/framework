@@ -400,7 +400,7 @@ private:
 					{
 						_insert(std::forward<decltype(tupleArgs)>(tupleArgs)...);
 					},
-					value);
+					std::forward<decltype(value)>(value));
 			}
 			else if constexpr (constraints::is_initializer_list_v<_T>)
 			{
