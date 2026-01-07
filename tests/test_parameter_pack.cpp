@@ -80,4 +80,64 @@ TEST_F(test_parameter_pack, TestParameterPackCxx11)
 
 	delete intPtr;
 }
+
+TEST_F(test_parameter_pack, TestNestedParameterPack)
+{
+	// This test verifies that copy/move constructors prevent infinite recursion
+	// when parameter_pack is passed to another parameter_pack constructor
+
+	auto pack1 = storage::parameter_pack(42, "hello"s, 3.14);
+	ASSERT_EQ(pack1.size(), 3);
+
+	auto pack2 = storage::parameter_pack(pack1);
+	ASSERT_EQ(pack2.size(), 3);
+
+	auto temp = storage::parameter_pack(100, 200);
+	auto pack3 = storage::parameter_pack(std::move(temp));
+	ASSERT_EQ(pack3.size(), 2);
+
+	// verify that pack still contains original values
+	auto&& [val1, val2, val3] = pack1.get_pack<int, std::string, double>();
+	ASSERT_EQ(val1, 42);
+	ASSERT_EQ(val2, "hello"s);
+	ASSERT_DOUBLE_EQ(val3, 3.14);
+}
+
+TEST_F(test_parameter_pack, TestNestedParameterPackMove)
+{
+	auto temp = storage::parameter_pack(1, 2, 3, 4, 5);
+	auto pack = std::move(temp);
+	ASSERT_EQ(pack.size(), 5);
+}
+
+TEST_F(test_parameter_pack, TestNestedParameterPackCopy)
+{
+	auto pack1 = storage::parameter_pack(42, "hello"s, 3.14);
+	auto pack2 = pack1;
+	ASSERT_EQ(pack2.size(), 3);
+}
+
+TEST_F(test_parameter_pack, TestParameterPackCopySemantics)
+{
+	auto pack1 = storage::parameter_pack(10, 20, 30);
+	auto pack2 = storage::parameter_pack(40, 50);
+	pack2 = pack1; 
+	ASSERT_EQ(pack2.size(), 3);
+
+	auto&& [a, b, c] = pack2.get_pack<int, int, int>();
+	ASSERT_EQ(a, 10);
+	ASSERT_EQ(b, 20);
+	ASSERT_EQ(c, 30);
+}
+TEST_F(test_parameter_pack, TestParameterPackCopyMoveSemantics)
+{
+	auto pack3 = storage::parameter_pack("test"s, 99);
+	auto pack4 = storage::parameter_pack(1);
+	pack4 = std::move(pack3);
+	ASSERT_EQ(pack4.size(), 2);
+
+	auto&& [str, num] = pack4.get_pack<std::string, int>();
+	ASSERT_EQ(str, "test"s);
+	ASSERT_EQ(num, 99);
+}
 } // namespace framework_tests
