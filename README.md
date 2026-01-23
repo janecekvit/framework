@@ -613,7 +613,7 @@ auto exclusiveDetails = resourceMapDebug.get_exclusive_lock_details();
 auto concurrentDetails = resourceMapDebug.get_concurrent_lock_details();
 ```
 \
-Example for runtime policy with custom callbacks
+Example for runtime policy with enable/disable and logging
 ```cpp
 #include "synchronization/concurrent.h"
 #include <unordered_map>
@@ -621,11 +621,8 @@ Example for runtime policy with custom callbacks
 
 using namespace janecekvit::synchronization;
 
-// Enable tracking via callback
-lock_tracking_runtime::set_callback([]()
-{
-    return true;
-});
+// Enable tracking
+lock_tracking_runtime::enable_tracking();
 
 // Register static logging callback for lock events
 lock_tracking_runtime::set_logging_callback(
@@ -646,8 +643,8 @@ concurrent::resource_owner_runtime<std::unordered_map<int, int>> resourceMap;
     exclusive->emplace(1, 42);
 }
 
-// Disable tracking
-lock_tracking_runtime::clear_callback();
+// Disable tracking and clear logging
+lock_tracking_runtime::disable_tracking();
 lock_tracking_runtime::clear_logging_callback();
 ```
 
@@ -708,18 +705,15 @@ auto exclusiveDetails = lockDebug.get_exclusive_lock_details();
 auto concurrentDetails = lockDebug.get_concurrent_lock_details();
 ```
 \
-Example for runtime policy with custom callbacks
+Example for runtime policy with enable/disable and logging
 ```cpp
 #include "synchronization/lock_owner.h"
 #include <iostream>
 
 using namespace janecekvit::synchronization;
 
-// Enable tracking via callback
-lock_tracking_runtime::set_callback([]()
-{
-    return true;
-});
+// Enable tracking
+lock_tracking_runtime::enable_tracking();
 
 // Register static logging callback for lock events
 lock_tracking_runtime::set_logging_callback(
@@ -742,8 +736,8 @@ bool nonThreadSafeLogic = false;
     nonThreadSafeLogic = true;
 }
 
-// Disable tracking
-lock_tracking_runtime::clear_callback();
+// Disable tracking and clear logging
+lock_tracking_runtime::disable_tracking();
 lock_tracking_runtime::clear_logging_callback();
 ```
 

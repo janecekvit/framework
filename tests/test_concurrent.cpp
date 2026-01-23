@@ -901,10 +901,7 @@ TEST_F(test_concurrent, TestResourceTypeTrackingRuntime)
 {
 	using namespace synchronization;
 
-	lock_tracking_runtime::set_callback([]()
-		{
-			return true;
-		});
+	lock_tracking_runtime::enable_tracking();
 
 	concurrent::resource_owner_runtime<std::vector<int>> container;
 
@@ -931,7 +928,7 @@ TEST_F(test_concurrent, TestResourceTypeTrackingRuntime)
 		typeid(std::vector<int>).name());
 
 	lock_tracking_runtime::clear_logging_callback();
-	lock_tracking_runtime::clear_callback();
+	lock_tracking_runtime::disable_tracking();
 }
 
 } // namespace framework_tests

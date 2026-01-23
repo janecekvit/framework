@@ -91,14 +91,14 @@ class lock_logging_support
 	friend class lock_holder_base;
 
 public:
-	static void set_logging_callback(lock_event_callback&& callback) noexcept
+	static void set_logging_callback(lock_event_callback&& callback)
 	{
 		std::unique_lock lock(_logging_callback_mutex());
 		_logging_callback() = std::move(callback);
 		_has_logging_callback().store(true, std::memory_order_release);
 	}
 
-	static void clear_logging_callback() noexcept
+	static void clear_logging_callback()
 	{
 		std::unique_lock lock(_logging_callback_mutex());
 		_logging_callback() = nullptr;
@@ -171,7 +171,7 @@ struct lock_tracking_enabled : lock_logging_support
 };
 
 /// <summary>
-/// Runtime policy: checks custom callback or environment variable to enable/disable tracking at runtime
+/// Runtime policy: enables/disables tracking at runtime via atomic flag
 /// </summary>
 struct lock_tracking_runtime : lock_logging_support
 {
@@ -179,66 +179,24 @@ struct lock_tracking_runtime : lock_logging_support
 
 	static bool should_track() noexcept
 	{
-		return _get_runtime_decision();
+		return _enabled_tracking().load(std::memory_order_acquire);
 	}
 
-	static void set_callback(std::function<bool()>&& callback)
+	static void enable_tracking() noexcept
 	{
-		auto shared_callback = std::make_shared<std::function<bool()>>(std::move(callback));
-
-#ifdef __APPLE__
-		std::atomic_store_explicit(&_custom_callback(), shared_callback, std::memory_order_release);
-#else
-		_custom_callback().store(shared_callback, std::memory_order_release);
-#endif
-		_has_custom_callback().store(true, std::memory_order_release);
+		_enabled_tracking().store(true, std::memory_order_release);
 	}
 
-	static void clear_callback() noexcept
+	static void disable_tracking() noexcept
 	{
-#ifdef __APPLE__
-		std::atomic_store_explicit(&_custom_callback(), std::shared_ptr<std::function<bool()>>(nullptr), std::memory_order_release);
-#else
-		_custom_callback().store(nullptr, std::memory_order_release);
-#endif
-		_has_custom_callback().store(false, std::memory_order_release);
+		_enabled_tracking().store(false, std::memory_order_release);
 	}
 
 private:
-	static bool _get_runtime_decision() noexcept
+	static std::atomic<bool>& _enabled_tracking()
 	{
-		if (!_has_custom_callback().load(std::memory_order_acquire))
-			return false;
-
-#ifdef __APPLE__
-		auto callback = std::atomic_load_explicit(&_custom_callback(), std::memory_order_acquire);
-#else
-		auto callback = _custom_callback().load(std::memory_order_acquire);
-#endif
-		if (callback && *callback)
-			return (*callback)();
-
-		return false;
-	}
-
-#ifdef __APPLE__
-	static std::shared_ptr<std::function<bool()>>& _custom_callback()
-	{
-		static std::shared_ptr<std::function<bool()>> callback;
-		return callback;
-	}
-#else
-	static std::atomic<std::shared_ptr<std::function<bool()>>>& _custom_callback()
-	{
-		static std::atomic<std::shared_ptr<std::function<bool()>>> callback;
-		return callback;
-	}
-#endif
-
-	static std::atomic<bool>& _has_custom_callback()
-	{
-		static std::atomic<bool> has_callback{ false };
-		return has_callback;
+		static std::atomic<bool> enabled_tracking{ false };
+		return enabled_tracking;
 	}
 };
 

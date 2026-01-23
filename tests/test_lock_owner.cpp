@@ -7,7 +7,6 @@
 #include <system_error>
 #include <utility>
 
-
 using namespace janecekvit;
 using namespace janecekvit::synchronization;
 
@@ -340,16 +339,11 @@ TEST_F(test_lock_owner, TestConcurrentAccessDoubleUnlock)
 		std::system_error);
 }
 
-TEST_F(test_lock_owner, TestRuntimePolicyCustomCallback)
+TEST_F(test_lock_owner, TestRuntimePolicyEnableDisable)
 {
-	bool should_track = true;
-	synchronization::lock_tracking_runtime::set_callback(
-		[&should_track]()
-		{
-			return should_track;
-		});
-
 	synchronization::lock_owner_runtime<> owner;
+
+	synchronization::lock_tracking_runtime::enable_tracking();
 
 	{
 		auto&& lock = owner.exclusive();
@@ -363,8 +357,7 @@ TEST_F(test_lock_owner, TestRuntimePolicyCustomCallback)
 		ASSERT_EQ(1, owner.get_concurrent_lock_details().size());
 	}
 
-	// Disable tracking by changing the callback result
-	should_track = false;
+	synchronization::lock_tracking_runtime::disable_tracking();
 
 	{
 		auto&& lock = owner.exclusive();
@@ -377,8 +370,6 @@ TEST_F(test_lock_owner, TestRuntimePolicyCustomCallback)
 		(void) lock;
 		ASSERT_EQ(0, owner.get_concurrent_lock_details().size());
 	}
-
-	synchronization::lock_tracking_runtime::clear_callback();
 }
 
 TEST_F(test_lock_owner, TestPolicyMixing)
@@ -414,8 +405,6 @@ TEST_F(test_lock_owner, TestPolicyMixing)
 
 TEST_F(test_lock_owner, TestRuntimePolicyDefault)
 {
-	synchronization::lock_tracking_runtime::clear_callback();
-
 	synchronization::lock_owner_runtime<> owner;
 
 	{
@@ -433,10 +422,7 @@ TEST_F(test_lock_owner, TestRuntimePolicyDefault)
 
 TEST_F(test_lock_owner, TestLoggingCallback)
 {
-	synchronization::lock_tracking_runtime::set_callback([]()
-		{
-			return true;
-		});
+	synchronization::lock_tracking_runtime::enable_tracking();
 
 	std::vector<std::tuple<std::string, const void*>> logged_events;
 
@@ -457,15 +443,12 @@ TEST_F(test_lock_owner, TestLoggingCallback)
 	ASSERT_EQ(owner.get_mutex().get(), std::get<1>(logged_events[0]));
 
 	synchronization::lock_tracking_runtime::clear_logging_callback();
-	synchronization::lock_tracking_runtime::clear_callback();
+	synchronization::lock_tracking_runtime::disable_tracking();
 }
 
 TEST_F(test_lock_owner, TestLoggingCallbackConcurrent)
 {
-	synchronization::lock_tracking_runtime::set_callback([]()
-		{
-			return true;
-		});
+	synchronization::lock_tracking_runtime::enable_tracking();
 
 	int event_count = 0;
 	synchronization::lock_tracking_runtime::set_logging_callback(
@@ -486,15 +469,12 @@ TEST_F(test_lock_owner, TestLoggingCallbackConcurrent)
 	ASSERT_EQ(2, event_count);
 
 	synchronization::lock_tracking_runtime::clear_logging_callback();
-	synchronization::lock_tracking_runtime::clear_callback();
+	synchronization::lock_tracking_runtime::disable_tracking();
 }
 
 TEST_F(test_lock_owner, TestLoggingCallbackTryLock)
 {
-	synchronization::lock_tracking_runtime::set_callback([]()
-		{
-			return true;
-		});
+	synchronization::lock_tracking_runtime::enable_tracking();
 
 	int event_count = 0;
 
@@ -524,15 +504,12 @@ TEST_F(test_lock_owner, TestLoggingCallbackTryLock)
 	ASSERT_EQ(3, event_count);
 
 	synchronization::lock_tracking_runtime::clear_logging_callback();
-	synchronization::lock_tracking_runtime::clear_callback();
+	synchronization::lock_tracking_runtime::disable_tracking();
 }
 
 TEST_F(test_lock_owner, TestLoggingCallbackLockInformation)
 {
-	synchronization::lock_tracking_runtime::set_callback([]()
-		{
-			return true;
-		});
+	synchronization::lock_tracking_runtime::enable_tracking();
 
 	std::optional<lock_information> captured_info;
 
@@ -562,15 +539,12 @@ TEST_F(test_lock_owner, TestLoggingCallbackLockInformation)
 	ASSERT_FALSE(captured_info->ResourceType.has_value());
 
 	synchronization::lock_tracking_runtime::clear_logging_callback();
-	synchronization::lock_tracking_runtime::clear_callback();
+	synchronization::lock_tracking_runtime::disable_tracking();
 }
 
 TEST_F(test_lock_owner, TestLoggingCallbackMultipleMutexes)
 {
-	synchronization::lock_tracking_runtime::set_callback([]()
-		{
-			return true;
-		});
+	synchronization::lock_tracking_runtime::enable_tracking();
 
 	std::vector<const void*> logged_mutexes;
 
@@ -596,14 +570,14 @@ TEST_F(test_lock_owner, TestLoggingCallbackMultipleMutexes)
 	ASSERT_NE(logged_mutexes[0], logged_mutexes[1]);
 
 	synchronization::lock_tracking_runtime::clear_logging_callback();
-	synchronization::lock_tracking_runtime::clear_callback();
+	synchronization::lock_tracking_runtime::disable_tracking();
 }
 
 TEST_F(test_lock_owner, TestLoggingCallbackDisabledWhenNoTracking)
 {
 	using namespace synchronization;
 
-	synchronization::lock_tracking_runtime::clear_callback();
+	synchronization::lock_tracking_runtime::disable_tracking();
 
 	int callback_count = 0;
 
@@ -627,10 +601,7 @@ TEST_F(test_lock_owner, TestLoggingCallbackDisabledWhenNoTracking)
 
 TEST_F(test_lock_owner, TestLoggingCallbackExceptionSafety)
 {
-	synchronization::lock_tracking_runtime::set_callback([]()
-		{
-			return true;
-		});
+	synchronization::lock_tracking_runtime::enable_tracking();
 
 	synchronization::lock_tracking_runtime::set_logging_callback(
 		[](const lock_information&, const void*)
@@ -652,7 +623,7 @@ TEST_F(test_lock_owner, TestLoggingCallbackExceptionSafety)
 	}
 
 	synchronization::lock_tracking_runtime::clear_logging_callback();
-	synchronization::lock_tracking_runtime::clear_callback();
+	synchronization::lock_tracking_runtime::disable_tracking();
 }
 
 TEST_F(test_lock_owner, TestLoggingCallbackCompileTimeEnabled)
@@ -687,10 +658,7 @@ TEST_F(test_lock_owner, TestLoggingCallbackSharedBetweenPolicies)
 	synchronization::lock_owner_debug<> enabled_owner;
 	synchronization::lock_owner_runtime<> runtime_owner;
 
-	synchronization::lock_tracking_runtime::set_callback([]()
-		{
-			return true;
-		});
+	synchronization::lock_tracking_runtime::enable_tracking();
 
 	synchronization::lock_tracking_enabled::set_logging_callback(
 		[&callback_count](const lock_information& info, const void* mutex_ptr)
@@ -713,7 +681,7 @@ TEST_F(test_lock_owner, TestLoggingCallbackSharedBetweenPolicies)
 	ASSERT_EQ(2, callback_count);
 
 	synchronization::lock_tracking_enabled::clear_logging_callback();
-	synchronization::lock_tracking_runtime::clear_callback();
+	synchronization::lock_tracking_runtime::disable_tracking();
 }
 
 TEST_F(test_lock_owner, TestLoggingCallbackCompileTimeEnabledConcurrent)
@@ -805,7 +773,6 @@ TEST_F(test_lock_owner, TestDefaultLockOwnerAliasWithMutex)
 	auto lock = owner.exclusive();
 	ASSERT_TRUE(lock.owns_lock());
 
-
 #if defined(SYNCHRONIZATION_RUNTIME_TRACKING)
 	ASSERT_FALSE(owner.get_exclusive_lock_details().has_value());
 #elif !defined(SYNCHRONIZATION_NO_TRACKING) && !defined(NDEBUG)
@@ -829,7 +796,7 @@ TEST_F(test_lock_owner, TestLockOwnerAliasTypeTraits)
 	static_assert(std::is_same_v<MutexOwner, synchronization::lock_owner_debug<std::mutex>>);
 #endif
 
-	SUCCEED(); 
+	SUCCEED();
 }
 
 TEST_F(test_lock_owner, TestDefaultLockOwnerAliasConcurrent)
@@ -841,7 +808,6 @@ TEST_F(test_lock_owner, TestDefaultLockOwnerAliasConcurrent)
 
 	ASSERT_TRUE(lock1.owns_lock());
 	ASSERT_TRUE(lock2.owns_lock());
-
 
 #if defined(SYNCHRONIZATION_RUNTIME_TRACKING)
 	ASSERT_EQ(0, owner.get_concurrent_lock_details().size());
