@@ -28,7 +28,7 @@ class heterogeneous_container final
 {
 public:
 	using default_known_types = std::variant<
-		bool, short, unsigned short, int, unsigned int, long, unsigned long, float, double, size_t, std::byte,
+		bool, short, unsigned short, int, unsigned int, long, unsigned long, unsigned long long, float, double, std::byte,
 		char, char*, const char*, wchar_t, wchar_t*, const wchar_t*, std::string, std::wstring, std::u8string, std::u16string, std::u32string>;
 
 	using known_types = std::conditional_t<
@@ -54,12 +54,7 @@ public:
 		}
 
 		bad_access(const std::type_info& type_info, const std::exception& ex, std::source_location&& srcl = std::source_location::current(), std::thread::id&& thread = std::this_thread::get_id())
-#if defined(HAS_STD_FORMAT)
-			: exception::exception(std::move(srcl), std::move(thread), "heterogeneous_container: {} with type: {}", std::string(ex.what()), type_info.name())
-#else
-			: exception::exception("heterogeneous_container: " + std::string(ex.what()) + " with type: " + type_info.name(), std::move(srcl), std::move(thread))
-#endif
-			, _type_info(type_info)
+			: bad_access(type_info, std::string(ex.what()), std::move(srcl), std::move(thread))
 		{
 		}
 
@@ -76,14 +71,27 @@ public:
 	class item
 	{
 	public:
-		template <typename _T, std::enable_if_t<constraints::is_type_in_variant_v<std::decay_t<_T>, known_types>, int> = 0>
+		item(const item&) = default;
+
+		item(item&&) = default;
+
+		item& operator=(const item&) = default;
+
+		item& operator=(item&&) = default;
+
+		item(item& other)
+			: item(std::as_const(other))
+		{
+		}
+
+		template <typename _T, std::enable_if_t<is_known_type<std::decay_t<_T>>, int> = 0>
 		item(_T&& value)
 			: _key(TypeKey<std::decay_t<_T>>())
 			, _value(std::in_place_type<known_types>, std::in_place_type<std::decay_t<_T>>, std::forward<_T>(value))
 		{
 		}
 
-		template <typename _T, std::enable_if_t<!constraints::is_type_in_variant_v<std::decay_t<_T>, known_types>, int> = 0>
+		template <typename _T, std::enable_if_t<!is_known_type<std::decay_t<_T>>, int> = 0>
 		item(_T&& value)
 			: _key(TypeKey<std::decay_t<_T>>())
 			, _value(std::in_place_type<std::any>, std::in_place_type<std::decay_t<_T>>, std::forward<_T>(value))
@@ -112,7 +120,7 @@ public:
 		}
 
 	private:
-		const size_t _key = 0;
+		size_t _key = 0;
 		std::variant<known_types, std::any> _value;
 	};
 
@@ -140,6 +148,8 @@ public:
 			, _map_end(end)
 			, _vector_index(index)
 		{
+			while (_map_it != _map_end && _map_it->second.empty())
+				++_map_it;
 		}
 
 		reference operator*() const noexcept
@@ -181,11 +191,6 @@ public:
 			return _map_it == other._map_it && _vector_index == other._vector_index;
 		}
 
-		bool operator!=(const base_iterator& other) const noexcept
-		{
-			return !(*this == other);
-		}
-
 	private:
 		container_iterator _map_it;
 		container_iterator _map_end;
@@ -210,6 +215,11 @@ public:
 	heterogeneous_container() noexcept = default;
 
 	heterogeneous_container(const heterogeneous_container&) = default;
+
+	heterogeneous_container(heterogeneous_container& other)
+		: heterogeneous_container(std::as_const(other))
+	{
+	}
 
 	heterogeneous_container(heterogeneous_container&&) noexcept = default;
 
@@ -343,16 +353,30 @@ public:
 	constexpr decltype(auto) call_all(_Args&&... args) const
 	{
 		using RetType = std::invoke_result_t<_Func, _Args...>;
+		const auto& functions = _get_storage_by_find<_Func>();
+		size_t index = 0;
+		auto invoke = [&](const item& element) -> RetType
+		{
+			const auto& func = _get_item<_Func>(element);
+			if (++index == functions.size())
+				return std::invoke(func, std::forward<_Args>(args)...);
+
+			if constexpr (std::is_invocable_v<const _Func&, std::remove_reference_t<_Args>&...>)
+				return std::invoke(func, args...);
+			else
+				return std::invoke(func, _forward_copy<_Args>(args)...);
+		};
+
 		if constexpr (std::is_void_v<RetType>)
 		{
-			for (auto&& func : get<_Func>())
-				std::invoke(func, std::forward<_Args>(args)...);
+			for (auto&& func : functions)
+				invoke(func);
 		}
 		else
 		{
 			std::list<RetType> oList = {};
-			for (auto&& func : get<_Func>())
-				oList.emplace_back(std::invoke(func, std::forward<_Args>(args)...));
+			for (auto&& func : functions)
+				oList.emplace_back(invoke(func));
 			return oList;
 		}
 	}
@@ -369,7 +393,7 @@ public:
 
 	const_iterator cbegin() const noexcept
 	{
-		return const_iterator(_values.cbegin(), _values.cend());
+		return begin();
 	}
 
 	iterator end() noexcept
@@ -384,7 +408,7 @@ public:
 
 	const const_iterator cend() const noexcept
 	{
-		return const_iterator(_values.cend(), _values.cend());
+		return end();
 	}
 
 private:
@@ -416,54 +440,34 @@ private:
 		(process(std::forward<_Args>(args)), ...);
 	}
 
+	template <class _Arg>
+	static constexpr decltype(auto) _forward_copy(std::remove_reference_t<_Arg>& arg)
+	{
+		if constexpr (std::is_lvalue_reference_v<_Arg>)
+			return (arg);
+		else
+			return std::remove_cvref_t<_Arg>(arg);
+	}
+
 	template <class _T, bool _IsConst>
 	[[nodiscard]] constexpr decltype(auto) _get() const
 	{
-		try
-		{
-			using _Value = std::conditional_t<_IsConst, const _T, _T>;
-			std::list<std::reference_wrapper<_Value>> values = {};
+		using _Value = std::conditional_t<_IsConst, const _T, _T>;
+		std::list<std::reference_wrapper<_Value>> values = {};
+		for (const auto& element : _get_storage_by_find<_T>())
+			values.emplace_back(const_cast<_Value&>(_get_item<_T>(element)));
 
-			const auto& storage = _get_storage_by_find<_T>();
-			for (const auto& element : storage)
-			{
-				if constexpr (_IsConst)
-					values.emplace_back(element.template get<_T>());
-				else
-					values.emplace_back(const_cast<_T&>(element.template get<_T>()));
-			}
-
-			return values;
-		}
-		catch (const std::bad_variant_access& ex)
-		{
-			throw bad_access(typeid(_T), ex);
-		}
-		catch (const std::bad_any_cast& ex)
-		{
-			throw bad_access(typeid(_T), ex);
-		};
+		return values;
 	}
 
 	template <class _T>
 	[[nodiscard]] constexpr decltype(auto) _get(size_t position) const
 	{
-		try
-		{
-			const auto& storage = _get_storage_by_find<_T>();
-			if (storage.size() <= position)
-				throw bad_access(typeid(_T), "Cannot retrieve value on position " + std::to_string(position));
+		const auto& storage = _get_storage_by_find<_T>();
+		if (storage.size() <= position)
+			throw bad_access(typeid(_T), "Cannot retrieve value on position " + std::to_string(position));
 
-			return storage[position].template get<_T>();
-		}
-		catch (const std::bad_variant_access& ex)
-		{
-			throw bad_access(typeid(_T), ex);
-		}
-		catch (const std::bad_any_cast& ex)
-		{
-			throw bad_access(typeid(_T), ex);
-		};
+		return _get_item<_T>(storage[position]);
 	}
 
 	template <class _T>
@@ -472,21 +476,28 @@ private:
 		return const_cast<_T&>(std::as_const(*this).template _get<_T>(position));
 	}
 
-	template <class _T, class _Callable>
-	constexpr void _visit(const _Callable& callback) const
+	template <class _T>
+	static constexpr const _T& _get_item(const item& element)
 	{
 		try
 		{
-			const auto& storage = _get_storage_by_find<_T>();
-			for (const auto& element : storage)
-			{
-				std::invoke(callback, std::as_const(element.template get<_T>()));
-			}
+			return element.template get<_T>();
+		}
+		catch (const std::bad_variant_access& ex)
+		{
+			throw bad_access(typeid(_T), ex);
 		}
 		catch (const std::bad_any_cast& ex)
 		{
 			throw bad_access(typeid(_T), ex);
 		}
+	}
+
+	template <class _T, class _Callable>
+	constexpr void _visit(const _Callable& callback) const
+	{
+		for (const auto& element : _get_storage_by_find<_T>())
+			std::invoke(callback, _get_item<_T>(element));
 	}
 
 	template <class _T, class _Callable>

@@ -208,9 +208,7 @@ public:
 		if (scope->empty())
 			return std::nullopt;
 
-		auto e = std::move(scope->front());
-		scope->pop_front();
-		return e;
+		return _pop_front(scope);
 	}
 
 	[[nodiscard]] virtual event get_next_trace_wait()
@@ -221,9 +219,7 @@ public:
 				return !scope->empty();
 			});
 
-		auto e = std::move(scope->front());
-		scope->pop_front();
-		return e;
+		return _pop_front(scope);
 	}
 
 	template <class _Rep, class _Period>
@@ -237,9 +233,7 @@ public:
 				}))
 			return std::nullopt;
 
-		auto e = std::move(scope->front());
-		scope->pop_front();
-		return e;
+		return _pop_front(scope);
 	}
 
 	[[nodiscard]] virtual size_t size() const
@@ -257,6 +251,14 @@ protected:
 	{
 		_traceQueue.exclusive()->emplace_back(std::move(e));
 		_event.notify_one();
+	}
+
+	template <class _Scope>
+	static event _pop_front(_Scope& scope)
+	{
+		auto e = std::move(scope->front());
+		scope->pop_front();
+		return e;
 	}
 
 protected:

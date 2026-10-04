@@ -15,7 +15,7 @@ public:
 	template <class _F, std::enable_if_t<std::is_invocable_v<_F, _Args...>, int> = 0>
 	lazy_action(_F&& evulator, _Args&&... args)
 		: _evaluator(std::forward<_F>(evulator))
-		, _arguments(std::make_tuple(std::forward<_Args>(args)...))
+		, _arguments(std::forward<_Args>(args)...)
 	{
 	}
 
@@ -37,11 +37,11 @@ private:
 };
 
 /// <summary>
-/// lazy call wraps final_action to easily retrieve and fill it
+/// make_lazy wraps lazy_action to easily retrieve and fill it
 /// </summary>
 template <class _F, class... _Args>
 	requires std::is_invocable_v<_F, _Args...>
-[[nodiscard]] decltype(auto) lazy(_F&& callback, _Args&&... args)
+[[nodiscard]] decltype(auto) make_lazy(_F&& callback, _Args&&... args)
 {
 	return lazy_action<std::invoke_result_t<_F, _Args...>, _Args...>{ std::forward<_F>(callback), std::forward<_Args>(args)... };
 }

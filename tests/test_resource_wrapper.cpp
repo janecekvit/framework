@@ -309,6 +309,45 @@ TEST_F(test_resource_wrapper, TestDeleterExceptionCallbackLvalue)
 	ASSERT_TRUE(exceptionHandled);
 }
 
+TEST_F(test_resource_wrapper, TestMoveKeepsExceptionCallback)
+{
+	int callbackCalls = 0;
+	{
+		auto source = storage::resource_wrapper<int*, std::function<void(int*&)>, std::function<void(const std::exception&)>>(
+			new int(5),
+			[](int*& i)
+			{
+				delete i;
+				i = nullptr;
+				throw std::runtime_error("Deleter exception");
+			},
+			[&callbackCalls](const std::exception&)
+			{
+				callbackCalls++;
+			});
+
+		auto target = std::move(source);
+		target.reset();
+		ASSERT_EQ(1, callbackCalls);
+	}
+
+	ASSERT_EQ(2, callbackCalls);
+}
+
+TEST_F(test_resource_wrapper, TestDeleterNonStdException)
+{
+	auto wrapper = storage::resource_wrapper<int*>(new int(5), [](int*& i)
+		{
+			delete i;
+			i = nullptr;
+			throw 1;
+		});
+
+	wrapper.reset();
+	int* value = wrapper;
+	ASSERT_EQ(nullptr, value);
+}
+
 
 
 TEST_F(test_resource_wrapper, TestSimpleStruct)

@@ -256,7 +256,7 @@ TEST_F(test_property, TestPropertyArrowOperatorPrivate)
 TEST_F(test_property, TestPropertyArrowOperatorOnPointer)
 {
 	auto vector = new std::vector<int>(5);
-	auto clean = extensions::finally([&]
+	auto clean = extensions::make_finally([&]
 		{
 			delete vector;
 		});
@@ -292,7 +292,7 @@ TEST_F(test_property, TestPropertyArrowOperatorOnPointerPrivate)
 	};
 
 	auto vector = new std::vector<int>(5);
-	auto clean = extensions::finally([&]
+	auto clean = extensions::make_finally([&]
 		{
 			delete vector;
 		});
@@ -439,6 +439,44 @@ TEST_F(test_property, TestPropertyWithLambdaUserDefinedConversions)
 	std::vector<int> vecMove = std::move(property);
 	ASSERT_EQ((int) vecMove.size(), 11);
 	ASSERT_EQ((int) hiddenValue.size(), 0);
+}
+
+TEST_F(test_property, TestPropertyCopyKeepsAccessors)
+{
+	int hiddenValue = 1;
+	extensions::property<int> source([&]() -> const int&
+		{
+			return hiddenValue;
+		},
+		[&](int newValue)
+		{
+			hiddenValue = newValue;
+		});
+
+	auto copy = source;
+	hiddenValue = 42;
+	ASSERT_EQ(42, static_cast<int>(copy));
+
+	extensions::property<int> assigned;
+	assigned = source;
+	hiddenValue = 7;
+	ASSERT_EQ(7, static_cast<int>(assigned));
+}
+
+TEST_F(test_property, TestPropertySetLvalueAndSetter)
+{
+	extensions::property<int> value(1);
+	int input = 5;
+	value.set(input);
+	ASSERT_EQ(5, static_cast<int>(value));
+
+	int captured = 0;
+	value.set(extensions::property<int>::setter([&captured](const int& newValue)
+		{
+			captured = newValue;
+		}));
+	value = 9;
+	ASSERT_EQ(9, captured);
 }
 
 } // namespace framework_tests

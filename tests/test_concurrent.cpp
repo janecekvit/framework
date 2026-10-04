@@ -931,4 +931,35 @@ TEST_F(test_concurrent, TestResourceTypeTrackingRuntime)
 	lock_tracking_runtime::disable_tracking();
 }
 
+TEST_F(test_concurrent, TestConcurrentReaderIsReadOnly)
+{
+	auto map = concurrent::map<int, int>();
+	map.exclusive()->emplace(1, 10);
+
+	auto vector = concurrent::vector<int>();
+	vector.exclusive()->emplace_back(20);
+
+	{
+		auto reader = map.concurrent();
+		static_assert(std::is_same_v<decltype(reader.begin()), std::map<int, int>::const_iterator>);
+		ASSERT_EQ(reader->at(1), 10);
+		ASSERT_EQ(reader.size(), size_t{ 1 });
+	}
+
+	{
+		auto reader = vector.concurrent();
+		static_assert(std::is_same_v<decltype(reader[0]), const int&>);
+		ASSERT_EQ(reader[0], 20);
+	}
+}
+
+TEST_F(test_concurrent, TestSetLvalue)
+{
+	auto container = concurrent::vector<int>();
+	const std::vector<int> values{ 1, 2, 3 };
+	container.exclusive().set(values);
+
+	ASSERT_EQ(size_t{ 3 }, container.concurrent().size());
+}
+
 } // namespace framework_tests

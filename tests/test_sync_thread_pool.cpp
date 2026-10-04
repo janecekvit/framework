@@ -47,9 +47,10 @@ TEST_F(test_sync_thread_pool, Size)
 			future.wait();
 		}));
 
-	ASSERT_TRUE(pool.size() > 0); // could be 1 or more, because thread can already get the task from the queue
-
+	const auto queued = pool.size();
 	promise.set_value();
+
+	ASSERT_LE(queued, size_t{ 2 });
 }
 
 TEST_F(test_sync_thread_pool, AddTask)
@@ -148,6 +149,24 @@ TEST_F(test_sync_thread_pool, AddMutipleTasks)
 	for (auto& result : results)
 		result.wait();
 	ASSERT_EQ(counter, task_count);
+}
+
+TEST_F(test_sync_thread_pool, AddTaskExceptionKeepsWorkerAlive)
+{
+	std::atomic<int> counter = 0;
+	{
+		sync_thread_pool pool(1);
+		pool.add_task([]()
+			{
+				throw std::runtime_error("task failure");
+			});
+		pool.add_task([&counter]()
+			{
+				counter++;
+			});
+	}
+
+	ASSERT_EQ(counter, 1);
 }
 } // namespace framework_tests
 

@@ -90,7 +90,7 @@ TEST_F(test_lazy, TestLazyMethodReturnValue)
 	{
 		return result;
 	};
-	auto lazy_action = extensions::lazy(std::move(lambda));
+	auto lazy_action = extensions::make_lazy(std::move(lambda));
 	ASSERT_EQ(result, 0);
 	result = 5;
 	ASSERT_EQ(lazy_action(), 5);
@@ -103,7 +103,7 @@ TEST_F(test_lazy, TestLazyMethodParametersDefaultValues)
 	{
 		return i + j;
 	};
-	auto lazy_action = extensions::lazy(std::move(lambda), 5, 6);
+	auto lazy_action = extensions::make_lazy(std::move(lambda), 5, 6);
 	ASSERT_EQ(lazy_action(), 11);
 }
 
@@ -114,7 +114,22 @@ TEST_F(test_lazy, TestLazyMethodChangedValuesByParameter)
 	{
 		return i + j;
 	};
-	auto lazy_action = extensions::lazy(std::move(lambda), 5, 6);
+	auto lazy_action = extensions::make_lazy(std::move(lambda), 5, 6);
 	ASSERT_EQ(lazy_action(5, 9), 14); // throw out old values
 }
+
+TEST_F(test_lazy, TestLazyLvalueArguments)
+{
+	int first = 1;
+	int second = 2;
+	auto action = extensions::make_lazy([](int a, int b)
+		{
+			return a + b;
+		},
+		first, second);
+
+	second = 10;
+	ASSERT_EQ(11, action());
+}
+
 } // namespace framework_tests

@@ -1,21 +1,18 @@
 /*
-MIT License
-Copyright (c) 2025 Vit Janecek (mailto:janecekvit@outlook.com)
+Copyright (c) 2025 Vit Janecek. All rights reserved.
 
-concurrent.h
-Purpose:	header file contains set of thread-safe concurrent containers,
-			also methods that implemented over basic stl containers and
-			thread-safe methods for every possible concurrent object
+lock_owner.h
+Purpose:	header file contains lock ownership tracking for concurrent containers
 
-
-@author: Vit Janecek
-@mailto: <mailto:janecekvit@outlook.com>
-@version 2.04 9/1/2022
+@author:  Vit Janecek
+@mailto:  <mailto:janecekvit@outlook.com>
+@version: 2.04 9/1/2022
 */
 
 #pragma once
 #include "compatibility/compiler_support.h"
 #include "extensions/constraints.h"
+#include "extensions/finally.h"
 #include "synchronization/signal.h"
 
 #include <atomic>
@@ -214,7 +211,10 @@ template <class _Type, lock_tracking_policy _Policy, class _LockType>
 class lock_holder_base
 {
 public:
-	~lock_holder_base() = default;
+	~lock_holder_base()
+	{
+		_drop_tracking();
+	}
 
 	constexpr lock_holder_base(lock_owner_base<_Type, _Policy>& owner, bool tracking_enabled, _LockType&& lock) noexcept
 		: _owner(&owner)
@@ -233,47 +233,26 @@ public:
 	constexpr void unlock()
 	{
 		_check_ownership();
+		_drop_tracking();
 		_lock.unlock();
-
-		if constexpr (_needs_runtime_tracking())
-		{
-			if (_tracking_enabled)
-			{
-				_pop_lock_details();
-				_tracking_enabled = false;
-			}
-		}
 	}
 
 	constexpr void lock(std::source_location srcl = std::source_location::current())
 	{
 		_check_deadlock();
 		_lock.lock();
-
-		if constexpr (_needs_runtime_tracking())
-		{
-			if (_should_track())
-			{
-				const auto& lock_info = _push_lock_details(typeid(_Type), std::move(srcl));
-				_tracking_enabled = true;
-				_log_lock_event(lock_info);
-			}
-		}
+		_tracking_enabled = _should_track();
+		_track_acquired(std::move(srcl));
 	}
 
 	constexpr bool try_lock(std::source_location srcl = std::source_location::current())
 	{
 		_check_deadlock();
 		bool locked = _lock.try_lock();
-
-		if constexpr (_needs_runtime_tracking())
+		if (locked)
 		{
-			if (locked && _should_track())
-			{
-				const auto& lock_info = _push_lock_details(typeid(_Type), std::move(srcl));
-				_tracking_enabled = true;
-				_log_lock_event(lock_info);
-			}
+			_tracking_enabled = _should_track();
+			_track_acquired(std::move(srcl));
 		}
 
 		return locked;
@@ -284,7 +263,10 @@ public:
 	constexpr decltype(auto) wait(_Condition& cv, _Predicate&& pred) const
 	{
 		_check_ownership();
-		return cv.wait(_lock, std::move(pred));
+		return _wait_untracked([&]() -> decltype(auto)
+			{
+				return cv.wait(_lock, std::forward<_Predicate>(pred));
+			});
 	}
 
 	template <class _Condition>
@@ -292,21 +274,30 @@ public:
 	constexpr decltype(auto) wait(_Condition& cv) const
 	{
 		_check_ownership();
-		return cv.wait(_lock);
+		return _wait_untracked([&]() -> decltype(auto)
+			{
+				return cv.wait(_lock);
+			});
 	}
 
 	template <constraints::condition_variable_type _Condition, class _TRep, class _TPeriod>
 	[[nodiscard]] decltype(auto) wait_for(_Condition& cv, const std::chrono::duration<_TRep, _TPeriod>& rel_time) const
 	{
 		_check_ownership();
-		return cv.wait_for(_lock, rel_time);
+		return _wait_untracked([&]() -> decltype(auto)
+			{
+				return cv.wait_for(_lock, rel_time);
+			});
 	}
 
 	template <constraints::condition_variable_type _Condition, class _TRep, class _TPeriod, class _Predicate>
 	[[nodiscard]] decltype(auto) wait_for(_Condition& cv, const std::chrono::duration<_TRep, _TPeriod>& rel_time, _Predicate&& pred) const
 	{
 		_check_ownership();
-		return cv.wait_for(_lock, rel_time, std::move(pred));
+		return _wait_untracked([&]() -> decltype(auto)
+			{
+				return cv.wait_for(_lock, rel_time, std::forward<_Predicate>(pred));
+			});
 	}
 
 #if defined(HAS_JTHREAD)
@@ -314,7 +305,10 @@ public:
 	[[nodiscard]] decltype(auto) wait_for(_Condition& cv, std::stop_token stoken, const std::chrono::duration<_TRep, _TPeriod>& rel_time, _Predicate&& pred) const
 	{
 		_check_ownership();
-		return cv.wait_for(_lock, std::move(stoken), rel_time, std::move(pred));
+		return _wait_untracked([&]() -> decltype(auto)
+			{
+				return cv.wait_for(_lock, std::move(stoken), rel_time, std::forward<_Predicate>(pred));
+			});
 	}
 #endif // HAS_JTHREAD
 
@@ -341,6 +335,43 @@ protected:
 			throw std::system_error(EPERM, std::system_category().default_error_condition(EPERM).category(), "lock_holder does not own the resource!");
 	}
 
+	template <class _Wait>
+	decltype(auto) _wait_untracked(_Wait&& wait) const
+	{
+		if constexpr (std::is_same_v<_LockType, std::unique_lock<_Type>> && _needs_runtime_tracking())
+		{
+			if (auto details = _tracking_enabled ? _owner->get_exclusive_lock_details() : std::nullopt; details.has_value())
+			{
+				_owner->_pop_exclusive_lock_details();
+				const auto restore = extensions::make_finally([this, &details]()
+					{
+						_owner->_push_exclusive_lock_details(std::type_index(details->MutexType), std::source_location(details->Location), details->ResourceType);
+					});
+				return wait();
+			}
+		}
+		return wait();
+	}
+
+	void _track_acquired(std::source_location&& srcl)
+	{
+		if constexpr (_needs_runtime_tracking())
+		{
+			if (_tracking_enabled)
+				_log_lock_event(_push_lock_details(typeid(_Type), std::move(srcl)));
+		}
+	}
+
+	void _drop_tracking() noexcept
+	{
+		if constexpr (_needs_runtime_tracking())
+		{
+			if (_tracking_enabled && _lock.owns_lock())
+				_pop_lock_details();
+		}
+		_tracking_enabled = false;
+	}
+
 	void _log_lock_event(const lock_information& lock_info) const
 	{
 		if constexpr (_needs_runtime_tracking())
@@ -349,11 +380,7 @@ protected:
 
 	static constexpr bool _should_track() noexcept
 	{
-		if constexpr (_Policy::is_compile_time)
-			return _Policy::should_track();
-
-		else
-			return _Policy::should_track();
+		return _Policy::should_track();
 	}
 
 	static constexpr bool _needs_runtime_tracking() noexcept
@@ -367,20 +394,14 @@ protected:
 		{
 			if constexpr (_needs_runtime_tracking())
 			{
-				if (_resourceType.has_value())
-					return _owner->_push_exclusive_lock_details(std::move(index), std::move(srcl), _resourceType.value());
-				else
-					return _owner->_push_exclusive_lock_details(std::move(index), std::move(srcl));
+				return _owner->_push_exclusive_lock_details(std::move(index), std::move(srcl), _resourceType);
 			}
 		}
 		else if constexpr (std::is_same_v<_LockType, std::shared_lock<_Type>>)
 		{
 			if constexpr (_needs_runtime_tracking())
 			{
-				if (_resourceType.has_value())
-					return _owner->_push_concurrent_lock_details(this, std::move(index), std::move(srcl), _resourceType.value());
-				else
-					return _owner->_push_concurrent_lock_details(this, std::move(index), std::move(srcl));
+				return _owner->_push_concurrent_lock_details(this, std::move(index), std::move(srcl), _resourceType);
 			}
 		}
 	}
@@ -424,36 +445,13 @@ public:
 	constexpr exclusive_lock_holder(lock_owner_base<_Type, _Policy>& owner, std::source_location&& srcl) noexcept
 		: Base(owner, Base::_should_track(), std::unique_lock<_Type>(*owner.get_mutex()))
 	{
-		if constexpr (Base::_needs_runtime_tracking())
-		{
-			if (_tracking_enabled)
-			{
-				const auto& lock_info = this->_push_lock_details(typeid(_Type), std::move(srcl));
-				Base::_log_lock_event(lock_info);
-			}
-		}
+		this->_track_acquired(std::move(srcl));
 	}
 
 	constexpr exclusive_lock_holder(lock_owner_base<_Type, _Policy>& owner, std::source_location&& srcl, std::type_index&& resourceType) noexcept
 		: Base(owner, Base::_should_track(), std::unique_lock<_Type>(*owner.get_mutex()), std::move(resourceType))
 	{
-		if constexpr (Base::_needs_runtime_tracking())
-		{
-			if (_tracking_enabled)
-			{
-				const auto& lock_info = this->_push_lock_details(typeid(_Type), std::move(srcl));
-				Base::_log_lock_event(lock_info);
-			}
-		}
-	}
-
-	~exclusive_lock_holder()
-	{
-		if constexpr (Base::_needs_runtime_tracking())
-		{
-			if (_tracking_enabled)
-				this->_pop_lock_details();
-		}
+		this->_track_acquired(std::move(srcl));
 	}
 
 	constexpr exclusive_lock_holder(const exclusive_lock_holder& other) noexcept = delete;
@@ -468,6 +466,9 @@ public:
 
 	constexpr exclusive_lock_holder& operator=(exclusive_lock_holder&& other) noexcept
 	{
+		if (this != &other)
+			this->_drop_tracking();
+
 		_owner = std::move(other._owner);
 		_lock = std::move(other._lock);
 		_tracking_enabled = other._tracking_enabled;
@@ -499,36 +500,13 @@ public:
 	constexpr concurrent_lock_holder(lock_owner_base<_Type, _Policy>& owner, std::source_location&& srcl) noexcept
 		: Base(owner, Base::_should_track(), std::shared_lock<_Type>(*owner.get_mutex()))
 	{
-		if constexpr (Base::_needs_runtime_tracking())
-		{
-			if (_tracking_enabled)
-			{
-				const auto& lock_info = this->_push_lock_details(typeid(_Type), std::move(srcl));
-				Base::_log_lock_event(lock_info);
-			}
-		}
+		this->_track_acquired(std::move(srcl));
 	}
 
 	constexpr concurrent_lock_holder(lock_owner_base<_Type, _Policy>& owner, std::source_location&& srcl, std::type_index&& resourceType) noexcept
 		: Base(owner, Base::_should_track(), std::shared_lock<_Type>(*owner.get_mutex()), std::move(resourceType))
 	{
-		if constexpr (Base::_needs_runtime_tracking())
-		{
-			if (_tracking_enabled)
-			{
-				const auto& lock_info = this->_push_lock_details(typeid(_Type), std::move(srcl));
-				Base::_log_lock_event(lock_info);
-			}
-		}
-	}
-
-	~concurrent_lock_holder()
-	{
-		if constexpr (Base::_needs_runtime_tracking())
-		{
-			if (_tracking_enabled)
-				this->_pop_lock_details();
-		}
+		this->_track_acquired(std::move(srcl));
 	}
 
 	constexpr concurrent_lock_holder(const concurrent_lock_holder& other) noexcept = delete;
@@ -549,6 +527,9 @@ public:
 
 	constexpr concurrent_lock_holder& operator=(concurrent_lock_holder&& other) noexcept
 	{
+		if (this != &other)
+			this->_drop_tracking();
+
 		_owner = std::move(other._owner);
 		_lock = std::move(other._lock);
 		_tracking_enabled = other._tracking_enabled;
@@ -578,9 +559,6 @@ class [[nodiscard]] owner_lock_details
 	friend class lock_holder_base;
 
 	template <class, lock_tracking_policy>
-	friend class exclusive_lock_holder;
-
-	template <class, lock_tracking_policy>
 	friend class concurrent_lock_holder;
 
 public:
@@ -593,18 +571,21 @@ public:
 
 	[[nodiscard]] exclusive_lock_details get_exclusive_lock_details() const noexcept
 	{
+		std::unique_lock lck(*_mutex_lock_details);
 		return _exclusive_lock_details;
 	}
 
 	[[nodiscard]] concurrent_lock_details get_concurrent_lock_details() const noexcept
 		requires(constraints::is_shared_mutex_type<_MutexType>)
 	{
+		std::unique_lock lck(*_mutex_lock_details);
 		return _concurrent_lock_details;
 	}
 
 private:
 	const lock_information& _push_exclusive_lock_details(std::type_index&& mutexType, std::source_location&& srcl, std::optional<std::type_index> resourceType = {})
 	{
+		std::unique_lock lck(*_mutex_lock_details);
 		_exclusive_lock_details = lock_information{
 			std::move(mutexType),
 			std::move(srcl),
@@ -617,6 +598,7 @@ private:
 
 	void _pop_exclusive_lock_details() noexcept
 	{
+		std::unique_lock lck(*_mutex_lock_details);
 		_exclusive_lock_details.reset();
 	}
 
@@ -664,9 +646,6 @@ private:
 template <is_supported_mutex _Type, lock_tracking_policy _Policy>
 class [[nodiscard]] lock_owner_base : public std::conditional_t<_Policy::is_compile_time && !_Policy::should_track(), std::monostate, owner_lock_details<_Type>>
 {
-	friend exclusive_lock_holder<_Type, _Policy>;
-	friend concurrent_lock_holder<_Type, _Policy>;
-
 public:
 	using policy_type = _Policy;
 	using exclusive_holder_type = exclusive_lock_holder<_Type, _Policy>;
@@ -674,11 +653,6 @@ public:
 
 public:
 	constexpr lock_owner_base() = default;
-
-	constexpr lock_owner_base(_Type&& object) noexcept
-		: _mutex(std::make_shared<_Type>(std::forward<_Type>(object)))
-	{
-	}
 
 	~lock_owner_base()
 	{
@@ -757,13 +731,6 @@ public:
 private:
 	std::shared_ptr<_Type> _mutex = std::make_shared<_Type>();
 };
-
-// CTAD
-template <class T>
-lock_owner_base(T&&) -> lock_owner_base<T, lock_tracking_disabled>;
-
-template <class T>
-lock_owner_base(T&&) -> lock_owner_base<T, lock_tracking_enabled>;
 
 /// <summary>
 /// Compile-time aliases for lock tracking

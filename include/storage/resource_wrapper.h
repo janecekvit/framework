@@ -21,8 +21,7 @@ namespace janecekvit::storage
 /// <summary>
 /// The wrapper implemented own deleter that gains functionality to release all used resources correctly.
 /// Ensure that deleter's body can be called multiple times to handle deallocations of the same resource in case of CopyConstructible methods of this wrapper are used.
-/// When _DestuctorThrowException is set to true, destructor can raise exception when deleter functor fails or isn't initialized.
-/// Throwing an exception out of a destructor is dangerous. If another exception is already propagating the application will terminate. Be careful with this.
+/// Exceptions thrown by the deleter are caught; std::exception based ones are passed to the optional exception callback.
 /// </summary>
 /// <example>
 /// <code>
@@ -66,6 +65,9 @@ public:
 public:
 	virtual ~resource_wrapper() noexcept
 	{
+		if (!_resource)
+			return;
+
 		_resource.reset();
 
 		try
@@ -130,6 +132,7 @@ public:
 	constexpr resource_wrapper(resource_wrapper&& other) noexcept
 		: _resource(std::move(other._resource))
 		, _deleter(std::move(other._deleter))
+		, _exception_callback(other._exception_callback)
 	{
 	}
 
@@ -285,6 +288,9 @@ protected:
 						std::ignore = stored_callback; // avoid unused variable warning
 					}
 				}
+				catch (...)
+				{
+				}
 				delete ptr;
 				ptr = nullptr;
 			});
@@ -302,19 +308,5 @@ protected:
 	_ResourceDeleter _deleter{};
 	const _ExceptionCallback _exception_callback{};
 };
-
-/// <summary>
-/// User defined deduction guide CTAD using forwarding reference
-/// </summary>
-template <class _Resource, std::invocable _ResourceDeleter>
-resource_wrapper(_Resource&&, _ResourceDeleter&&)
-	-> resource_wrapper<_Resource, _ResourceDeleter, constraints::default_exception_callback>;
-
-/// <summary>
-/// User-defined deduction guide CTAD with exception callback using forwarding reference
-/// </summary>
-template <class _Resource, std::invocable _ResourceDeleter, std::invocable _ExceptionCallback>
-resource_wrapper(const _Resource&, _ResourceDeleter&&, _ExceptionCallback&&)
-	-> resource_wrapper<_Resource, std::function<void(_Resource&)>, _ExceptionCallback>;
 
 } // namespace janecekvit::storage

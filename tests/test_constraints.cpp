@@ -6,6 +6,7 @@
 #include <future>
 #include <gtest/gtest.h>
 #include <iostream>
+#include <map>
 #include <ranges>
 #include <string>
 #include <thread>
@@ -169,6 +170,24 @@ TEST_F(test_constraints, TestContainerTraits)
 	ASSERT_EQ(constraints::is_container_v<decltype(d)>, false);
 	ASSERT_EQ(constraints::is_container_v<decltype(e)>, false);
 	ASSERT_EQ(constraints::is_container_v<decltype(f)>, true);
+}
+
+TEST_F(test_constraints, TestTraitsEdgeCases)
+{
+	struct IntDeleter
+	{
+		void operator()(int* value) const
+		{
+			delete value;
+		}
+	};
+
+	static_assert(constraints::is_unique_ptr_v<std::unique_ptr<int, IntDeleter>>);
+	static_assert(constraints::is_iterator_v<std::back_insert_iterator<std::vector<int>>>);
+	static_assert(constraints::is_iterator_v<std::vector<int>::iterator>);
+	static_assert(!constraints::is_iterator_v<int>);
+	static_assert(!constraints::is_foundable_v<std::string, char>);
+	static_assert(constraints::is_foundable_v<std::map<int, int>, int>);
 }
 
 } // namespace framework_tests

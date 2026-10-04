@@ -1,13 +1,12 @@
 /*
-Copyright (c) 2020 Vit janecek <mailto:janecekvit@outlook.com>.
-All rights reserved.
+Copyright (c) 2020 Vit Janecek. All rights reserved.
 
 constraints.h
 Purpose:	header file contains set of extended constraints to describe stl containers
 
-@author: Vit Janecek
-@mailto: <mailto:janecekvit@outlook.com>
-@version 1.16 15/10/2020
+@author:  Vit Janecek
+@mailto:  <mailto:janecekvit@outlook.com>
+@version: 1.16 15/10/2020
 */
 
 #pragma once
@@ -16,6 +15,7 @@ Purpose:	header file contains set of extended constraints to describe stl contai
 #include <concepts>
 #include <condition_variable>
 #include <functional>
+#include <iterator>
 #include <list>
 #include <memory>
 #include <mutex>
@@ -93,8 +93,8 @@ struct is_unique_ptr_helper : std::false_type
 {
 };
 
-template <class _T>
-struct is_unique_ptr_helper<std::unique_ptr<_T>> : std::true_type
+template <class _T, class _Deleter>
+struct is_unique_ptr_helper<std::unique_ptr<_T, _Deleter>> : std::true_type
 {
 };
 
@@ -146,7 +146,7 @@ struct is_foundable_helper : std::false_type
 };
 
 template <class _T, class _U>
-struct is_foundable_helper<_T, _U, std::void_t<decltype(std::declval<_T>().find(std::declval<_U>()))>> : std::true_type
+struct is_foundable_helper<_T, _U, std::void_t<decltype(std::declval<_T&>().find(std::declval<_U>()) == std::declval<_T&>().end())>> : std::true_type
 {
 };
 
@@ -202,18 +202,8 @@ constexpr bool is_concurrent_container_v = is_concurrent_container<_T>::value;
 /// <summary>
 /// Helper structures to determine if template type <_T> is iterator
 /// </summary>
-template <class _T, class = void>
-struct is_iterator_helper : std::false_type
-{
-};
-
 template <class _T>
-struct is_iterator_helper<_T, typename std::enable_if<!std::is_same<typename std::iterator_traits<_T>::value_type, void>::value>::type> : std::true_type
-{
-};
-
-template <class _T>
-struct is_iterator : is_iterator_helper<typename std::remove_cv<_T>::type>
+struct is_iterator : std::bool_constant<std::input_or_output_iterator<typename std::remove_cv<_T>::type>>
 {
 };
 
@@ -270,10 +260,21 @@ inline constexpr bool is_type_in_variant_v = is_type_in_variant<_T, _Variant>::v
 template <class... _Args>
 struct unify_variant;
 
-template <class... _Types1, class... _Types2>
-struct unify_variant<std::variant<_Types1...>, std::variant<_Types2...>>
+template <class _Variant, class... _Types>
+struct variant_append_unique
 {
-	using type = std::variant<_Types1..., _Types2...>;
+	using type = _Variant;
+};
+
+template <class... _Types1, class _Head, class... _Tail>
+struct variant_append_unique<std::variant<_Types1...>, _Head, _Tail...>
+	: variant_append_unique<std::conditional_t<(std::is_same_v<_Head, _Types1> || ...), std::variant<_Types1...>, std::variant<_Types1..., _Head>>, _Tail...>
+{
+};
+
+template <class... _Types1, class... _Types2>
+struct unify_variant<std::variant<_Types1...>, std::variant<_Types2...>> : variant_append_unique<std::variant<_Types1...>, _Types2...>
+{
 };
 
 template <class _Variant1, class _Variant2>

@@ -30,7 +30,7 @@ public:
 		requires constraints::condition_variable_type<_SyncPrimitive> && std::predicate<_PredicateType>
 	[[nodiscard]] _Enum wait(_TLock& lock, _PredicateType&& pred) const
 	{
-		_primitive.wait(lock, std::move(pred));
+		_primitive.wait(lock, std::forward<_PredicateType>(pred));
 		return _get_state();
 	}
 
@@ -45,7 +45,7 @@ public:
 	[[nodiscard]] _Enum wait(_PredicateType&& pred) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1> && std::predicate<_PredicateType>
 	{
-		_primitive.wait(std::move(pred));
+		_primitive.wait(std::forward<_PredicateType>(pred));
 		return _get_state();
 	}
 
@@ -62,7 +62,7 @@ public:
 		requires constraints::condition_variable_type<_SyncPrimitive> && std::predicate<_PredicateType>
 	[[nodiscard]] std::optional<_Enum> wait_for(_TLock& lock, const std::chrono::duration<_TRep, _TPeriod>& rel_time, _PredicateType&& pred) const
 	{
-		if (_primitive.wait_for(lock, rel_time, std::move(pred)))
+		if (_primitive.wait_for(lock, rel_time, std::forward<_PredicateType>(pred)))
 			return _get_state();
 		return {};
 	}
@@ -80,7 +80,7 @@ public:
 	[[nodiscard]] std::optional<_Enum> wait_for(const std::chrono::duration<_TRep, TPeriod>& rel_time, _PredicateType&& pred) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1> && std::predicate<_PredicateType>
 	{
-		if (_primitive.wait_for(rel_time, std::move(pred)))
+		if (_primitive.wait_for(rel_time, std::forward<_PredicateType>(pred)))
 			return _get_state();
 		return {};
 	}
@@ -98,7 +98,7 @@ public:
 		requires constraints::condition_variable_type<_SyncPrimitive> && std::predicate<_PredicateType>
 	[[nodiscard]] std::optional<_Enum> wait_until(_TLock& lock, const std::chrono::time_point<_TClock, _TDuration>& timeout_time, _PredicateType&& pred) const
 	{
-		if (_primitive.wait_until(lock, timeout_time, std::move(pred)))
+		if (_primitive.wait_until(lock, timeout_time, std::forward<_PredicateType>(pred)))
 			return _get_state();
 		return {};
 	}
@@ -116,7 +116,7 @@ public:
 	[[nodiscard]] std::optional<_Enum> wait_until(const std::chrono::time_point<_TClock, _TDuration>& timeout_time, _PredicateType&& pred) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1> && std::predicate<_PredicateType>
 	{
-		if (_primitive.wait_until(timeout_time, std::move(pred)))
+		if (_primitive.wait_until(timeout_time, std::forward<_PredicateType>(pred)))
 			return _get_state();
 		return {};
 	}

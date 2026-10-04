@@ -19,7 +19,7 @@ namespace janecekvit::extensions
 template <constraints::pointer_type _Type>
 class [[nodiscard]] not_null_ptr
 {
-	using deleter_type = std::conditional_t<std::is_pointer_v<_Type>, std::function<void()>, std::monostate>;
+	using deleter_type = std::conditional_t<std::is_pointer_v<_Type>, std::shared_ptr<const void>, std::monostate>;
 
 public:
 	not_null_ptr() = delete;
@@ -43,11 +43,7 @@ public:
 		if (!_pointer)
 			throw exception::exception("Null pointer assignment to required_ptr");
 
-		_deleter = [ptr, d = std::move(deleter)]()
-		{
-			if (ptr)
-				d(ptr);
-		};
+		_deleter = deleter_type(_pointer, std::move(deleter));
 	}
 
 	template <typename _Fwd>
@@ -59,20 +55,15 @@ public:
 			throw exception::exception("Null pointer assignment to required_ptr");
 	}
 
-	~not_null_ptr() noexcept
-	{
-		if constexpr (std::is_pointer_v<_Type>)
-		{
-			if (_deleter)
-				_deleter();
-		}
-	}
-
 	constexpr not_null_ptr(const not_null_ptr& other) = default;
-	constexpr not_null_ptr(not_null_ptr&& other) noexcept = default;
+	constexpr not_null_ptr(not_null_ptr&& other) noexcept
+		requires constraints::is_unique_ptr_v<_Type>
+	= delete;
 
 	constexpr not_null_ptr& operator=(const not_null_ptr& other) = default;
-	constexpr not_null_ptr& operator=(not_null_ptr&& other) noexcept = default;
+	constexpr not_null_ptr& operator=(not_null_ptr&& other) noexcept
+		requires constraints::is_unique_ptr_v<_Type>
+	= delete;
 
 	not_null_ptr& operator++() = delete;
 	not_null_ptr& operator--() = delete;
@@ -86,6 +77,7 @@ public:
 	friend void swap(not_null_ptr<_Type>& lhs, not_null_ptr<_Type>& rhs) noexcept
 	{
 		std::swap(lhs._pointer, rhs._pointer);
+		std::swap(lhs._deleter, rhs._deleter);
 	}
 
 	[[nodiscard]] constexpr _Type& get() noexcept
@@ -121,7 +113,15 @@ public:
 		return false;
 	}
 
-	auto operator<=>(const not_null_ptr&) const = default;
+	constexpr bool operator==(const not_null_ptr& other) const noexcept
+	{
+		return std::to_address(_pointer) == std::to_address(other._pointer);
+	}
+
+	constexpr auto operator<=>(const not_null_ptr& other) const noexcept
+	{
+		return std::compare_three_way{}(std::to_address(_pointer), std::to_address(other._pointer));
+	}
 
 private:
 	_Type _pointer;
@@ -162,7 +162,7 @@ inline constexpr not_null_ptr<_PointerType> make_not_null_ptr(_Args&&... args)
 }
 
 template <typename _Pointee, typename... _Args>
-	requires(std::constructible_from<_Pointee, _Args...>)
+	requires(std::constructible_from<_Pointee, _Args...> && !constraints::is_shared_ptr_v<_Pointee> && !constraints::is_unique_ptr_v<_Pointee>)
 inline constexpr not_null_ptr<std::add_pointer_t<_Pointee>> make_not_null_ptr(_Args&&... args)
 {
 	return not_null_ptr<std::add_pointer_t<_Pointee>>(new _Pointee(std::forward<_Args>(args)...));

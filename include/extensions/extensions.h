@@ -1,13 +1,12 @@
 /*
-Copyright (c) 2020 Vit janecek <mailto:janecekvit@outlook.com>.
-All rights reserved.
+Copyright (c) 2020 Vit Janecek. All rights reserved.
 
 extensions.h
 Purpose:	header file contains set of extended methods implemented over stl containers
 
-@author: Vit Janecek
-@mailto: <mailto:janecekvit@outlook.com>
-@version 1.13 07/11/2019
+@author:  Vit Janecek
+@mailto:  <mailto:janecekvit@outlook.com>
+@version: 1.13 07/11/2019
 */
 
 #pragma once
@@ -60,46 +59,30 @@ constexpr decltype(auto) execute_on_container(
 	const _Key& key,
 	_Func&& callback)
 {
-	if constexpr (constraints::is_foundable_v<_Container, _Key>)
+	auto&& it = [&]()
 	{
-		if constexpr (constraints::is_pair_v<std::iter_value_t<decltype(container.find(key))>>)
-		{
-			auto&& it = container.find(key);
-			if (it != container.end())
-				return callback(it->second);
-
-			if constexpr (!std::is_void_v<decltype(callback(it->second))>)
-				return decltype(callback(it->second)){};
-		}
+		if constexpr (constraints::is_foundable_v<_Container, _Key>)
+			return container.find(key);
 		else
-		{
-			auto&& it = container.find(key);
-			if (it != container.end())
-				return callback(*it);
+			return std::find(container.begin(), container.end(), key);
+	}();
 
-			if constexpr (!std::is_void_v<decltype(callback(*it))>)
-				return decltype(callback(*it)){};
-		}
+	if constexpr (constraints::is_foundable_v<_Container, _Key> && constraints::is_pair_v<std::iter_value_t<decltype(it)>>)
+	{
+		if (it != container.end())
+			return callback(it->second);
+
+		if constexpr (!std::is_void_v<decltype(callback(it->second))>)
+			return decltype(callback(it->second)){};
 	}
 	else
 	{
-		auto&& it = std::find(container.begin(), container.end(), key);
 		if (it != container.end())
 			return callback(*it);
 
 		if constexpr (!std::is_void_v<decltype(callback(*it))>)
 			return decltype(callback(*it)){};
 	}
-}
-
-template <class _Container, class _Key, class _Func>
-	requires std::invocable<_Func, const typename _Container::value_type>
-constexpr decltype(auto) execute_on_container(
-	const _Container& container,
-	const _Key& key,
-	_Func&& callback)
-{
-	return execute_on_container(const_cast<_Container&>(container), key, std::forward<_Func>(callback));
 }
 
 /// <summary>

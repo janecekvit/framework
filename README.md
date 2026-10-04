@@ -247,7 +247,7 @@ This is similar to the "finally" block in other programming languages and is use
 #include <iostream>
 
 std::fstream file("test.txt", std::ios::out);
-auto cleanup = janecekvit::extensions::finally([&]
+auto cleanup = janecekvit::extensions::make_finally([&]
 	{
 		file.close();
 		std::cout << "Cleanup code executed." << std::endl;
@@ -265,7 +265,7 @@ Using a custom exception callback:
 #include <stdexcept>
 
 std::fstream file("test.txt", std::ios::out);
-auto cleanup = janecekvit::extensions::finally([&]
+auto cleanup = janecekvit::extensions::make_finally([&]
 	{
 		if (file.is_open())
 		{
@@ -287,9 +287,10 @@ std::cout << "Function body." << std::endl;
 #### Lazy
 This header file, `extensions/lazy.h` provides a lazy evaluation mechanism of stored callable functions in C++.
 
-The `lazy_action` class template and the `lazy` function template provide a mechanism to store a callable function and its arguments, and to evaluate the function lazily when needed. 
+The `lazy_action` class template and the `make_lazy` function template provide a mechanism to store a callable function and its arguments, and to evaluate the function lazily when needed. 
 - **Lazy Evaluation**: Stores a callable function and its arguments, and evaluates the function only when needed.
 - **Flexible Invocation**: Allows invoking the stored function with the original arguments or with new arguments.
+- **Argument Storage**: Rvalue arguments are stored by value, lvalue arguments by reference, so the evaluation sees their current value (they must outlive the `lazy_action`).
 
 ```cpp
 #include "extensions/lazy.h"
@@ -301,7 +302,7 @@ auto multiply = [](int a, int b)
 {
 	return a * b;
 };
-auto lazyMultiply = extensions::lazy(std::move(multiply), 2, 5);
+auto lazyMultiply = extensions::make_lazy(std::move(multiply), 2, 5);
 
 // The function is not evaluated until this point
 int result = lazyMultiply();
@@ -321,7 +322,8 @@ It includes optimizations to ensure minimal performance impact and supports all 
 - **Guarantees Non-Null**: Ensures the pointer is never `nullptr`.
 - **Works with Raw and Smart Pointers**: Supports raw pointers, `std::shared_ptr`, and `std::unique_ptr`.
 - **In-Place Allocation**: Supports in-place memory allocation using `make_not_null_ptr`.
-- **Raw pointer deallocation**: Supports raw pointer deallocation though custom deleter via constructor.
+- **Raw pointer deallocation**: Supports raw pointer deallocation though custom deleter via constructor. Copies of a raw `not_null_ptr` share the ownership, the deleter is called once by the last copy.
+- **Move semantics**: A moved-from raw or `std::shared_ptr` based `not_null_ptr` keeps its pointer. `not_null_ptr<std::unique_ptr<T>>` is neither copyable nor movable, because a moved-from `std::unique_ptr` would be null.
 
 ```cpp
 #include "extensions/not_null_ptr.h"
@@ -559,7 +561,7 @@ It provides the following key components:
 
 - **`resource_owner`**: A template class that owns a resource and provides thread-safe access to it via exclusive or concurrent holders.
 - **`exclusive_resource_holder`**: Grants exclusive (write) access to the resource, ensuring no other threads can access it concurrently.
-- **`concurrent_resource_holder`**: Grants concurrent (read) access to the resource, allowing multiple threads to read the resource simultaneously.
+- **`concurrent_resource_holder`**: Grants concurrent (read) access to the resource, allowing multiple threads to read the resource simultaneously. The access is read-only: it exposes const references and const iterators only, so use `at()` or `find()` instead of `operator[]` on maps.
 - **Debugging Support**: In debug configuration or when `CONCURRENT_DBG_TOOLS` define is set, the library includes additional checks and lock detail tracking to help diagnose synchronization issues.
 
 ```cpp
@@ -746,11 +748,12 @@ lock_tracking_runtime::clear_logging_callback();
 This header file, `synchronization/signal.h` provides a mechanism for thread synchronization. 
 It allows threads to wait for a signal and can be configured to reset automatically after each wait or to require manual reset. 
 It supports different synchronization primitives such as `std::condition_variable_any`, `std::condition_variable`, and `std::binary_semaphore`.
-Manual reset works only with `std::condition_variable_any`, `std::condition_variable`.
+Manual reset works only with `std::condition_variable_any` and `std::condition_variable`.
 
 
 - **Thread Synchronization**: Provides a mechanism for synchronizing threads using signals.
-- **Auto-Reset and Manual-Reset**: Supports both auto-reset and manual-reset modes (only `std::condition_variable`).
+- **Auto-Reset**: `signalize()` releases one waiter and the signal is consumed. `signalize_all()` releases all current waiters; when nobody waits, the signal stays set for the next waiter.
+- **Manual-Reset**: Behaves like a Windows manual-reset event. The signal stays set and releases every waiter until `reset()` is called. `reset()` does not release blocked waiters; waiters blocked at the time of `signalize()` are released even when `reset()` follows immediately.
 - **Flexible Synchronization Primitives**: Can be used with std::condition_variable_any, std::condition_variable, and std::binary_semaphore.
 - **Predicate Support**: Allows waiting with a predicate to customize the wake-up condition.
 
@@ -791,7 +794,7 @@ Using `std::binary_semaphore`
 
 using namespace janecekvit;
 
-synchronization::signal<std::binary_semaphore, true> s; // manual reset = true
+synchronization::signal<std::binary_semaphore> s; // auto reset, manual reset is not supported with semaphores
 std::thread t([&]() mutable
 	{
 		s.wait();

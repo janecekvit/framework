@@ -38,6 +38,9 @@ public:
 			if constexpr (!std::is_same_v<_E, constraints::default_exception_callback>)
 				_exception_callback(ex);
 		}
+		catch (...)
+		{
+		}
 	}
 
 private:
@@ -55,24 +58,25 @@ final_action(_F&&)
 ///// <summary>
 ///// User-defined deduction guide CTAD for final_action using custom exception callback
 ///// </summary>
-template <std::invocable _F, std::invocable _E>
+template <std::invocable _F, class _E>
+	requires std::invocable<_E, const std::exception&>
 final_action(_F&&, _E&&)
 	-> final_action<_F, _E>;
 
 /// <summary>
-/// finally call wraps final_action to easily call it
+/// make_finally wraps final_action to easily call it
 /// </summary>
-template <std::invocable _F, class... _Args>
-[[nodiscard]] decltype(auto) finally(_F&& callback)
+template <std::invocable _F>
+[[nodiscard]] decltype(auto) make_finally(_F&& callback)
 {
 	return final_action<_F>{ std::forward<_F>(callback) };
 }
 
 /// <summary>
-/// finally call wraps final_action to easily call it.
+/// make_finally wraps final_action to easily call it.
 /// </summary>
-template <std::invocable _F, class _E, class... _Args>
-[[nodiscard]] decltype(auto) finally(_F&& callback, _E&& exception_callback)
+template <std::invocable _F, class _E>
+[[nodiscard]] decltype(auto) make_finally(_F&& callback, _E&& exception_callback)
 {
 	return final_action<_F, _E>{ std::forward<_F>(callback), std::forward<_E>(exception_callback) };
 }

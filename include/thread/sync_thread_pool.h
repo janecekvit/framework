@@ -1,31 +1,12 @@
 /*
-Licensed under the MIT License <http://opensource.org/licenses/MIT>.
-Copyright (c) 2018 Vit janecek <mailto:janecekvit@gmail.com>.
-
-Permission is hereby  granted, free of charge, to any  person obtaining a copy
-of this software and associated  documentation files (the "Software"), to deal
-in the Software  without restriction, including without  limitation the rights
-to  use, copy,  modify, merge,  publish, distribute,  sublicense, and/or  sell
-copies  of  the Software,  and  to  permit persons  to  whom  the Software  is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE  IS PROVIDED "AS  IS", WITHOUT WARRANTY  OF ANY KIND,  EXPRESS OR
-IMPLIED,  INCLUDING BUT  NOT  LIMITED TO  THE  WARRANTIES OF  MERCHANTABILITY,
-FITNESS FOR  A PARTICULAR PURPOSE AND  NONINFRINGEMENT. IN NO EVENT  SHALL THE
-AUTHORS  OR COPYRIGHT  HOLDERS  BE  LIABLE FOR  ANY  CLAIM,  DAMAGES OR  OTHER
-LIABILITY, WHETHER IN AN ACTION OF  CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE  OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Copyright (c) 2018 Vit Janecek. All rights reserved.
 
 sync_thread_pool.h
-Purpose: header file of static thread pool class
+Purpose:	header file of static thread pool class
 
-@author: Vit Janecek
-@mailto: janecekvit@gmail.com
-@version 1.05 15/10/2024
+@author:  Vit Janecek
+@mailto:  <mailto:janecekvit@outlook.com>
+@version: 1.05 15/10/2024
 */
 
 #pragma once
@@ -133,9 +114,12 @@ public:
 public:
 	virtual ~sync_thread_pool()
 	{
-		for (auto& t : const_cast<std::list<std::jthread>&>(_workers))
 		{
-			t.request_stop();
+			std::scoped_lock lck(_lock);
+			for (auto& t : const_cast<std::list<std::jthread>&>(_workers))
+			{
+				t.request_stop();
+			}
 		}
 
 		_event.notify_all();
@@ -145,11 +129,20 @@ public:
 		requires std::is_invocable_v<_Fn>
 	void add_task(_Fn&& fn) noexcept
 	{
-		add_task(std::packaged_task<void()>(std::forward<_Fn>(fn)));
+		std::scoped_lock lck(_lock);
+		_tasks.emplace([x = std::forward<_Fn>(fn)]() mutable
+			{
+				try
+				{
+					std::invoke(x);
+				}
+				catch (...)
+				{
+				}
+			});
+		_event.notify_one();
 	}
 
-	template <class... _Args>
-		requires std::is_invocable_v<std::packaged_task<void()>, _Args...>
 	void add_task(std::packaged_task<void()>&& fn) noexcept
 	{
 		std::scoped_lock lck(_lock);
@@ -167,8 +160,7 @@ public:
 		return add_waitable_task(std::packaged_task<std::invoke_result_t<_Fn>()>(std::forward<_Fn>(fn)));
 	}
 
-	template <class _R, class... _Args>
-		requires std::is_invocable_v<std::packaged_task<_R()>, _Args...>
+	template <class _R>
 	[[nodiscard]] std::future<_R> add_waitable_task(std::packaged_task<_R()>&& fn) noexcept
 	{
 		std::scoped_lock lck(_lock);

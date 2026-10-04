@@ -2,8 +2,10 @@
 
 #include <chrono>
 #include <condition_variable>
+#include <future>
 #include <gtest/gtest.h>
 #include <mutex>
+#include <string>
 #include <system_error>
 #include <utility>
 
@@ -825,6 +827,96 @@ TEST_F(test_lock_owner, TestDefaultLockOwnerAliasDeduction)
 	synchronization::lock_owner<std::mutex> owner2;
 	auto lock2 = owner2.exclusive();
 	ASSERT_TRUE(lock2.owns_lock());
+}
+
+TEST_F(test_lock_owner, TestMoveAssignReleasesPreviousTracking)
+{
+	synchronization::lock_owner_debug<> first;
+	synchronization::lock_owner_debug<> second;
+	{
+		auto lock = first.concurrent();
+		lock = second.concurrent();
+		ASSERT_EQ(size_t{ 0 }, first.get_concurrent_lock_details().size());
+		ASSERT_EQ(size_t{ 1 }, second.get_concurrent_lock_details().size());
+	}
+
+	synchronization::lock_owner_debug<> third;
+	synchronization::lock_owner_debug<> fourth;
+	auto lock = third.exclusive();
+	lock = fourth.exclusive();
+	ASSERT_FALSE(third.get_exclusive_lock_details().has_value());
+	ASSERT_TRUE(fourth.get_exclusive_lock_details().has_value());
+}
+
+TEST_F(test_lock_owner, TestExclusiveWaitRestoresTracking)
+{
+	synchronization::lock_owner_debug<> owner;
+	std::condition_variable_any cv;
+	bool ready = false;
+
+	auto lock = owner.exclusive();
+	auto notifier = std::async(std::launch::async, [&]()
+		{
+			auto other = owner.exclusive();
+			ready = true;
+			cv.notify_all();
+		});
+
+	lock.wait(cv, [&]()
+		{
+			return ready;
+		});
+	notifier.get();
+
+	const auto details = owner.get_exclusive_lock_details();
+	ASSERT_TRUE(details.has_value());
+	ASSERT_EQ(std::this_thread::get_id(), details->ThreadId);
+}
+
+TEST_F(test_lock_owner, TestLockDetailsReadWhileLocking)
+{
+	synchronization::lock_owner_debug<> owner;
+	std::atomic<bool> stop = false;
+	auto lockInLoop = [&](bool exclusive)
+	{
+		while (!stop)
+		{
+			if (exclusive)
+				auto lock = owner.exclusive();
+			else
+				auto lock = owner.concurrent();
+		}
+	};
+
+	auto reader1 = std::async(std::launch::async, lockInLoop, false);
+	auto reader2 = std::async(std::launch::async, lockInLoop, false);
+	auto writer = std::async(std::launch::async, lockInLoop, true);
+
+	for (int i = 0; i < 20000; i++)
+	{
+		std::ignore = owner.get_concurrent_lock_details();
+		std::ignore = owner.get_exclusive_lock_details();
+	}
+
+	stop = true;
+	reader1.get();
+	reader2.get();
+	writer.get();
+}
+
+TEST_F(test_lock_owner, TestWaitDoesNotMoveLvaluePredicate)
+{
+	synchronization::lock_owner_debug<> owner;
+	std::condition_variable_any cv;
+	std::string expected = "predicate state that does not fit into small string buffer";
+	auto predicate = [expected]()
+	{
+		return !expected.empty();
+	};
+
+	auto lock = owner.exclusive();
+	lock.wait(cv, predicate);
+	ASSERT_TRUE(predicate());
 }
 
 } // namespace framework_tests

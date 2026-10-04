@@ -6,6 +6,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <semaphore>
+#include <tuple>
 
 namespace janecekvit::synchronization
 {
@@ -38,12 +39,7 @@ public:
 	void wait(_TLock& lock) const
 		requires constraints::condition_variable_type<_SyncPrimitive>
 	{
-		const auto initial_version = _get_initial_version();
-
-		_primitive.wait(lock, [this, initial_version]() -> bool
-			{
-				return _check_signal(initial_version);
-			});
+		wait(lock, _no_predicate);
 	}
 
 	template <class _TLock, class _PredicateType>
@@ -52,7 +48,7 @@ public:
 	{
 		const auto initial_version = _get_initial_version();
 
-		_primitive.wait(lock, [this, initial_version, predicate = std::move(pred)]() -> bool
+		_wait(lock, [this, initial_version, predicate = std::forward<_PredicateType>(pred)]() -> bool
 			{
 				return predicate() || _check_signal(initial_version);
 			});
@@ -61,10 +57,7 @@ public:
 	void wait() const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
-		const auto initial_version = _get_initial_version();
-
-		while (!_check_signal(initial_version))
-			_primitive.acquire();
+		wait(_no_predicate);
 	}
 
 	template <class _PredicateType>
@@ -81,70 +74,35 @@ public:
 	[[nodiscard]] bool wait_for(_TLock& lock, const std::chrono::duration<TRep, TPeriod>& rel_time) const
 		requires constraints::condition_variable_type<_SyncPrimitive>
 	{
-		const auto deadline = std::chrono::steady_clock::now() + rel_time;
-		const auto initial_version = _get_initial_version();
-
-		return _primitive.wait_until(lock, deadline, [this, initial_version]() -> bool
-			{
-				return _check_signal(initial_version);
-			});
+		return wait_until(lock, std::chrono::steady_clock::now() + rel_time, _no_predicate);
 	}
 
 	template <class _TLock, class TRep, class TPeriod, class _PredicateType>
 	[[nodiscard]] bool wait_for(_TLock& lock, const std::chrono::duration<TRep, TPeriod>& rel_time, _PredicateType&& pred) const
 		requires constraints::condition_variable_type<_SyncPrimitive> && std::predicate<_PredicateType>
 	{
-		const auto deadline = std::chrono::steady_clock::now() + rel_time;
-		const auto initial_version = _get_initial_version();
-
-		return _primitive.wait_until(lock, deadline, [this, initial_version, predicate = std::move(pred)]() -> bool
-			{
-				return predicate() || _check_signal(initial_version);
-			});
+		return wait_until(lock, std::chrono::steady_clock::now() + rel_time, std::forward<_PredicateType>(pred));
 	}
 
 	template <class TRep, class TPeriod>
 	[[nodiscard]] bool wait_for(const std::chrono::duration<TRep, TPeriod>& rel_time) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
-		const auto deadline = std::chrono::steady_clock::now() + rel_time;
-		const auto initial_version = _get_initial_version();
-
-		while (!_check_signal(initial_version))
-		{
-			if (!_primitive.try_acquire_until(deadline))
-				return _check_signal(initial_version);
-		}
-
-		return true;
+		return wait_until(std::chrono::steady_clock::now() + rel_time, _no_predicate);
 	}
 
 	template <class TRep, class TPeriod, class _PredicateType>
 	[[nodiscard]] bool wait_for(const std::chrono::duration<TRep, TPeriod>& rel_time, _PredicateType&& pred) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1> && std::predicate<_PredicateType>
 	{
-		const auto deadline = std::chrono::steady_clock::now() + rel_time;
-		auto predicate = std::move(pred);
-		const auto initial_version = _get_initial_version();
-
-		while (!(predicate() || _check_signal(initial_version)))
-		{
-			if (!_primitive.try_acquire_until(deadline))
-				return predicate() || _check_signal(initial_version);
-		}
-		return true;
+		return wait_until(std::chrono::steady_clock::now() + rel_time, std::forward<_PredicateType>(pred));
 	}
 
 	template <class _TLock, class _TClock, class _TDuration>
 	[[nodiscard]] bool wait_until(_TLock& lock, const std::chrono::time_point<_TClock, _TDuration>& abs_time) const
 		requires constraints::condition_variable_type<_SyncPrimitive>
 	{
-		const auto initial_version = _get_initial_version();
-
-		return _primitive.wait_until(lock, abs_time, [this, initial_version]() -> bool
-			{
-				return _check_signal(initial_version);
-			});
+		return wait_until(lock, abs_time, _no_predicate);
 	}
 
 	template <class _TLock, class _TClock, class _TDuration, class _PredicateType>
@@ -153,7 +111,7 @@ public:
 	{
 		const auto initial_version = _get_initial_version();
 
-		return _primitive.wait_until(lock, abs_time, [this, initial_version, predicate = std::move(pred)]() -> bool
+		return _wait_until(lock, abs_time, [this, initial_version, predicate = std::forward<_PredicateType>(pred)]() -> bool
 			{
 				return predicate() || _check_signal(initial_version);
 			});
@@ -163,31 +121,20 @@ public:
 	[[nodiscard]] bool wait_until(const std::chrono::time_point<_TClock, _TDuration>& abs_time) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
-		const auto initial_version = _get_initial_version();
-
-		while (!_check_signal(initial_version))
-		{
-			if (!_primitive.try_acquire_until(abs_time))
-			{
-				return _check_signal(initial_version);
-			}
-		}
-		return true;
+		return wait_until(abs_time, _no_predicate);
 	}
 
 	template <class _TClock, class _TDuration, class _PredicateType>
 	[[nodiscard]] bool wait_until(const std::chrono::time_point<_TClock, _TDuration>& abs_time, _PredicateType&& pred) const
 		requires constraints::semaphore_type<_SyncPrimitive, 1> && std::predicate<_PredicateType>
 	{
-		auto predicate = std::move(pred);
+		auto predicate = std::forward<_PredicateType>(pred);
 		const auto initial_version = _get_initial_version();
 
 		while (!(predicate() || _check_signal(initial_version)))
 		{
 			if (!_primitive.try_acquire_until(abs_time))
-			{
 				return predicate() || _check_signal(initial_version);
-			}
 		}
 		return true;
 	}
@@ -212,12 +159,19 @@ public:
 	{
 		{
 			std::lock_guard lock(_state.state_mutex);
-			_state.signalized.store(true, std::memory_order_release);
 			_state.signal_version.fetch_add(1, std::memory_order_acq_rel);
 
-			// auto-reset mode - increment broadcast version
-			if constexpr (!_ManualReset)
+			// auto-reset mode - current waiters are woken by the version, the flag is left for a next waiter only when nobody waits
+			if constexpr (_ManualReset)
+			{
+				_state.signalized.store(true, std::memory_order_release);
+			}
+			else
+			{
 				_state.auto_reset_version.fetch_add(1, std::memory_order_acq_rel);
+				if (_state.waiters == 0)
+					_state.signalized.store(true, std::memory_order_release);
+			}
 		}
 		_primitive.notify_all();
 	}
@@ -225,25 +179,19 @@ public:
 	void signalize() noexcept
 		requires constraints::semaphore_type<_SyncPrimitive, 1>
 	{
+		std::lock_guard lock(_state.state_mutex);
 		_state.signalized.store(true, std::memory_order_release);
 		_state.signal_version.fetch_add(1, std::memory_order_acq_rel);
+		std::ignore = _primitive.try_acquire();
 		_primitive.release();
 	}
 
 	void reset() noexcept
 		requires _ManualReset
 	{
-		{
-			std::lock_guard lock(_state.state_mutex);
-			_state.signalized.store(false, std::memory_order_release);
-			_state.manual_reset_requested.store(true, std::memory_order_release);
-			_state.manual_reset_version.fetch_add(1, std::memory_order_acq_rel);
-		}
-
-		_primitive.notify_all();
-
-		// Clear hard reset flag
-		_state.manual_reset_requested.store(false, std::memory_order_release);
+		std::lock_guard lock(_state.state_mutex);
+		_state.signalized.store(false, std::memory_order_release);
+		_state.manual_reset_version.fetch_add(1, std::memory_order_acq_rel);
 	}
 
 	[[nodiscard]] bool is_signalized() const noexcept
@@ -262,10 +210,60 @@ public:
 	}
 
 private:
+	static constexpr auto _no_predicate = []() noexcept
+	{
+		return false;
+	};
+
+	template <class _TLock, class _PredicateType>
+	void _wait(_TLock& lock, _PredicateType&& pred) const
+	{
+		if (pred())
+			return;
+
+		for (;;)
+		{
+			std::unique_lock state_lock(_state.state_mutex);
+			if (pred())
+				return;
+
+			lock.unlock();
+			++_state.waiters;
+			_primitive.wait(state_lock);
+			--_state.waiters;
+			state_lock.unlock();
+			lock.lock();
+		}
+	}
+
+	template <class _TLock, class _TClock, class _TDuration, class _PredicateType>
+	bool _wait_until(_TLock& lock, const std::chrono::time_point<_TClock, _TDuration>& abs_time, _PredicateType&& pred) const
+	{
+		if (pred())
+			return true;
+
+		for (bool timed_out = false;;)
+		{
+			std::unique_lock state_lock(_state.state_mutex);
+			if (pred())
+				return true;
+
+			if (timed_out)
+				return false;
+
+			lock.unlock();
+			++_state.waiters;
+			timed_out = _primitive.wait_until(state_lock, abs_time) == std::cv_status::timeout;
+			--_state.waiters;
+			state_lock.unlock();
+			lock.lock();
+		}
+	}
+
 	uint64_t _get_initial_version() const noexcept
 		requires _ManualReset
 	{
-		return _state.manual_reset_version.load(std::memory_order_acquire);
+		return _state.signal_version.load(std::memory_order_acquire);
 	}
 
 	uint64_t _get_initial_version() const noexcept
@@ -277,7 +275,7 @@ private:
 	bool _check_signal(uint64_t initial_ver) const noexcept
 		requires _ManualReset
 	{
-		if (_state.manual_reset_version.load(std::memory_order_acquire) != initial_ver)
+		if (_state.signal_version.load(std::memory_order_acquire) != initial_ver)
 			return true;
 
 		return _state.signalized.load(std::memory_order_acquire);
@@ -307,8 +305,10 @@ private:
 		std::atomic<uint64_t> auto_reset_version{ 0 };
 
 		// manual-reset mode - wake all waiters
-		std::atomic<bool> manual_reset_requested{ false };
 		std::atomic<uint64_t> manual_reset_version{ 0 };
+
+		// condition variable mode - blocked waiters, guarded by state_mutex
+		uint64_t waiters = 0;
 	};
 
 private:

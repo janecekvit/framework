@@ -627,4 +627,82 @@ TEST_F(test_heterogeneous_container, TestTypeReserve)
 	ASSERT_EQ(c1.first<int>(), 42);
 }
 
+TEST_F(test_heterogeneous_container, TestCopyFromNonConstLvalue)
+{
+	storage::heterogeneous_container<> source(1, 2, 3);
+	storage::heterogeneous_container<> copy(source);
+
+	ASSERT_EQ(size_t{ 3 }, copy.size());
+	ASSERT_FALSE(copy.contains<storage::heterogeneous_container<>>());
+}
+
+TEST_F(test_heterogeneous_container, TestIterateWithEmptyTypeStorage)
+{
+	storage::heterogeneous_container<> container;
+	container.reserve<int>(5);
+
+	int count = 0;
+	for ([[maybe_unused]] const auto& item : container)
+		count++;
+
+	ASSERT_EQ(count, 0);
+	ASSERT_TRUE(container.begin() == container.end());
+}
+
+TEST_F(test_heterogeneous_container, TestCallAllDoesNotMoveArguments)
+{
+	storage::heterogeneous_container<> container;
+	std::vector<std::string> received;
+	container.emplace(std::function<void(std::string)>([&received](std::string value)
+		{
+			received.emplace_back(std::move(value));
+		}));
+	container.emplace(std::function<void(std::string)>([&received](std::string value)
+		{
+			received.emplace_back(std::move(value));
+		}));
+
+	container.call_all<std::function<void(std::string)>>(std::string("long enough to skip small string optimization"));
+
+	ASSERT_EQ(size_t{ 2 }, received.size());
+	ASSERT_EQ(received[0], received[1]);
+}
+
+TEST_F(test_heterogeneous_container, TestCopyAssignment)
+{
+	const storage::heterogeneous_container<> source(1, 2);
+	storage::heterogeneous_container<> target;
+	target = source;
+
+	ASSERT_EQ(size_t{ 2 }, target.size());
+}
+
+TEST_F(test_heterogeneous_container, TestSizeTypeAndDuplicateUserType)
+{
+	storage::heterogeneous_container<int> container;
+	container.emplace(size_t{ 5 });
+	container.emplace(6);
+
+	ASSERT_EQ(size_t{ 5 }, container.first<size_t>());
+	ASSERT_EQ(6, container.first<int>());
+}
+
+TEST_F(test_heterogeneous_container, TestCallAllForwardsRvalueToEveryCallback)
+{
+	storage::heterogeneous_container<> container;
+	std::vector<std::string> received;
+	for (int i = 0; i < 2; i++)
+	{
+		container.emplace(std::function<void(std::string&&)>([&received](std::string&& value)
+			{
+				received.emplace_back(std::move(value));
+			}));
+	}
+
+	container.call_all<std::function<void(std::string&&)>>(std::string("long enough to skip small string optimization"));
+
+	ASSERT_EQ(size_t{ 2 }, received.size());
+	ASSERT_EQ(received[0], received[1]);
+}
+
 } // namespace framework_tests

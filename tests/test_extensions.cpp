@@ -131,4 +131,15 @@ TEST_F(test_extensions, TestHashFunction)
 	ASSERT_NE(hash3, 0);
 }
 
+TEST_F(test_extensions, TestExecuteOnString)
+{
+	std::string text = "abc";
+	const char found = extensions::execute_on_container(text, 'b', [](char& character)
+		{
+			return character;
+		});
+
+	ASSERT_EQ('b', found);
+}
+
 } // namespace framework_tests

@@ -1,16 +1,14 @@
 /*
-MIT License
-Copyright (c) 2021 Vit Janecek (mailto:janecekvit@outlook.com)
+Copyright (c) 2021 Vit Janecek. All rights reserved.
 
 concurrent.h
 Purpose:	header file contains set of thread-safe concurrent containers,
 			also methods that implemented over basic stl containers and
 			thread-safe methods for every possible concurrent object
 
-
-@author: Vit Janecek
-@mailto: <mailto:janecekvit@outlook.com>
-@version 2.04 9/1/2022
+@author:  Vit Janecek
+@mailto:  <mailto:janecekvit@outlook.com>
+@version: 2.04 9/1/2022
 */
 
 #pragma once
@@ -85,20 +83,19 @@ public:
 
 	[[nodiscard]] constexpr operator _Type&() const
 	{
-		this->_check_ownership();
-		return *_owner->_get_resource();
+		return get();
 	}
 
-	[[nodiscard]] constexpr const std::shared_ptr<_Type> operator->() const
+	[[nodiscard]] constexpr _Type* operator->() const
 	{
 		this->_check_ownership();
-		return _owner->_get_resource();
+		return std::addressof(_owner->_get_resource());
 	}
 
 	[[nodiscard]] constexpr _Type& get() const
 	{
 		this->_check_ownership();
-		return *_owner->_get_resource();
+		return _owner->_get_resource();
 	}
 
 	template <class _FwdType>
@@ -123,43 +120,42 @@ public:
 
 	[[nodiscard]] constexpr _Type& operator()() const
 	{
-		this->_check_ownership();
-		return *_owner->_get_resource();
+		return get();
 	}
 
 	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) begin() const
 	{
 		this->_check_ownership();
-		return _owner->_get_resource()->begin();
+		return _owner->_get_resource().begin();
 	}
 
 	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) end() const
 	{
 		this->_check_ownership();
-		return _owner->_get_resource()->end();
+		return _owner->_get_resource().end();
 	}
 
 	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) size() const
 	{
 		this->_check_ownership();
-		return _owner->_get_resource()->size();
+		return _owner->_get_resource().size();
 	}
 
 	template <class _Key>
 	[[nodiscard]] constexpr auto& operator[](const _Key& key)
 	{
 		this->_check_ownership();
-		return (*_owner->_get_resource())[key];
+		return _owner->_get_resource()[key];
 	}
 
 	template <class _Key>
 	[[nodiscard]] constexpr const auto& operator[](const _Key& key) const
 	{
 		this->_check_ownership();
-		return (*_owner->_get_resource())[key];
+		return _owner->_get_resource()[key];
 	}
 
 private:
@@ -209,58 +205,56 @@ public:
 
 	[[nodiscard]] constexpr operator const _Type&() const
 	{
-		this->_check_ownership();
-		return *_owner->_get_resource();
+		return get();
 	}
 
-	[[nodiscard]] constexpr const std::shared_ptr<const _Type> operator->() const
+	[[nodiscard]] constexpr const _Type* operator->() const
 	{
 		this->_check_ownership();
-		return _owner->_get_resource();
+		return std::addressof(_owner->_get_resource());
 	}
 
 	[[nodiscard]] constexpr const _Type& get() const
 	{
 		this->_check_ownership();
-		return *_owner->_get_resource();
+		return _owner->_get_resource();
 	}
 
 	[[nodiscard]] constexpr const _Type& operator()() const
 	{
-		this->_check_ownership();
-		return *_owner->_get_resource();
+		return get();
 	}
 
 	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) begin() const
 	{
 		this->_check_ownership();
-		return _owner->_get_resource()->begin();
+		return _owner->_get_resource().begin();
 	}
 
 	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) end() const
 	{
 		this->_check_ownership();
-		return _owner->_get_resource()->end();
+		return _owner->_get_resource().end();
 	}
 
 	template <class _Quantified = _Type, std::enable_if_t<constraints::is_container_v<_Quantified>, int> = 0>
 	[[nodiscard]] constexpr decltype(auto) size() const
 	{
 		this->_check_ownership();
-		return _owner->_get_resource()->size();
+		return _owner->_get_resource().size();
 	}
 
 	template <class _Key>
 	[[nodiscard]] constexpr const auto& operator[](const _Key& key) const
 	{
 		this->_check_ownership();
-		return (*_owner->_get_resource())[key];
+		return _owner->_get_resource()[key];
 	}
 
 private:
-	resource_owner_base<_Type, _Policy>* _owner;
+	const resource_owner_base<_Type, _Policy>* _owner;
 };
 
 /// <summary>
@@ -362,9 +356,10 @@ public:
 	}
 
 private:
-	constexpr void _set_resource(_Type&& object)
+	template <class _FwdType>
+	constexpr void _set_resource(_FwdType&& object)
 	{
-		_resource = std::make_shared<_Type>(std::forward<_Type>(object));
+		_resource = std::make_shared<_Type>(std::forward<_FwdType>(object));
 	}
 
 	constexpr void _swap_resource(_Type& object) noexcept
@@ -377,14 +372,14 @@ private:
 		return std::move(*_resource);
 	}
 
-	[[nodiscard]] constexpr const std::shared_ptr<_Type> _get_resource() noexcept
+	[[nodiscard]] constexpr _Type& _get_resource() noexcept
 	{
-		return _resource;
+		return *_resource;
 	}
 
-	[[nodiscard]] constexpr const std::shared_ptr<const _Type> _get_resource() const noexcept
+	[[nodiscard]] constexpr const _Type& _get_resource() const noexcept
 	{
-		return _resource;
+		return *_resource;
 	}
 
 	std::shared_ptr<_Type> _resource = std::make_shared<_Type>();

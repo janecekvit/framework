@@ -1,18 +1,14 @@
 /*
-MIT License
-Copyright (c) 2021 Vit Janecek (mailto:janecekvit@outlook.com)
+Copyright (c) 2021 Vit Janecek. All rights reserved.
 
-concurrent.h
+atomic_concurrent.h
 Purpose:	header file contains set of atomic thread-safe concurrent containers,
 			also methods that implemented over basic stl containers and
 			thread-safe methods for every possible concurrent object
 
-
-@author: Vit Janecek
-@mailto: <mailto:janecekvit@outlook.com>
-@version 0.81 31/12/2021
-TODO: 1. std::aligned_storage (aligned_storage_t) for writer deep copy
-TODO: 2. Make atomic_concurrent based on two classes (exclusive writer, more writers with std::merge class)
+@author:  Vit Janecek
+@mailto:  <mailto:janecekvit@outlook.com>
+@version: 0.81 31/12/2021
 */
 
 #pragma once

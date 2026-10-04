@@ -136,6 +136,7 @@ TEST_F(test_signal, AutoReset_ConditionVariable)
 	ASSERT_FALSE(s.is_signalized());
 
 	// result
+	WaitForTasks({ task1, task2 });
 	ASSERT_EQ(2, woke_up_counter.load());
 }
 
@@ -168,6 +169,7 @@ TEST_F(test_signal, AutoReset_Semaphore)
 	ASSERT_FALSE(s.is_signalized());
 
 	// result
+	WaitForTasks({ task1, task2 });
 	ASSERT_EQ(2, woke_up_counter.load());
 }
 
@@ -269,10 +271,14 @@ TEST_F(test_signal, SignalizeAll_ConditionVariable)
 	while (future_ready_counter.load(std::memory_order_acquire) != 2)
 		std::this_thread::yield();
 
+	{
+		std::lock_guard<std::mutex> lock(m_conditionMtx); // both waiters released the lock inside wait
+	}
+
 	s.signalize_all();
 
 	ASSERT_EQ(1, s.get_signal_version());
-	// ASSERT_FALSE(s.is_signalized());
+	ASSERT_FALSE(s.is_signalized());
 
 	WaitForTasks({ task1, task2 });
 
@@ -418,6 +424,109 @@ TEST_F(test_signal, WaitUntilPredicate_Semaphore)
 
 	s.signalize();
 	ASSERT_TRUE(s.wait_until(std::chrono::steady_clock::now()));
+}
+
+TEST_F(test_signal, NoLostWakeup_ConditionVariable)
+{
+	auto runRounds = [](auto& s, std::mutex& mtx)
+	{
+		for (int round = 0; round < 20000; round++)
+		{
+			auto waiter = std::async(std::launch::async, [&]()
+				{
+					std::unique_lock<std::mutex> lock(mtx);
+					s.wait(lock);
+				});
+
+			s.signalize();
+			if (waiter.wait_for(5s) != std::future_status::ready)
+			{
+				s.signalize();
+				return false;
+			}
+		}
+		return true;
+	};
+
+	synchronization::signal<std::condition_variable_any> anySignal;
+	ASSERT_TRUE(runRounds(anySignal, m_conditionMtx));
+
+	synchronization::signal<std::condition_variable> plainSignal;
+	ASSERT_TRUE(runRounds(plainSignal, m_conditionMtx));
+}
+
+TEST_F(test_signal, SignalizeTwice_Semaphore)
+{
+	synchronization::signal<std::binary_semaphore> s;
+	s.signalize();
+	s.signalize();
+
+	s.wait();
+	ASSERT_FALSE(s.wait_for(10ms));
+}
+
+TEST_F(test_signal, ManualResetDoesNotReleaseWaiter_ConditionVariable)
+{
+	synchronization::signal<std::condition_variable_any, true> s;
+	std::atomic<bool> waiting = false;
+	auto task = std::async(std::launch::async, [&]()
+		{
+			std::unique_lock<std::mutex> lock(m_conditionMtx);
+			waiting = true;
+			return s.wait_for(lock, 200ms);
+		});
+
+	while (!waiting)
+		std::this_thread::yield();
+
+	{
+		std::lock_guard<std::mutex> lock(m_conditionMtx);
+	}
+
+	s.reset();
+	ASSERT_FALSE(task.get());
+}
+
+TEST_F(test_signal, ManualResetSignalizeThenResetReleasesWaiter_ConditionVariable)
+{
+	synchronization::signal<std::condition_variable_any, true> s;
+	std::atomic<bool> waiting = false;
+	auto task = std::async(std::launch::async, [&]()
+		{
+			std::unique_lock<std::mutex> lock(m_conditionMtx);
+			waiting = true;
+			s.wait(lock);
+		});
+
+	while (!waiting)
+		std::this_thread::yield();
+
+	{
+		std::lock_guard<std::mutex> lock(m_conditionMtx);
+	}
+
+	s.signalize();
+	s.reset();
+
+	const auto status = task.wait_for(5s);
+	if (status != std::future_status::ready)
+		s.signalize();
+
+	ASSERT_EQ(std::future_status::ready, status);
+}
+
+TEST_F(test_signal, LvaluePredicateIsNotMoved_ConditionVariable)
+{
+	synchronization::signal<std::condition_variable_any> s;
+	std::unique_lock<std::mutex> lock(m_conditionMtx);
+	auto expected = "predicate state that does not fit into small string buffer"s;
+	auto predicate = [expected]()
+	{
+		return !expected.empty();
+	};
+
+	s.wait(lock, predicate);
+	ASSERT_TRUE(predicate());
 }
 
 } // namespace framework_tests

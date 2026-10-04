@@ -64,7 +64,7 @@ TEST_F(test_finally, TestFinallyMethod)
 {
 	int result = 0;
 	{
-		auto finally = extensions::finally([&]()
+		auto finally = extensions::make_finally([&]()
 			{
 				result = 5;
 			});
@@ -80,7 +80,7 @@ TEST_F(test_finally, TestFinallyMethodWithException)
 	int result = 0;
 	bool bExceptionThrow = false;
 	{
-		auto finally = extensions::finally([&]()
+		auto finally = extensions::make_finally([&]()
 			{
 				result = 5;
 				throw std::runtime_error("HH");
@@ -101,4 +101,41 @@ TEST_F(test_finally, TestFinallyMethodWithException)
 	ASSERT_EQ(result, 5); // value still on 5
 	ASSERT_TRUE(bExceptionThrow);
 }
+
+TEST_F(test_finally, TestFinallyNonStdException)
+{
+	int result = 0;
+	{
+		auto finally = extensions::make_finally([&]()
+			{
+				result = 5;
+				throw 1;
+			});
+	}
+
+	ASSERT_EQ(result, 5);
+}
+
+TEST_F(test_finally, TestFinalActionNamedCallbacks)
+{
+	int result = 0;
+	bool exceptionHandled = false;
+	auto callback = [&]()
+	{
+		result = 5;
+		throw std::runtime_error("HH");
+	};
+	auto onException = [&](const std::exception&)
+	{
+		exceptionHandled = true;
+	};
+
+	{
+		extensions::final_action action(callback, onException);
+	}
+
+	ASSERT_EQ(5, result);
+	ASSERT_TRUE(exceptionHandled);
+}
+
 } // namespace framework_tests

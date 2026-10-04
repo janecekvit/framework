@@ -1,15 +1,14 @@
 #pragma once
 
 /*
-Copyright (c) 2020 Vit janecek <mailto:janecekvit@outlook.com>.
-All rights reserved.
+Copyright (c) 2020 Vit Janecek. All rights reserved.
 
 property.h
 Purpose:	header file contains Getter/Setter mechanism
 
-@author: Vit Janecek
-@mailto: <mailto:janecekvit@outlook.com>
-@version 1.09 01/06/2020
+@author:  Vit Janecek
+@mailto:  <mailto:janecekvit@outlook.com>
+@version: 1.09 01/06/2020
 */
 
 #include "extensions/constraints.h"
@@ -71,14 +70,14 @@ public:
 
 	// Constructors
 public: // public set
-	template <class _FwdResource = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier>, int> = 0>
+	template <class _FwdResource = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier> && !std::is_same_v<std::remove_cvref_t<_FwdResource>, property>, int> = 0>
 	constexpr property(_FwdResource&& resource)
 		: _resource(std::forward<_FwdResource>(resource))
 	{
 	}
 
 private: // private set
-	template <class _FwdResource = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<!public_access_v<_TModifier>, int> = 0>
+	template <class _FwdResource = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<!public_access_v<_TModifier> && !std::is_same_v<std::remove_cvref_t<_FwdResource>, property>, int> = 0>
 	constexpr property(_FwdResource&& resource)
 		: _resource(std::forward<_FwdResource>(resource))
 	{
@@ -129,26 +128,6 @@ private: // private set
 	// assign operators
 public: // public set
 	template <class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier>, int> = 0>
-	property& operator=(const property& other)
-	{
-		_resource = other._resource;
-		_getter = other._getter;
-		_setter = other._setter;
-		return *this;
-	}
-
-private: // private set
-	template <class _TModifier = _SetterAccess, std::enable_if_t<!public_access_v<_TModifier>, int> = 0>
-	property& operator=(const property& other)
-	{
-		_resource = other._resource;
-		_getter = other._getter;
-		_setter = other._setter;
-		return *this;
-	}
-
-public: // public set
-	template <class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier>, int> = 0>
 	property& operator=(property&& other)
 	{
 		_resource = std::move(other._resource);
@@ -168,7 +147,7 @@ private: // private set
 	}
 
 public:
-	template <class _FwdResource = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier> && std::is_convertible_v<std::decay_t<_FwdResource>, _Resource>, int> = 0>
+	template <class _FwdResource = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier> && std::is_convertible_v<std::decay_t<_FwdResource>, _Resource> && !std::is_same_v<std::remove_cvref_t<_FwdResource>, property>, int> = 0>
 	property& operator=(_FwdResource&& value)
 	{
 		set_detail(std::forward<_FwdResource>(value));
@@ -176,7 +155,7 @@ public:
 	}
 
 private:
-	template <class _FwdResource = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<!public_access_v<_TModifier> && std::is_convertible_v<std::decay_t<_FwdResource>, _Resource>, int> = 0>
+	template <class _FwdResource = _Resource, class _TModifier = _SetterAccess, std::enable_if_t<!public_access_v<_TModifier> && std::is_convertible_v<std::decay_t<_FwdResource>, _Resource> && !std::is_same_v<std::remove_cvref_t<_FwdResource>, property>, int> = 0>
 	property& operator=(_FwdResource&& value)
 	{
 		set_detail(std::forward<_FwdResource>(value));
@@ -188,7 +167,9 @@ private:
 	template <class _FwdResource = _Resource>
 	constexpr void set_detail(_FwdResource&& resource)
 	{
-		if (_setter)
+		if constexpr (std::is_same_v<std::remove_cvref_t<_FwdResource>, setter>)
+			_setter = std::forward<_FwdResource>(resource);
+		else if (_setter)
 			_setter(std::forward<_FwdResource>(resource));
 		else
 			_resource = std::forward<_FwdResource>(resource);
@@ -203,7 +184,7 @@ private:
 	}
 
 public: // public set
-	template <class _Input, class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier> && (std::is_same_v<_Input, _Resource> || std::is_same_v<_Input, setter>), int> = 0>
+	template <class _Input, class _TModifier = _SetterAccess, std::enable_if_t<public_access_v<_TModifier> && (std::is_same_v<std::remove_cvref_t<_Input>, _Resource> || std::is_same_v<std::remove_cvref_t<_Input>, setter>), int> = 0>
 	constexpr void set(_Input&& value)
 	{
 		set_detail(std::forward<_Input>(value));

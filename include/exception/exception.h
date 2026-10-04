@@ -33,12 +33,8 @@ public:
 
 	template <janecekvit::constraints::format_view _Fmt, class... _Args>
 	exception(std::source_location&& srcl, std::thread::id&& thread, _Fmt&& format, _Args&&... arguments)
-		: std::exception()
-		, _srcl(std::move(srcl))
-		, _thread(std::move(thread))
+		: exception(std::forward<_Fmt>(format), std::forward_as_tuple(std::forward<_Args>(arguments)...), std::move(srcl), std::move(thread))
 	{
-		auto store = std::forward_as_tuple(std::forward<_Args>(arguments)...);
-		_inner_processing(std::forward<_Fmt>(format), std::move(store));
 	}
 
 #else
@@ -53,17 +49,13 @@ public:
 #endif
 
 	exception(std::source_location&& srcl = std::source_location::current(), std::thread::id&& thread = std::this_thread::get_id())
-		: std::exception()
-		, _srcl(std::move(srcl))
-		, _thread(std::move(thread))
-	{
 #if defined(HAS_STD_FORMAT)
-		_inner_processing("", {});
+		: exception("", std::tuple<>{}, std::move(srcl), std::move(thread))
 #else
-		_inner_processing("");
+		: exception("", std::move(srcl), std::move(thread))
 #endif
+	{
 	}
-
 
 	virtual ~exception() = default;
 

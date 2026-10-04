@@ -221,6 +221,7 @@ if(BUILD_TESTING)
         tests/test_atomic_concurrent.cpp
         tests/test_cloneable.cpp
         tests/test_constraints.cpp
+        tests/test_conversions.cpp
         tests/test_property.cpp
         tests/test_signal.cpp
         tests/test_concurrent.cpp

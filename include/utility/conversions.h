@@ -2,6 +2,7 @@
 #include "extensions/constraints.h"
 
 #include <algorithm>
+#include <iterator>
 #include <numeric>
 
 namespace janecekvit::conversions
@@ -15,7 +16,8 @@ inline std::string to_string(const std::wstring& str)
     std::mbstate_t state = std::mbstate_t();
 	const wchar_t* data = str.data();
 	size_t len = 0;
-	wcsrtombs_s(&len, nullptr, 0, &data, 0, &state);
+	if (wcsrtombs_s(&len, nullptr, 0, &data, 0, &state) != 0)
+		return {};
 
 	std::vector<char> buffer(len);
 
@@ -50,7 +52,8 @@ inline std::wstring to_wstring(const std::string& str)
     std::mbstate_t state = std::mbstate_t();
 	const char* data = str.data();
 	size_t len = 0;
-	mbsrtowcs_s(&len, nullptr, 0, &data, 0, &state);
+	if (mbsrtowcs_s(&len, nullptr, 0, &data, 0, &state) != 0)
+		return {};
 
 	std::vector<wchar_t> buffer(len);
 
@@ -82,9 +85,12 @@ template <constraints::string_type _String, class _Container>
 	requires constraints::is_container_v<_Container>
 _String to_string(const _Container& container)
 {
-	return std::accumulate(container.begin(), container.end(), _String(), [](const auto& item1, const auto& item2)
+	if (container.begin() == container.end())
+		return {};
+
+	return std::accumulate(std::next(container.begin()), container.end(), _String(*container.begin()), [](const auto& item1, const auto& item2)
 		{
-			return item1 + _String(", ") + item2;
+			return item1 + _String{ ',', ' ' } + item2;
 		});
 }
 
@@ -92,7 +98,7 @@ template <constraints::string_type _String, class _Container>
 	requires constraints::is_concurrent_container_v<_Container>
 _String to_string(const _Container& container)
 {
-	return to_string(container.concurrent().get());
+	return to_string<_String>(container.concurrent().get());
 }
 
 } // namespace janecekvit::conversions
