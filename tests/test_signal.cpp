@@ -6,6 +6,7 @@
 #include <latch>
 #include <semaphore>
 #include <shared_mutex>
+#include <thread>
 
 using namespace janecekvit;
 using namespace std::string_literals;

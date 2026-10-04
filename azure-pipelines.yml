@@ -141,12 +141,12 @@ stages:
     # Cache CMake build directory for faster builds
     - task: Cache@2
       inputs:
-        key: 'cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | $(compiler) | $(cxxStandard) | CMakeLists.txt | tests'
+        key: 'cmake-build-$(BuildDate) | $(Agent.OS) | $(vmImage) | $(buildPlatform) | $(buildConfiguration) | $(compiler) | $(cxxStandard) | CMakeLists.txt | tests'
         path: '$(buildDir)'
         restoreKeys: |
-          cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | $(compiler) | $(cxxStandard)
-          cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | $(compiler)
-          cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration)
+          cmake-build-$(BuildDate) | $(Agent.OS) | $(vmImage) | $(buildPlatform) | $(buildConfiguration) | $(compiler) | $(cxxStandard)
+          cmake-build-$(BuildDate) | $(Agent.OS) | $(vmImage) | $(buildPlatform) | $(buildConfiguration) | $(compiler)
+          cmake-build-$(BuildDate) | $(Agent.OS) | $(vmImage) | $(buildPlatform) | $(buildConfiguration)
       displayName: "Cache CMake build directory"
       
     # Configure CMake - Windows

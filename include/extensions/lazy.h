@@ -9,7 +9,7 @@ namespace janecekvit::extensions
 /// </summary>
 
 template <class _Ret, class... _Args>
-class lazy_action
+class lazy_action final
 {
 public:
 	template <class _F, std::enable_if_t<std::is_invocable_v<_F, _Args...>, int> = 0>

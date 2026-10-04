@@ -7,7 +7,7 @@
                 "CMAKE_CXX_STANDARD": "23"
             },
             "displayName": "C++23 Debug",
-            "generator": "Visual Studio 17 2022",
+            "generator": "Visual Studio 18 2026",
             "name": "cpp23-debug"
         },
         {
@@ -17,7 +17,7 @@
                 "CMAKE_CXX_STANDARD": "23"
             },
             "displayName": "C++23 Release",
-            "generator": "Visual Studio 17 2022",
+            "generator": "Visual Studio 18 2026",
             "name": "cpp23-release"
         },
         {
@@ -27,7 +27,7 @@
                 "CMAKE_CXX_STANDARD": "20"
             },
             "displayName": "C++20 Debug",
-            "generator": "Visual Studio 17 2022",
+            "generator": "Visual Studio 18 2026",
             "name": "cpp20-debug"
         },
         {
@@ -37,7 +37,7 @@
                 "CMAKE_CXX_STANDARD": "20"
             },
             "displayName": "C++20 Release",
-            "generator": "Visual Studio 17 2022",
+            "generator": "Visual Studio 18 2026",
             "name": "cpp20-release"
         }
     ],

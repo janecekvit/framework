@@ -18,14 +18,14 @@ jobs:
           # Windows MSVC - C++20
           - os: windows-latest
             compiler: msvc
-            cmake_generator: "Visual Studio 17 2022"
+            cmake_generator: "Visual Studio 18 2026"
             vcpkg_triplet: x64-windows
             cxx_standard: "20"
             
           # Windows MSVC - C++23
           - os: windows-latest
             compiler: msvc
-            cmake_generator: "Visual Studio 17 2022"
+            cmake_generator: "Visual Studio 18 2026"
             vcpkg_triplet: x64-windows
             cxx_standard: "23"
             
