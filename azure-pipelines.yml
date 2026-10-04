@@ -15,20 +15,20 @@ stages:
       matrix:
         # Windows MSVC - C++20  
         Windows_MSVC_20:
-          vmImage: 'windows-2025'
+          vmImage: 'windows-latest'
           compiler: 'msvc'
           cxxStandard: '20'
           buildPlatform: 'x64'
-          cmakeGenerator: 'Visual Studio 18 2026'
+          cmakeGenerator: 'Visual Studio 17 2022'
           buildDir: '$(Build.SourcesDirectory)\build'
           
         # Windows MSVC - C++23
         Windows_MSVC_23:
-          vmImage: 'windows-2025'
+          vmImage: 'windows-latest'
           compiler: 'msvc'
           cxxStandard: '23'
           buildPlatform: 'x64'
-          cmakeGenerator: 'Visual Studio 18 2026'
+          cmakeGenerator: 'Visual Studio 17 2022'
           buildDir: '$(Build.SourcesDirectory)\build'
           
         # Ubuntu GCC - C++20

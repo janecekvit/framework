@@ -1,5 +1,4 @@
 #pragma once
-#include "compatibility/compiler_support.h"
 #include "extensions/constraints.h"
 
 #include <functional>
@@ -13,7 +12,7 @@ namespace janecekvit::extensions
 /// When custom exception callback is set, exceptions can be cached during object's destruction
 /// </summary>
 template <std::invocable _F, class _E = constraints::default_exception_callback>
-class final_action
+class final_action final
 {
 public:
 	final_action(_F&& callback)
@@ -28,11 +27,11 @@ public:
 	{
 	}
 
-	virtual ~final_action()
+	~final_action()
 	{
 		try
 		{
-			_invoke_callback();
+			_callback();
 		}
 		catch (const std::exception& ex)
 		{
@@ -45,11 +44,6 @@ public:
 	}
 
 private:
-	FRAMEWORK_NOINLINE void _invoke_callback() const
-	{
-		_callback();
-	}
-
 	const _F _callback{};
 	const _E _exception_callback{};
 };
