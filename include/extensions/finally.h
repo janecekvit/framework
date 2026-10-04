@@ -1,4 +1,5 @@
 #pragma once
+#include "compatibility/compiler_support.h"
 #include "extensions/constraints.h"
 
 #include <functional>
@@ -31,7 +32,7 @@ public:
 	{
 		try
 		{
-			_callback();
+			_invoke_callback();
 		}
 		catch (const std::exception& ex)
 		{
@@ -44,6 +45,11 @@ public:
 	}
 
 private:
+	FRAMEWORK_NOINLINE void _invoke_callback() const
+	{
+		_callback();
+	}
+
 	const _F _callback{};
 	const _E _exception_callback{};
 };

@@ -25,3 +25,10 @@ Purpose:	header for compiler support
 #include <format>
 #define HAS_STD_FORMAT
 #endif
+
+// Keeps a call out of line; GCC 14 IPA modref otherwise drops stores made before an exception that the caller catches
+#if defined(_MSC_VER) && !defined(__clang__)
+#define FRAMEWORK_NOINLINE __declspec(noinline)
+#else
+#define FRAMEWORK_NOINLINE [[gnu::noinline]]
+#endif
