@@ -27,7 +27,7 @@ public:
 	{
 	}
 
-	~final_action()
+	virtual ~final_action()
 	{
 		try
 		{
