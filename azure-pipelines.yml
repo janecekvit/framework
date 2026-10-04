@@ -15,20 +15,20 @@ stages:
       matrix:
         # Windows MSVC - C++20  
         Windows_MSVC_20:
-          vmImage: 'windows-latest'
+          vmImage: 'windows-2025'
           compiler: 'msvc'
           cxxStandard: '20'
           buildPlatform: 'x64'
-          cmakeGenerator: 'Visual Studio 17 2022'
+          cmakeGenerator: 'Visual Studio 18 2026'
           buildDir: '$(Build.SourcesDirectory)\build'
           
         # Windows MSVC - C++23
         Windows_MSVC_23:
-          vmImage: 'windows-latest'
+          vmImage: 'windows-2025'
           compiler: 'msvc'
           cxxStandard: '23'
           buildPlatform: 'x64'
-          cmakeGenerator: 'Visual Studio 17 2022'
+          cmakeGenerator: 'Visual Studio 18 2026'
           buildDir: '$(Build.SourcesDirectory)\build'
           
         # Ubuntu GCC - C++20
@@ -141,12 +141,12 @@ stages:
     # Cache CMake build directory for faster builds
     - task: Cache@2
       inputs:
-        key: 'cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | $(compiler) | $(cxxStandard) | CMakeLists.txt | tests'
+        key: 'cmake-build-$(BuildDate) | $(Agent.OS) | $(vmImage) | $(buildPlatform) | $(buildConfiguration) | $(compiler) | $(cxxStandard) | CMakeLists.txt | tests'
         path: '$(buildDir)'
         restoreKeys: |
-          cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | $(compiler) | $(cxxStandard)
-          cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration) | $(compiler)
-          cmake-build-$(BuildDate) | $(Agent.OS) | $(buildPlatform) | $(buildConfiguration)
+          cmake-build-$(BuildDate) | $(Agent.OS) | $(vmImage) | $(buildPlatform) | $(buildConfiguration) | $(compiler) | $(cxxStandard)
+          cmake-build-$(BuildDate) | $(Agent.OS) | $(vmImage) | $(buildPlatform) | $(buildConfiguration) | $(compiler)
+          cmake-build-$(BuildDate) | $(Agent.OS) | $(vmImage) | $(buildPlatform) | $(buildConfiguration)
       displayName: "Cache CMake build directory"
       
     # Configure CMake - Windows
