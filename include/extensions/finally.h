@@ -12,9 +12,14 @@ namespace janecekvit::extensions
 /// When custom exception callback is set, exceptions can be cached during object's destruction
 /// </summary>
 template <std::invocable _F, class _E = constraints::default_exception_callback>
-class final_action final
+class [[nodiscard]] final_action final
 {
 public:
+	final_action(const final_action&) = delete;
+	final_action(final_action&&) = delete;
+	final_action& operator=(const final_action&) = delete;
+	final_action& operator=(final_action&&) = delete;
+
 	final_action(_F&& callback)
 		: _callback(std::forward<_F>(callback))
 	{

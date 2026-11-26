@@ -138,4 +138,15 @@ TEST_F(test_finally, TestFinalActionNamedCallbacks)
 	ASSERT_TRUE(exceptionHandled);
 }
 
+TEST_F(test_finally, TestFinalActionCannotBeDuplicated)
+{
+	// A copy would run the callback a second time when it leaves scope.
+	using action_type = extensions::final_action<void (*)()>;
+
+	ASSERT_FALSE(std::is_copy_constructible_v<action_type>);
+	ASSERT_FALSE(std::is_copy_assignable_v<action_type>);
+	ASSERT_FALSE(std::is_move_constructible_v<action_type>);
+	ASSERT_FALSE(std::is_move_assignable_v<action_type>);
+}
+
 } // namespace framework_tests

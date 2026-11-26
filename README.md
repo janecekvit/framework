@@ -52,8 +52,35 @@ The library offers:
 
 ## Installation
 
-Include the necessary directories in your project's include path:
-git clone https://github.com/vitjanecek/framework.git
+The library is header-only. Link the CMake target `framework::framework`; it carries the include path, the C++20 requirement and the thread library. Headers are included by component, for example `#include "synchronization/concurrent.h"`.
+
+### FetchContent
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(
+    framework
+    GIT_REPOSITORY https://github.com/janecekvit/framework.git
+    GIT_TAG        <release-tag> # pin a release tag or a commit
+)
+FetchContent_MakeAvailable(framework)
+
+target_link_libraries(my_app PRIVATE framework::framework)
+```
+
+Pulled in as a subproject, the framework builds no tests, adds no global compiler flags and generates no install rules (set `FRAMEWORK_INSTALL=ON` if you need them).
+
+### Installed package
+
+```bash
+cmake -S framework -B framework-build -DBUILD_TESTING=OFF
+cmake --install framework-build --prefix <prefix>
+```
+
+```cmake
+find_package(framework REQUIRED)
+target_link_libraries(my_app PRIVATE framework::framework)
+```
 
 ## Features
 
@@ -75,7 +102,7 @@ The `throw_exception` template class simplifies throwing exceptions with formatt
 using namespace janecekvit;
 
 // With std::format support (C++20, requires macOS 13.3+ or Linux/Windows)
-#if defined(HAS_STD_FORMAT)
+#if defined(JANECEKVIT_HAS_STD_FORMAT)
 try
 {
 	throw exception::exception("Error code {}: {}", std::make_tuple(404, "Not Found"));
@@ -107,7 +134,7 @@ Using `throw_exception` helper
 using namespace janecekvit;
 
 // With std::format support (C++20)
-#if defined(HAS_STD_FORMAT)
+#if defined(JANECEKVIT_HAS_STD_FORMAT)
 try
 {
 	exception::throw_exception("Error code {}: {}", 404, "Not Found");
@@ -562,7 +589,7 @@ It provides the following key components:
 - **`resource_owner`**: A template class that owns a resource and provides thread-safe access to it via exclusive or concurrent holders.
 - **`exclusive_resource_holder`**: Grants exclusive (write) access to the resource, ensuring no other threads can access it concurrently.
 - **`concurrent_resource_holder`**: Grants concurrent (read) access to the resource, allowing multiple threads to read the resource simultaneously. The access is read-only: it exposes const references and const iterators only, so use `at()` or `find()` instead of `operator[]` on maps.
-- **Debugging Support**: In debug configuration or when `CONCURRENT_DBG_TOOLS` define is set, the library includes additional checks and lock detail tracking to help diagnose synchronization issues.
+- **Debugging Support**: The build-dependent aliases track lock details (thread, time, `std::source_location`) unless `NDEBUG` or `SYNCHRONIZATION_NO_TRACKING` is defined, and switch to runtime-configurable tracking when `SYNCHRONIZATION_RUNTIME_TRACKING` is defined. These macros change the alias type, so every translation unit and library linked together must be built with the same setting; use the explicit `_debug` / `_release` / `_runtime` types to avoid the dependency.
 
 ```cpp
 #include "synchronization/concurrent.h"
@@ -658,14 +685,14 @@ It provides the following key components:
 - **`lock_owner`**: Provides a mechanism to manage the ownership of locks, including exclusive and concurrent locks.
 - **`exclusive_lock_owner`**: A class that provides exclusive ownership of a lock, allowing only one thread to hold the lock at a time.
 - **`concurrent_lock_owner`**: A class that provides concurrent ownership of a lock, allowing multiple threads to hold the lock simultaneously.
-- **Debugging Support**: In debug configuration or when `CONCURRENT_DBG_TOOLS` define is set, the library includes additional checks and lock detail tracking to help diagnose synchronization issues.
+- **Debugging Support**: The build-dependent aliases track lock details (thread, time, `std::source_location`) unless `NDEBUG` or `SYNCHRONIZATION_NO_TRACKING` is defined, and switch to runtime-configurable tracking when `SYNCHRONIZATION_RUNTIME_TRACKING` is defined. These macros change the alias type, so every translation unit and library linked together must be built with the same setting; use the explicit `_debug` / `_release` / `_runtime` types to avoid the dependency.
 
 ```cpp
 #include "synchronization/lock_owner.h"
 
 using namespace janecekvit::synchronization;
 
-synchronization::lock_owner<> lock;
+lock_owner<> lock;
 bool nonThreadSafeLogic = false;
 
 // Exclusive access
@@ -688,19 +715,19 @@ Example for getting information about the locks in debug mode
 using namespace janecekvit::synchronization;
 
 // Release version - no lock tracking
-synchronization::lock_owner_release<> lockRelease;
+lock_owner_release<> lockRelease;
 
 // Debug version - compile-time enabled lock tracking
-synchronization::lock_owner_debug<> lockDebug;
+lock_owner_debug<> lockDebug;
 
 // Runtime version - runtime-configurable lock tracking with custom callbacks
-synchronization::lock_owner_runtime<> lockRuntime;
+lock_owner_runtime<> lockRuntime;
 
 // Build-dependent alias
 // debug tracking when NDEBUG is not defined (debug build)
 // no tracking when NDEBUG is defined (release build) or SYNCHRONIZATION_NO_TRACKING is defined
 // runtime tracking when SYNCHRONIZATION_RUNTIME_TRACKING is defined
-synchronization::lock_owner<> lockAlias;
+lock_owner<> lockAlias;
 
 // Get the lock details for tracked lock owners
 auto exclusiveDetails = lockDebug.get_exclusive_lock_details();
@@ -728,7 +755,7 @@ lock_tracking_runtime::set_logging_callback(
     });
 
 // Create runtime policy lock owner
-synchronization::lock_owner_runtime<> lock;
+lock_owner_runtime<> lock;
 
 bool nonThreadSafeLogic = false;
 

@@ -245,7 +245,7 @@ public:
 		_track_acquired(std::move(srcl));
 	}
 
-	constexpr bool try_lock(std::source_location srcl = std::source_location::current())
+	[[nodiscard]] constexpr bool try_lock(std::source_location srcl = std::source_location::current())
 	{
 		_check_deadlock();
 		bool locked = _lock.try_lock();
@@ -312,12 +312,12 @@ public:
 	}
 #endif // HAS_JTHREAD
 
-	constexpr bool owns_lock() const noexcept
+	[[nodiscard]] constexpr bool owns_lock() const noexcept
 	{
 		return _lock.owns_lock();
 	}
 
-	operator bool() const noexcept
+	[[nodiscard]] explicit operator bool() const noexcept
 	{
 		return owns_lock();
 	}
