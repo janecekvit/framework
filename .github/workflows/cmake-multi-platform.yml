@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: ${{ matrix.os }} - ${{ matrix.compiler }} - C++${{ matrix.cxx_standard }}
+    name: ${{ matrix.os }} - ${{ matrix.compiler }} - C++${{ matrix.cxx_standard }}${{ matrix.osx_deployment_target && format(' - macOS {0}', matrix.osx_deployment_target) || '' }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
@@ -19,71 +19,62 @@ jobs:
           - os: windows-latest
             compiler: msvc
             cmake_generator: "Visual Studio 18 2026"
-            vcpkg_triplet: x64-windows
             cxx_standard: "20"
-            
+
           # Windows MSVC - C++23
           - os: windows-latest
             compiler: msvc
             cmake_generator: "Visual Studio 18 2026"
-            vcpkg_triplet: x64-windows
             cxx_standard: "23"
-            
+
           # Ubuntu GCC - C++20
           - os: ubuntu-latest
             compiler: gcc
             cmake_generator: "Unix Makefiles"
-            vcpkg_triplet: x64-linux
             cc: gcc-14
             cxx: g++-14
             cxx_standard: "20"
-            
+
           # Ubuntu GCC - C++23
           - os: ubuntu-latest
             compiler: gcc
             cmake_generator: "Unix Makefiles"
-            vcpkg_triplet: x64-linux
             cc: gcc-14
             cxx: g++-14
             cxx_standard: "23"
-            
+
           # Ubuntu Clang - C++20
           - os: ubuntu-latest
             compiler: clang
             cmake_generator: "Unix Makefiles"
-            vcpkg_triplet: x64-linux
             cc: clang-18
             cxx: clang++-18
             cxx_standard: "20"
-            
+
           # Ubuntu Clang - C++23
           - os: ubuntu-latest
             compiler: clang
             cmake_generator: "Unix Makefiles"
-            vcpkg_triplet: x64-linux
             cc: clang-18
             cxx: clang++-18
             cxx_standard: "23"
-            
+
           # macOS Clang - C++20
           - os: macos-latest
             compiler: clang
             cmake_generator: "Unix Makefiles"
-            vcpkg_triplet: x64-osx
             cxx_standard: "20"
-            
+
           # macOS Clang - C++23
           - os: macos-latest
             compiler: clang
             cmake_generator: "Unix Makefiles"
-            vcpkg_triplet: x64-osx
             cxx_standard: "23"
 
           # macOS Clang - C++23 with Deployment Target 12.0
           - os: macos-latest
             compiler: clang
             cmake_generator: "Unix Makefiles"
-            vcpkg_triplet: x64-osx
             cxx_standard: "23"
             osx_deployment_target: "12.0"
 
@@ -91,21 +82,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # Cache vcpkg
-    - name: Cache vcpkg
-      id: cache-vcpkg
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{ github.workspace }}/vcpkg
-          !${{ github.workspace }}/vcpkg/buildtrees
-          !${{ github.workspace }}/vcpkg/packages
-          !${{ github.workspace }}/vcpkg/downloads
-        key: ${{ runner.os }}-vcpkg-${{ hashFiles('**/vcpkg.json') }}
-        restore-keys: |
-          ${{ runner.os }}-vcpkg-
-
-    # Setup build environment
     - name: Setup MSVC (Windows)
       if: matrix.os == 'windows-latest'
       uses: ilammy/msvc-dev-cmd@v1
@@ -114,6 +90,7 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       shell: pwsh
       run: |
+        $PSNativeCommandUseErrorActionPreference = $true
         if ("${{ matrix.compiler }}" -eq "gcc") {
           sudo apt-get update
           sudo apt-get install -y gcc-14 g++-14
@@ -124,29 +101,7 @@ jobs:
         echo "CC=${{ matrix.cc }}" | Out-File -FilePath $env:GITHUB_ENV -Append
         echo "CXX=${{ matrix.cxx }}" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-    # Install vcpkg
-    - name: Setup vcpkg
-      shell: pwsh
-      run: |
-        if (-not (Test-Path "vcpkg")) {
-          git clone https://github.com/Microsoft/vcpkg.git
-          Set-Location vcpkg
-          if ($IsWindows) {
-            ./bootstrap-vcpkg.bat -disableMetrics
-          } else {
-            ./bootstrap-vcpkg.sh -disableMetrics
-          }
-          Set-Location ..
-        }
-        ./vcpkg/vcpkg --version
-
-    # Install dependencies
-    - name: Install dependencies
-      shell: pwsh
-      run: |
-        ./vcpkg/vcpkg install gtest:${{ matrix.vcpkg_triplet }}
-
-    # Configure
+    # googletest comes from FetchContent in CMakeLists.txt, so no package manager is needed.
     - name: Configure CMake
       shell: pwsh
       run: |
@@ -159,23 +114,40 @@ jobs:
           -G "${{ matrix.cmake_generator }}" `
           -DCMAKE_BUILD_TYPE=Release `
           -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }} `
-          $deploymentTargetArg `
-          -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" `
-          -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }}
+          $deploymentTargetArg
 
-    # Build
     - name: Build
       shell: pwsh
       run: |
         cmake --build build --config Release --parallel
 
-    # Test
     - name: Test
       shell: pwsh
       run: |
-        ctest --test-dir build --output-on-failure --parallel --timeout 30
+        ctest --test-dir build --build-config Release --output-on-failure --parallel --timeout 30
 
-    # Upload test results
+    # Consumes framework::framework the way an external project does, both from the
+    # installed package and as an add_subdirectory subproject.
+    - name: Check consumer usage
+      shell: pwsh
+      run: |
+        $PSNativeCommandUseErrorActionPreference = $true
+        $installPrefix = Join-Path "${{ runner.temp }}" "framework-install"
+
+        cmake --install build --config Release --prefix $installPrefix
+
+        cmake -S tests/package -B build-package-installed `
+          -G "${{ matrix.cmake_generator }}" `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_PREFIX_PATH="$installPrefix"
+        cmake --build build-package-installed --config Release
+
+        cmake -S tests/package -B build-package-subproject `
+          -G "${{ matrix.cmake_generator }}" `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DFRAMEWORK_SOURCE_DIR="${{ github.workspace }}"
+        cmake --build build-package-subproject --config Release
+
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@v4

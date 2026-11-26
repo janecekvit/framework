@@ -16,6 +16,8 @@ Purpose:	header for compiler support
 // Check for std::jthread support
 #if defined(__cpp_lib_jthread) && __cpp_lib_jthread >= 201911L && defined(__has_include) && __has_include(<stop_token>)
 #include <stop_token>
+#define JANECEKVIT_HAS_JTHREAD
+// Unprefixed name kept for existing consumers; prefer JANECEKVIT_HAS_JTHREAD.
 #define HAS_JTHREAD
 #endif
 
@@ -23,5 +25,7 @@ Purpose:	header for compiler support
 // std::format requires to_chars for floating-point types, which is only available on macOS 13.3+
 #if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L &&  (!defined(__APPLE__) || __MAC_OS_X_VERSION_MIN_REQUIRED >= 130300)
 #include <format>
+#define JANECEKVIT_HAS_STD_FORMAT
+// Unprefixed name kept for existing consumers; prefer JANECEKVIT_HAS_STD_FORMAT.
 #define HAS_STD_FORMAT
 #endif

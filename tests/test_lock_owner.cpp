@@ -154,7 +154,7 @@ TEST_F(test_lock_owner, TestExclusiveAccessDoubleTryLock)
 
 	ASSERT_THROW(
 		{
-			lock.try_lock();
+			[[maybe_unused]] const bool locked = lock.try_lock();
 		},
 		std::system_error);
 }
@@ -319,7 +319,7 @@ TEST_F(test_lock_owner, TestConcurrentAccessDoubleTryLock)
 
 	ASSERT_THROW(
 		{
-			lock.try_lock();
+			[[maybe_unused]] const bool locked = lock.try_lock();
 		},
 		std::system_error);
 }
@@ -917,6 +917,19 @@ TEST_F(test_lock_owner, TestWaitDoesNotMoveLvaluePredicate)
 	auto lock = owner.exclusive();
 	lock.wait(cv, predicate);
 	ASSERT_TRUE(predicate());
+}
+
+TEST_F(test_lock_owner, TestLockHolderConvertsToBoolOnlyExplicitly)
+{
+	// An implicit conversion lets "int count = lock;" or "lock + 1" compile silently.
+	using exclusive_holder_type = decltype(std::declval<lock_owner_debug<>&>().exclusive());
+	using concurrent_holder_type = decltype(std::declval<lock_owner_debug<>&>().concurrent());
+
+	constexpr bool exclusive_converts_implicitly = std::is_convertible_v<exclusive_holder_type, bool>;
+	constexpr bool concurrent_converts_implicitly = std::is_convertible_v<concurrent_holder_type, bool>;
+
+	ASSERT_FALSE(exclusive_converts_implicitly);
+	ASSERT_FALSE(concurrent_converts_implicitly);
 }
 
 } // namespace framework_tests
